@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { --radius: 12px; }
+
+html, body, #__next { height: 100%; background: #0B0A13; color: #fff; }
+
+/* Subtle neural background helpers */
+.bg-neural { position: relative; }
+.bg-neural::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 20% 20%, rgba(107,59,255,0.08) 0, transparent 40%),
+    radial-gradient(circle at 80% 60%, rgba(30,158,255,0.08) 0, transparent 35%);
+  pointer-events: none;
+}

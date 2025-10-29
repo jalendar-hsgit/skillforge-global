@@ -1,0 +1,41 @@
+import { cn } from './utils'
+import { motion } from 'framer-motion'
+import React from 'react'
+
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: 'primary' | 'secondary' | 'ghost'
+  size?: 'sm' | 'md' | 'lg'
+}
+
+export function Button({
+  className, variant = 'primary', size = 'md', children, ...props
+}: ButtonProps) {
+  const sizes = {
+    sm: 'h-10 px-4 text-sm',
+    md: 'h-12 px-6 text-sm',
+    lg: 'h-14 px-7 text-base'
+  }[size]
+
+  const styles =
+    variant === 'primary'
+      ? 'text-white bg-gradient-to-r from-forgePurple to-neuralBlue shadow-glow hover:opacity-95'
+      : variant === 'secondary'
+      ? 'text-aiElectric border border-aiElectric/60 hover:bg-aiElectric/10'
+      : 'text-techGray hover:text-white hover:bg-white/5'
+
+  const base =
+    'inline-flex items-center justify-center rounded-2xl font-semibold tracking-wide transition ' +
+    'focus:outline-none focus:ring-2 focus:ring-aiElectric/40 focus:ring-offset-2 focus:ring-offset-deepTech ' +
+    'disabled:opacity-60 disabled:cursor-not-allowed'
+
+  return (
+    <motion.button
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      className={cn(base, sizes, styles, className)}
+      {...props}
+    >
+      {children}
+    </motion.button>
+  )
+}

@@ -1,0 +1,21 @@
+{
+  "id": "career-aptitude-1",
+  "path": "career",
+  "title": "Career Aptitude",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "multiple_choice",
+      "prompt": "Which work style do you prefer?",
+      "options": ["Independent projects", "Team collaboration", "Client-facing tasks", "Research & analysis"],
+      "answer": 1
+    },
+    {
+      "id": "q2",
+      "type": "multiple_choice",
+      "prompt": "Pick the activity you enjoy most:",
+      "options": ["Design UI", "Analyze data", "Write documentation", "Automate tasks"],
+      "answer": 3
+    }
+  ]
+}

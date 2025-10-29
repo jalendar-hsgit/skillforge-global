@@ -1,0 +1,149 @@
+[
+  {
+    "id": "py-001",
+    "path": "python-ai",
+    "title": "Python Full Course",
+    "youtubeId": "rfscVS0vtbw",
+    "duration": "4h"
+  },
+  {
+    "id": "py-002",
+    "path": "python-ai",
+    "title": "NumPy Crash Course",
+    "youtubeId": "QUT1VHiLmmI",
+    "duration": "1h"
+  },
+  {
+    "id": "fs-001",
+    "path": "fullstack",
+    "title": "React in 100 Minutes",
+    "youtubeId": "bMknfKXIFA8",
+    "duration": "1h40m"
+  },
+  {
+    "id": "aws-001",
+    "path": "aws-devops",
+    "title": "AWS Basics",
+    "youtubeId": "ulprqHHWlng",
+    "duration": "1h"
+  },
+  {
+    "id": "py-003",
+    "path": "python-ai",
+    "title": "Pandas Tutorial",
+    "youtubeId": "vmEHCJofslg",
+    "duration": "1h"
+  },
+  {
+    "id": "fs-002",
+    "path": "fullstack",
+    "title": "Node.js Crash Course",
+    "youtubeId": "fBNz5xF-Kx4",
+    "duration": "1h"
+  },
+  {
+    "id": "py-010",
+    "path": "python-ai",
+    "title": "Python OOP Crash Course",
+    "youtubeId": "JeznW_7DlB0",
+    "duration": "1h"
+  },
+  {
+    "id": "py-011",
+    "path": "python-ai",
+    "title": "scikit-learn Tutorial",
+    "youtubeId": "0Lt9w-BxKFQ",
+    "duration": "2h"
+  },
+  {
+    "id": "py-012",
+    "path": "python-ai",
+    "title": "Matplotlib & Seaborn",
+    "youtubeId": "wB9C0Mz9gSo",
+    "duration": "1h"
+  },
+  {
+    "id": "fs-010",
+    "path": "fullstack",
+    "title": "Node + Express REST API",
+    "youtubeId": "Oe421EPjeBE",
+    "duration": "2h"
+  },
+  {
+    "id": "fs-011",
+    "path": "fullstack",
+    "title": "JWT Auth Explained",
+    "youtubeId": "mbsmsi7l3r4",
+    "duration": "25m"
+  },
+  {
+    "id": "fs-012",
+    "path": "fullstack",
+    "title": "Next.js Basics",
+    "youtubeId": "A63UxsQsEbU",
+    "duration": "1h"
+  },
+  {
+    "id": "aws-010",
+    "path": "aws-devops",
+    "title": "Docker in 100 Seconds",
+    "youtubeId": "Gjnup-PuquQ",
+    "duration": "7m"
+  },
+  {
+    "id": "aws-011",
+    "path": "aws-devops",
+    "title": "CI/CD with GitHub Actions",
+    "youtubeId": "R8_veQiYBjI",
+    "duration": "1h"
+  },
+  {
+    "id": "aws-012",
+    "path": "aws-devops",
+    "title": "Kubernetes Crash Course",
+    "youtubeId": "X48VuDVv0do",
+    "duration": "45m"
+  },
+  {
+    "id": "sec-010",
+    "path": "cybersec",
+    "title": "OWASP Top 10 Overview",
+    "youtubeId": "E6ZTZ2ZSlm8",
+    "duration": "30m"
+  },
+  {
+    "id": "sec-011",
+    "path": "cybersec",
+    "title": "Burp Suite Basics",
+    "youtubeId": "u7nP01ZrF2o",
+    "duration": "40m"
+  },
+  {
+    "id": "sec-012",
+    "path": "cybersec",
+    "title": "Network Security Basics",
+    "youtubeId": "qWcGgRFRAPM",
+    "duration": "50m"
+  },
+  {
+    "id": "fl-010",
+    "path": "flutter",
+    "title": "Flutter in 100 Seconds",
+    "youtubeId": "PDVn8xjFzCI",
+    "duration": "2m"
+  },
+  {
+    "id": "fl-011",
+    "path": "flutter",
+    "title": "Flutter Widgets 101",
+    "youtubeId": "x0uinJvhNxI",
+    "duration": "1h"
+  },
+  {
+    "id": "fl-012",
+    "path": "flutter",
+    "title": "State Management Overview",
+    "youtubeId": "d_m5csmrf7I",
+    "duration": "35m"
+  }
+]

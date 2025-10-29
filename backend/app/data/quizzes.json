@@ -1,0 +1,46 @@
+{
+  "python-ai": {
+    "id": "quiz-python-ai-1",
+    "title": "Python & AI – Basics",
+    "questions": [
+      {
+        "id": "q1",
+        "type": "mcq",
+        "text": "What does list comprehension produce in Python?",
+        "options": ["A generator", "A list", "A tuple", "A dict"],
+        "answerIndex": 1,
+        "explanation": "List comprehensions build lists directly: [x for x in iterable]."
+      },
+      {
+        "id": "q2",
+        "type": "mcq",
+        "text": "Which library is most commonly used for numerical arrays?",
+        "options": ["matplotlib", "pandas", "numpy", "seaborn"],
+        "answerIndex": 2,
+        "explanation": "NumPy provides fast N-dimensional arrays and math."
+      },
+      {
+        "id": "q3",
+        "type": "mcq",
+        "text": "In supervised learning, the training data includes…",
+        "options": ["Only inputs", "Only outputs", "Inputs and outputs (labels)", "Neither"],
+        "answerIndex": 2,
+        "explanation": "Supervised learning maps inputs → outputs using labeled data."
+      }
+    ]
+  },
+  "fullstack": {
+    "id": "quiz-fullstack-1",
+    "title": "Full-Stack – Fundamentals",
+    "questions": [
+      {
+        "id": "q1",
+        "type": "mcq",
+        "text": "HTTP 201 means…",
+        "options": ["OK", "Created", "No Content", "Bad Request"],
+        "answerIndex": 1,
+        "explanation": "201 Created indicates a new resource was created by the request."
+      }
+    ]
+  }
+}
