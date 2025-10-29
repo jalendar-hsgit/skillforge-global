@@ -1,0 +1,65 @@
+# .gitlab-ci.yml
+# Stages
+stages:
+  - test
+  - build
+
+# Global vars (tweak if you need)
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  NODE_ENV: "production"
+  # Next.js embeds this at build time; override in GitLab CI variables if needed
+  NEXT_PUBLIC_API_BASE: "http://localhost:8001"
+
+# Cache settings to speed up pipelines
+cache:
+  paths:
+    - .cache/pip/
+    - node_modules/
+
+# ---- Backend: smoke test + DB init ----
+backend:test:
+  stage: test
+  image: python:3.11
+  before_script:
+    - python --version
+    - pip install --upgrade pip
+    - cd backend
+    - pip install -r requirements.txt
+  script:
+    # 1) Import the app to catch import errors quickly
+    - python -c "import importlib; importlib.import_module('app.main'); print('✅ FastAPI import OK')"
+    # 2) Create SQLite DB/tables to ensure models/engine work
+    - python - <<'PY'
+from app.core.db import Base, engine
+from app.models import User, Progress, QuizAttempt, CreditLedger, Subscriber
+Base.metadata.create_all(bind=engine)
+print("✅ DB & tables created")
+PY
+  artifacts:
+    when: always
+    paths:
+      - backend/app/data/*.db
+    expire_in: 1 week
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+
+# ---- Frontend: production build ----
+frontend:build:
+  stage: build
+  image: node:20-bullseye
+  before_script:
+    - node -v
+    - npm -v
+    - npm ci
+  script:
+    - npm run build
+  artifacts:
+    paths:
+      - .next
+      - next.config.ts
+      - package.json
+      - package-lock.json
+    expire_in: 1 week
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
