@@ -1,0 +1,42 @@
+{
+  "testEnvironment": "jsdom",
+  "setupFilesAfterEnv": ["<rootDir>/jest.setup.js"],
+  "moduleNameMapper": {
+    "^@/(.*)$": "<rootDir>/src/$1",
+    "\\.(css|less|scss|sass)$": "identity-obj-proxy"
+  },
+  "collectCoverageFrom": [
+    "src/**/*.{js,jsx,ts,tsx}",
+    "!src/**/*.d.ts",
+    "!src/**/*.stories.{js,jsx,ts,tsx}",
+    "!src/**/_app.tsx",
+    "!src/**/_document.tsx"
+  ],
+  "coverageThreshold": {
+    "global": {
+      "branches": 75,
+      "functions": 75,
+      "lines": 75,
+      "statements": 75
+    }
+  },
+  "transform": {
+    "^.+\\.(js|jsx|ts|tsx)$": ["@swc/jest", {
+      "jsc": {
+        "parser": {
+          "syntax": "typescript",
+          "tsx": true
+        },
+        "transform": {
+          "react": {
+            "runtime": "automatic"
+          }
+        }
+      }
+    }]
+  },
+  "testMatch": [
+    "**/__tests__/**/*.(test|spec).(js|jsx|ts|tsx)",
+    "**/*.(test|spec).(js|jsx|ts|tsx)"
+  ]
+}

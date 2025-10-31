@@ -1,59 +1,151 @@
-# .gitlab-ci.yml
-# Stages
+# .gitlab-ci.yml - SkillForge Global CI/CD Pipeline
+# Version: 1.1.0
+# Last Updated: January 2025
+
 stages:
   - test
+  - security
   - build
+  - deploy
 
-# Global vars (tweak if you need)
+# Global variables
 variables:
+  PYTHON_VERSION: "3.11"
+  NODE_VERSION: "18"
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  npm_config_cache: "$CI_PROJECT_DIR/.cache/npm"
   NODE_ENV: "production"
-  # Next.js embeds this at build time; override in GitLab CI variables if needed
   NEXT_PUBLIC_API_BASE: "http://localhost:8001"
 
 # Cache settings to speed up pipelines
 cache:
+  key: ${CI_COMMIT_REF_SLUG}
   paths:
     - .cache/pip/
+    - .cache/npm/
     - node_modules/
+    - backend/.pytest_cache/
 
-# ---- Backend: smoke test + DB init ----
+# ---- Backend Tests with Coverage ----
 backend:test:
   stage: test
-  image: python:3.11
+  image: python:3.11-slim
   before_script:
     - python --version
     - pip install --upgrade pip
     - cd backend
     - pip install -r requirements.txt
+    - pip install pytest pytest-cov pytest-asyncio pytest-mock httpx email-validator
   script:
-    # 1) Import the app to catch import errors quickly
-    - python -c "import importlib; importlib.import_module('app.main'); print('✅ FastAPI import OK')"
-    # 2) Create SQLite DB/tables to ensure models/engine work
-    - python - <<'PY'
-from app.core.db import Base, engine
-from app.models import User, Progress, QuizAttempt, CreditLedger, Subscriber
-Base.metadata.create_all(bind=engine)
-print("✅ DB & tables created")
-PY
+    # Run tests with coverage
+    - pytest -v --cov=app --cov-report=term-missing --cov-report=xml --cov-report=html
+    - echo "Backend test coverage summary:"
+    - coverage report
+  coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
   artifacts:
     when: always
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: backend/coverage.xml
     paths:
+      - backend/htmlcov/
+      - backend/coverage.xml
       - backend/app/data/*.db
-    expire_in: 1 week
+    expire_in: 30 days
   rules:
     - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+# ---- Backend Linting ----
+backend:lint:
+  stage: test
+  image: python:3.11-slim
+  before_script:
+    - cd backend
+    - pip install flake8 black isort
+  script:
+    - echo "Running flake8..."
+    - flake8 app/ --max-line-length=120 --extend-ignore=E203,W503 --statistics || true
+    - echo "Checking code formatting with black..."
+    - black --check app/ || true
+    - echo "Checking import order with isort..."
+    - isort --check-only app/ || true
+  allow_failure: true
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+# ---- Frontend Tests ----
+frontend:test:
+  stage: test
+  image: node:18-alpine
+  before_script:
+    - node -v
+    - npm -v
+    - npm ci
+  script:
+    - npm run test -- --coverage --watchAll=false --passWithNoTests
+  coverage: '/Lines\s*:\s*(\d+\.?\d*)%/'
+  artifacts:
+    when: always
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage/cobertura-coverage.xml
+    paths:
+      - coverage/
+    expire_in: 30 days
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+# ---- Frontend Linting ----
+frontend:lint:
+  stage: test
+  image: node:18-alpine
+  before_script:
+    - npm ci
+  script:
+    - npm run lint
+  allow_failure: true
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+# ---- Security Scanning ----
+security:scan:
+  stage: security
+  image: python:3.11-slim
+  before_script:
+    - pip install safety bandit
+  script:
+    - cd backend
+    - echo "Running safety check..."
+    - safety check --json || true
+    - echo "Running bandit security scan..."
+    - bandit -r app/ -f json -o bandit-report.json || true
+    - echo "Security scan complete"
+  artifacts:
+    paths:
+      - backend/bandit-report.json
+    expire_in: 30 days
+  allow_failure: true
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
 
 # ---- Frontend: production build ----
 frontend:build:
   stage: build
-  image: node:20-bullseye
+  image: node:18-alpine
   before_script:
     - node -v
     - npm -v
     - npm ci
   script:
     - npm run build
+    - echo "✅ Frontend build successful"
   artifacts:
     paths:
       - .next
