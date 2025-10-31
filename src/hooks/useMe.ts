@@ -9,7 +9,7 @@ export function useMe() {
     
     const checkSession = async () => {
       try {
-        const response = await fetch('/api/v1/auth/me', {
+        const response = await fetch('/api/session/me', {
           credentials: 'include'
         })
         if (!mounted) return

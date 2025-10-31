@@ -31,8 +31,9 @@ export default function LoginPage() {
         throw new Error('Login failed')
       }
       
-      // Successfully logged in, redirect to dashboard
-      router.push('/dashboard')
+      // Successfully logged in, redirect to original page or dashboard
+      const redirectTo = (router.query.redirect as string) || '/dashboard'
+      router.push(redirectTo)
     } catch (err) {
       setError('Invalid email or password')
     } finally {
