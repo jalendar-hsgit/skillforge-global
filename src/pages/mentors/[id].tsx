@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '@/components/Layout';
-import Card from '@/components/Card';
-import Button from '@/components/Button';
+import { Card } from '@/components/Card';
+import { Button } from '@/components/Button';
 import { API_BASE } from '@/lib/apiBase';
 
 interface Mentor {

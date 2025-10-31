@@ -21,6 +21,23 @@ class Settings(BaseSettings):
     STRIPE_SECRET_KEY: str | None = None
     STRIPE_PUBLISHABLE_KEY: str | None = None
     STRIPE_WEBHOOK_SECRET: str | None = None
+    
+    # Email Configuration
+    EMAIL_PROVIDER: str = "smtp"  # Options: smtp, sendgrid, ses
+    EMAIL_FROM: str = "noreply@skillforge.global"
+    EMAIL_FROM_NAME: str = "SkillForge Global"
+    
+    # SMTP Settings (for EMAIL_PROVIDER=smtp)
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str | None = None
+    SMTP_PASSWORD: str | None = None
+    
+    # SendGrid (for EMAIL_PROVIDER=sendgrid)
+    SENDGRID_API_KEY: str | None = None
+    
+    # AWS SES (for EMAIL_PROVIDER=ses)
+    AWS_REGION: str = "us-east-1"
 
     class Config:
         env_file = ".env"

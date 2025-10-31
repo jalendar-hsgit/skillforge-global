@@ -50,7 +50,6 @@ class Mentor(Base):
     sessions = relationship("MentorSession", back_populates="mentor", cascade="all, delete-orphan")
     availability = relationship("MentorAvailability", back_populates="mentor", cascade="all, delete-orphan")
     reviews = relationship("MentorReview", back_populates="mentor", cascade="all, delete-orphan")
-    sent_messages = relationship("MentorMessage", foreign_keys="MentorMessage.sender_id", back_populates="sender")
     
     def __repr__(self):
         return f"<Mentor(id={self.id}, user_id={self.user_id}, status={self.status})>"
@@ -103,6 +102,7 @@ class MentorSession(Base):
     mentor = relationship("Mentor", back_populates="sessions")
     student = relationship("User", foreign_keys=[student_id])
     review = relationship("MentorReview", uselist=False, back_populates="session")
+    chat_files = relationship("MentorChatFile", back_populates="session")
     
     def __repr__(self):
         return f"<MentorSession(id={self.id}, mentor_id={self.mentor_id}, status={self.status})>"
@@ -164,7 +164,6 @@ class MentorMessage(Base):
     
     # Relationships
     session = relationship("MentorSession")
-    sender = relationship("User", foreign_keys=[sender_id], back_populates="sent_mentor_messages")
     
     def __repr__(self):
         return f"<MentorMessage(id={self.id}, session_id={self.session_id}, sender_id={self.sender_id})>"

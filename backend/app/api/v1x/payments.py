@@ -11,6 +11,7 @@ from app.core.security import get_current_user
 from app.models.user import User
 from app.modelsx.mentor import MentorSession
 from app.services.stripe_service import stripe_service
+from app.services.email_service import email_service
 
 router = APIRouter(prefix="/payments", tags=["payments"])
 
@@ -120,7 +121,57 @@ def capture_payment(
         
         if success:
             session.payment_status = "captured"
+            
+            # Create earning record for mentor
+            from app.modelsx.payout import MentorEarning
+            
+            # Check if earning already exists
+            existing_earning = db.query(MentorEarning).filter(
+                MentorEarning.session_id == session.id
+            ).first()
+            
+            if not existing_earning:
+                # Calculate platform fee (20%)
+                platform_fee_percentage = 20.0
+                gross_amount = session.price
+                platform_fee = round(gross_amount * (platform_fee_percentage / 100), 2)
+                net_amount = round(gross_amount - platform_fee, 2)
+                
+                earning = MentorEarning(
+                    mentor_id=mentor.id,
+                    session_id=session.id,
+                    gross_amount=gross_amount,
+                    platform_fee=platform_fee,
+                    net_amount=net_amount
+                )
+                db.add(earning)
+                
+                # Update mentor's total earnings
+                mentor.total_earnings += net_amount
+            
             db.commit()
+            
+            # Send payment receipt to student
+            student_user = db.query(User).filter(User.id == session.student_id).first()
+            mentor_user = db.query(User).filter(User.id == mentor.user_id).first()
+            
+            if student_user and student_user.email:
+                try:
+                    import asyncio
+                    asyncio.create_task(
+                        email_service.send_payment_receipt(
+                            to_email=student_user.email,
+                            student_name=student_user.name,
+                            mentor_name=mentor_user.name if mentor_user else "Mentor",
+                            amount=session.price,
+                            session_date=session.scheduled_at,
+                            session_id=session.id,
+                            payment_intent_id=session.payment_intent_id
+                        )
+                    )
+                except Exception as e:
+                    print(f"Failed to send receipt email: {e}")
+            
             return {"success": True, "message": "Payment captured"}
         else:
             raise HTTPException(status_code=500, detail="Failed to capture payment")

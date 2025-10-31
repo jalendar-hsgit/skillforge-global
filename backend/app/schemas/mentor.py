@@ -122,8 +122,8 @@ class AvailabilitySlotRequest(BaseModel):
     """Add availability slot"""
     day_of_week: Optional[int] = Field(None, ge=0, le=6, description="0=Monday, 6=Sunday")
     date: Optional[datetime] = Field(None, description="Specific date if not recurring")
-    start_time: str = Field(..., regex=r"^\d{2}:\d{2}$", description="HH:MM format (e.g., '14:00')")
-    end_time: str = Field(..., regex=r"^\d{2}:\d{2}$", description="HH:MM format (e.g., '16:00')")
+    start_time: str = Field(..., pattern=r"^\d{2}:\d{2}$", description="HH:MM format (e.g., '14:00')")
+    end_time: str = Field(..., pattern=r"^\d{2}:\d{2}$", description="HH:MM format (e.g., '16:00')")
     timezone: str = Field(default="UTC")
     
     @validator('date', 'day_of_week')

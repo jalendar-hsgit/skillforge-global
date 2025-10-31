@@ -24,10 +24,17 @@ def _parse_options(val: Any):
     return []
 
 @router.get("/{quiz_id}")
-def get_quiz(quiz_id: int):
+def get_quiz(quiz_id: str):
+    """Get quiz by ID (numeric) or slug (string)"""
     db = SessionLocal()
     try:
-        quiz = db.execute(text("SELECT id, course_id, title FROM quizzes WHERE id=:qid"), {"qid": quiz_id}).mappings().first()
+        # Try as numeric ID first
+        if quiz_id.isdigit():
+            quiz = db.execute(text("SELECT id, course_id, title FROM quizzes WHERE id=:qid"), {"qid": int(quiz_id)}).mappings().first()
+        else:
+            # Try as slug
+            quiz = db.execute(text("SELECT id, course_id, title FROM quizzes WHERE path_slug=:slug"), {"slug": quiz_id}).mappings().first()
+        
         if not quiz:
             raise HTTPException(status_code=404, detail="Quiz not found")
         qs = db.execute(text("""
@@ -35,7 +42,7 @@ def get_quiz(quiz_id: int):
             FROM quiz_questions
             WHERE quiz_id=:qid
             ORDER BY id
-        """), {"qid": quiz_id}).mappings().all()
+        """), {"qid": quiz["id"]}).mappings().all()
         questions = []
         for r in qs:
             questions.append({

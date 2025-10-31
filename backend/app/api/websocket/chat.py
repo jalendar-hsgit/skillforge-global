@@ -252,6 +252,186 @@ async def typing(sid, data):
     }, room=room_name, skip_sid=sid)
 
 
+# WebRTC Signaling Events
+
+@sio.event
+async def call_initiate(sid, data):
+    """Initiate a video/voice call"""
+    session_data = await sio.get_session(sid)
+    if not session_data or 'user_id' not in session_data:
+        await sio.emit('error', {'message': 'Not authenticated'}, room=sid)
+        return
+    
+    user_id = session_data['user_id']
+    session_id = data.get('session_id')
+    call_type = data.get('call_type', 'video')  # 'video' or 'audio'
+    
+    if not session_id:
+        await sio.emit('error', {'message': 'Session ID required'}, room=sid)
+        return
+    
+    # Verify authorization
+    db = next(get_db())
+    if not is_participant(user_id, session_id, db):
+        await sio.emit('error', {'message': 'Not authorized'}, room=sid)
+        return
+    
+    # Notify other participants in the room
+    room_name = f"session_{session_id}"
+    await sio.emit('call_incoming', {
+        'session_id': session_id,
+        'caller_id': user_id,
+        'call_type': call_type
+    }, room=room_name, skip_sid=sid)
+    
+    print(f"Call initiated in session {session_id} by user {user_id}")
+
+
+@sio.event
+async def call_accept(sid, data):
+    """Accept an incoming call"""
+    session_data = await sio.get_session(sid)
+    if not session_data or 'user_id' not in session_data:
+        return
+    
+    user_id = session_data['user_id']
+    session_id = data.get('session_id')
+    caller_id = data.get('caller_id')
+    
+    if not session_id or not caller_id:
+        return
+    
+    # Notify the caller
+    room_name = f"session_{session_id}"
+    await sio.emit('call_accepted', {
+        'session_id': session_id,
+        'accepter_id': user_id
+    }, room=room_name, skip_sid=sid)
+    
+    print(f"Call accepted in session {session_id} by user {user_id}")
+
+
+@sio.event
+async def call_reject(sid, data):
+    """Reject an incoming call"""
+    session_data = await sio.get_session(sid)
+    if not session_data or 'user_id' not in session_data:
+        return
+    
+    user_id = session_data['user_id']
+    session_id = data.get('session_id')
+    
+    if not session_id:
+        return
+    
+    # Notify the room
+    room_name = f"session_{session_id}"
+    await sio.emit('call_rejected', {
+        'session_id': session_id,
+        'rejector_id': user_id
+    }, room=room_name, skip_sid=sid)
+    
+    print(f"Call rejected in session {session_id} by user {user_id}")
+
+
+@sio.event
+async def call_end(sid, data):
+    """End an active call"""
+    session_data = await sio.get_session(sid)
+    if not session_data or 'user_id' not in session_data:
+        return
+    
+    user_id = session_data['user_id']
+    session_id = data.get('session_id')
+    
+    if not session_id:
+        return
+    
+    # Notify the room
+    room_name = f"session_{session_id}"
+    await sio.emit('call_ended', {
+        'session_id': session_id,
+        'ended_by': user_id
+    }, room=room_name)
+    
+    print(f"Call ended in session {session_id} by user {user_id}")
+
+
+@sio.event
+async def webrtc_offer(sid, data):
+    """Forward WebRTC offer to peer"""
+    session_data = await sio.get_session(sid)
+    if not session_data or 'user_id' not in session_data:
+        return
+    
+    user_id = session_data['user_id']
+    session_id = data.get('session_id')
+    offer = data.get('offer')
+    target_user_id = data.get('target_user_id')
+    
+    if not session_id or not offer or not target_user_id:
+        return
+    
+    # Forward to target user
+    if target_user_id in active_connections:
+        for target_sid in active_connections[target_user_id]:
+            await sio.emit('webrtc_offer', {
+                'session_id': session_id,
+                'from_user_id': user_id,
+                'offer': offer
+            }, room=target_sid)
+
+
+@sio.event
+async def webrtc_answer(sid, data):
+    """Forward WebRTC answer to peer"""
+    session_data = await sio.get_session(sid)
+    if not session_data or 'user_id' not in session_data:
+        return
+    
+    user_id = session_data['user_id']
+    session_id = data.get('session_id')
+    answer = data.get('answer')
+    target_user_id = data.get('target_user_id')
+    
+    if not session_id or not answer or not target_user_id:
+        return
+    
+    # Forward to target user
+    if target_user_id in active_connections:
+        for target_sid in active_connections[target_user_id]:
+            await sio.emit('webrtc_answer', {
+                'session_id': session_id,
+                'from_user_id': user_id,
+                'answer': answer
+            }, room=target_sid)
+
+
+@sio.event
+async def webrtc_ice_candidate(sid, data):
+    """Forward ICE candidate to peer"""
+    session_data = await sio.get_session(sid)
+    if not session_data or 'user_id' not in session_data:
+        return
+    
+    user_id = session_data['user_id']
+    session_id = data.get('session_id')
+    candidate = data.get('candidate')
+    target_user_id = data.get('target_user_id')
+    
+    if not session_id or not candidate or not target_user_id:
+        return
+    
+    # Forward to target user
+    if target_user_id in active_connections:
+        for target_sid in active_connections[target_user_id]:
+            await sio.emit('webrtc_ice_candidate', {
+                'session_id': session_id,
+                'from_user_id': user_id,
+                'candidate': candidate
+            }, room=target_sid)
+
+
 # Create ASGI app
 socket_app = socketio.ASGIApp(
     sio,

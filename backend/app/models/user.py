@@ -10,5 +10,5 @@ class User(Base):
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
     
     # Relationships
-    mentor_profile = relationship("Mentor", back_populates="user", uselist=False)
-    sent_mentor_messages = relationship("MentorMessage", foreign_keys="MentorMessage.sender_id", back_populates="sender")
+    mentor_profile = relationship("Mentor", back_populates="user", uselist=False, foreign_keys="Mentor.user_id")
+    subscription = relationship("Subscription", back_populates="user", uselist=False, foreign_keys="Subscription.user_id")

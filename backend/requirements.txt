@@ -11,3 +11,5 @@ python-socketio[asyncio]
 stripe
 requests
 PyJWT
+python-multipart
+aiofiles

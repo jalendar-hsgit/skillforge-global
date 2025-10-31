@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkillForge Global - Manual Testing Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 30px;
+        }
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        .status {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        .status-card {
+            flex: 1;
+            min-width: 200px;
+            padding: 20px;
+            border-radius: 12px;
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+        }
+        .status-card h3 {
+            font-size: 0.9em;
+            text-transform: uppercase;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        .status-card .value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #333;
+        }
+        .status-card.success { border-left-color: #10b981; }
+        .status-card.warning { border-left-color: #f59e0b; }
+        .status-card.error { border-left-color: #ef4444; }
+        .section {
+            margin-bottom: 30px;
+        }
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+        }
+        .test-card {
+            padding: 15px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+        .test-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+            transform: translateY(-2px);
+        }
+        .test-card.checked {
+            background: #ecfdf5;
+            border-color: #10b981;
+        }
+        .test-card input[type="checkbox"] {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        .test-card h3 {
+            font-size: 1.1em;
+            margin-bottom: 8px;
+            color: #333;
+            padding-right: 30px;
+        }
+        .test-card p {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        .test-card .url {
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            color: #667eea;
+            background: #f1f5f9;
+            padding: 4px 8px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-bottom: 5px;
+        }
+        .test-card .steps {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 8px;
+            padding-left: 15px;
+        }
+        .test-card .steps li {
+            margin-bottom: 4px;
+        }
+        .quick-links {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+        }
+        .quick-links a {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        .quick-links a:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #e5e7eb;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #10b981, #059669);
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 SkillForge Global</h1>
+        <p class="subtitle">Manual Testing Dashboard - Check off features as you test them</p>
+        
+        <div class="status">
+            <div class="status-card">
+                <h3>Total Tests</h3>
+                <div class="value" id="totalTests">0</div>
+            </div>
+            <div class="status-card success">
+                <h3>Completed</h3>
+                <div class="value" id="completedTests">0</div>
+            </div>
+            <div class="status-card warning">
+                <h3>Remaining</h3>
+                <div class="value" id="remainingTests">0</div>
+            </div>
+            <div class="status-card">
+                <h3>Progress</h3>
+                <div class="value" id="progressPercent">0%</div>
+            </div>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressBar">0%</div>
+        </div>
+
+        <div class="section">
+            <h2>Quick Access Links</h2>
+            <div class="quick-links">
+                <a href="http://localhost:3000" target="_blank">🏠 Frontend Home</a>
+                <a href="http://localhost:8001/docs" target="_blank">📚 API Docs</a>
+                <a href="http://localhost:3000/pricing" target="_blank">💳 Pricing</a>
+                <a href="http://localhost:3000/login" target="_blank">🔐 Login</a>
+                <a href="http://localhost:3000/dashboard" target="_blank">📊 Dashboard</a>
+                <a href="http://localhost:3000/mentors" target="_blank">👥 Mentors</a>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🔐 Authentication Tests</h2>
+            <div class="test-grid">
+                <div class="test-card" data-test="auth-signup">
+                    <input type="checkbox" onchange="updateProgress()">
+                    <h3>User Signup</h3>
+                    <span class="url">http://localhost:3000/signup</span>
+                    <p>Create a new account</p>
+                    <ul class="steps">
+                        <li>Enter email & password</li>
+                        <li>Submit form</li>
+                        <li>Should redirect to dashboard</li>
+                    </ul>
+                </div>
+                <div class="test-card" data-test="auth-login">
+                    <input type="checkbox" onchange="updateProgress()">
+                    <h3>User Login</h3>
+                    <span class="url">http://localhost:3000/login</span>
+                    <p>Login with existing account</p>
+                    <ul class="steps">
+                        <li>Enter credentials</li>
+                        <li>Submit form</li>
+                        <li>Verify token cookie set</li>
+                    </ul>
+                </div>
+                <div class="test-card" data-test="auth-protected">
+                    <input type="checkbox" onchange="updateProgress()">
+                    <h3>Protected Routes</h3>
+                    <span class="url">http://localhost:3000/dashboard</span>
+                    <p>Test auth requirement</p>
+                    <ul class="steps">
+                        <li>Logout first</li>
+                        <li>Try to access dashboard</li>
+                        <li>Should redirect to login</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>💳 Subscription Tests</h2>
+            <div class="test-grid">
+                <div class="test-card" data-test="sub-plans">
+                    <input type="checkbox" onchange="updateProgress()">
+                    <h3>View Pricing Plans</h3>
+                    <span class="url">http://localhost:3000/pricing</span>
+                    <p>Check plan display</p>
+                    <ul class="steps">
+                        <li>See Free, Pro, Enterprise plans</li>
+                        <li>Toggle Monthly/Annual</li>
+                        <li>Verify prices update</li>
+                    </ul>
+                </div>
+                <div class="test-card" data-test="sub-api">
+                    <input type="checkbox" onchange="updateProgress()">
+                    <h3>Plans API</h3>
+                    <span class="url">http://localhost:8001/api/v1x/subscriptions/plans</span>
+                    <p>Test subscription API</p>
+                    <ul class="steps">
+                        <li>Open in browser or API docs</li>
+                        <li>Should return 3 plans</li>
+                        <li>Verify plan details</li>
+                    </ul>
+                </div>
+                <div class="test-card" data-test="sub-checkout">
+                    <input type="checkbox" onchange="updateProgress()">
+                    <h3>Subscribe to Pro</h3>
+                    <span class="url">http://localhost:3000/subscribe</span>
+                    <p>Test checkout flow</p>
+                    <ul class="steps">
+                        <li>Use test card: 4242 4242 4242 4242</li>
+                        <li>Submit payment</li>
+                        <li>Verify success & Pro badge</li>
+                    </ul>
+                </div>
+                <div class="test-card" data-test="sub-cancel">
+                    <input type="checkbox" onchange="updateProgress()">
+                    <h3>Cancel Subscription</h3>
+                    <span class="url">http://localhost:3000/dashboard</span>
+                    <p>Test cancellation</p>
+                    <ul class="steps">
+                        <li>Go to subscription settings</li>
+                        <li>Click cancel</li>
+                        <li>Choose end of period</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📚 Courses & Learning</h2>
+            <div class="test-grid">
+                <div class="test-card" data-test="courses-list">
+                    <input type="checkbox" onchange="updateProgress()">
+                    <h3>Browse Courses</h3>
+                    <span class="url">http://localhost:3000/paths</span>
+                    <p>View all learning paths</p>
+                    <ul class="steps">
+                        <li>See course list</li>
+                        <li>Click on a course</li>
+                        <li>View modules & videos</li>
+                    </ul>
+                </div>
+                <div class="test-card" data-test="courses-api">
+                    <input type="checkbox" onchange="updateProgress()">
+                    <h3>Courses API</h3>
+                    <span class="url">http://localhost:8001/api/v1/courses</span>
+                    <p>Test courses endpoint</p>
+                    <ul class="steps">
+                        <li>Open in browser</li>
+                        <li>Should return JSON array</li>
+                        <li>Verify course structure</li>
+                    </ul>
+                </div>
+                <div class="test-card" data-test="quiz-take">
+                    <input type="checkbox" onchange="updateProgress()">
+                    <h3>Take Quiz</h3>
+                    <span class="url">http://localhost:3000/quiz/[slug]</span>
+                    <p>Complete a quiz</p>
+                    <ul class="steps">
+                        <li>Find quiz in course</li>
+                        <li>Answer questions</li>
+                        <li>Submit & see score</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>👥 Mentor System</h2>
+            <div class="test-grid">
+                <div class="test-card" data-test="mentor-browse">
+                    <input type="checkbox" onchange="updateProgress()">
+                    <h3>Browse Mentors</h3>
+                    <span class="url">http://localhost:3000/mentors</span>
+                    <p>View available mentors</p>
+                    <ul class="steps">
+                        <li>See mentor list</li>
+                        <li>View mentor profiles</li>
+                        <li>Check ratings & rates</li>
+                    </ul>
+                </div>
+                <div class="test-card" data-test="mentor-apply">
+                    <input type="checkbox" onchange="updateProgress()">
+                    <h3>Become a Mentor</h3>
+                    <span class="url">http://localhost:3000/mentors/become</span>
+                    <p>Submit mentor application</p>
+                    <ul class="steps">
+                        <li>Fill out application</li>
+                        <li>Set hourly rate</li>
+                        <li>Submit for approval</li>
+                    </ul>
+                </div>
+                <div class="test-card" data-test="mentor-book">
+                    <input type="checkbox" onchange="updateProgress()">
+                    <h3>Book Session</h3>
+                    <span class="url">http://localhost:3000/mentors/[id]/book</span>
+                    <p>Book a mentor session</p>
+                    <ul class="steps">
+                        <li>Select date/time</li>
+                        <li>Enter payment method</li>
+                        <li>Confirm booking</li>
+                    </ul>
+                </div>
+                <div class="test-card" data-test="mentor-earnings">
+                    <input type="checkbox" onchange="updateProgress()">
+                    <h3>View Earnings</h3>
+                    <span class="url">http://localhost:3000/mentors/earnings</span>
+                    <p>Check mentor earnings</p>
+                    <ul class="steps">
+                        <li>Login as mentor</li>
+                        <li>View earnings summary</li>
+                        <li>Request payout</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>💰 Stripe Connect & Payouts</h2>
+            <div class="test-grid">
+                <div class="test-card" data-test="connect-setup">
+                    <input type="checkbox" onchange="updateProgress()">
+                    <h3>Connect Account</h3>
+                    <span class="url">http://localhost:3000/mentors/settings</span>
+                    <p>Setup Stripe Connect</p>
+                    <ul class="steps">
+                        <li>Click "Connect Stripe"</li>
+                        <li>Complete onboarding</li>
+                        <li>Verify account status</li>
+                    </ul>
+                </div>
+                <div class="test-card" data-test="connect-api">
+                    <input type="checkbox" onchange="updateProgress()">
+                    <h3>Connect API</h3>
+                    <span class="url">http://localhost:8001/api/v1x/connect/status</span>
+                    <p>Test Connect endpoints</p>
+                    <ul class="steps">
+                        <li>Test in API docs</li>
+                        <li>Check account status</li>
+                        <li>Verify onboarding link</li>
+                    </ul>
+                </div>
+                <div class="test-card" data-test="payout-request">
+                    <input type="checkbox" onchange="updateProgress()">
+                    <h3>Request Payout</h3>
+                    <span class="url">http://localhost:3000/mentors/earnings</span>
+                    <p>Submit payout request</p>
+                    <ul class="steps">
+                        <li>View available balance</li>
+                        <li>Request payout amount</li>
+                        <li>Check payout history</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>💬 Chat & Communication</h2>
+            <div class="test-grid">
+                <div class="test-card" data-test="chat-message">
+                    <input type="checkbox" onchange="updateProgress()">
+                    <h3>Send Messages</h3>
+                    <span class="url">Chat in session</span>
+                    <p>Test real-time chat</p>
+                    <ul class="steps">
+                        <li>Open chat window</li>
+                        <li>Send text message</li>
+                        <li>Verify real-time delivery</li>
+                    </ul>
+                </div>
+                <div class="test-card" data-test="chat-file">
+                    <input type="checkbox" onchange="updateProgress()">
+                    <h3>File Sharing</h3>
+                    <span class="url">Chat in session</span>
+                    <p>Upload and share files</p>
+                    <ul class="steps">
+                        <li>Click file upload</li>
+                        <li>Select image/PDF</li>
+                        <li>Download shared file</li>
+                    </ul>
+                </div>
+                <div class="test-card" data-test="chat-video">
+                    <input type="checkbox" onchange="updateProgress()">
+                    <h3>Video Call</h3>
+                    <span class="url">Chat in session</span>
+                    <p>Start video/voice call</p>
+                    <ul class="steps">
+                        <li>Click video call button</li>
+                        <li>Accept call (other user)</li>
+                        <li>Test mute/camera controls</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🔧 API Documentation</h2>
+            <div class="test-grid">
+                <div class="test-card" data-test="api-docs">
+                    <input type="checkbox" onchange="updateProgress()">
+                    <h3>Swagger UI</h3>
+                    <span class="url">http://localhost:8001/docs</span>
+                    <p>Interactive API docs</p>
+                    <ul class="steps">
+                        <li>Browse endpoints</li>
+                        <li>Try "Execute" on GET /healthz</li>
+                        <li>Test with authorization</li>
+                    </ul>
+                </div>
+                <div class="test-card" data-test="api-health">
+                    <input type="checkbox" onchange="updateProgress()">
+                    <h3>Health Check</h3>
+                    <span class="url">http://localhost:8001/healthz</span>
+                    <p>Server status</p>
+                    <ul class="steps">
+                        <li>Open in browser</li>
+                        <li>Should return {"ok": true}</li>
+                        <li>Verify 200 status</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function updateProgress() {
+            const checkboxes = document.querySelectorAll('.test-card input[type="checkbox"]');
+            const total = checkboxes.length;
+            const completed = Array.from(checkboxes).filter(cb => cb.checked).length;
+            const remaining = total - completed;
+            const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+            document.getElementById('totalTests').textContent = total;
+            document.getElementById('completedTests').textContent = completed;
+            document.getElementById('remainingTests').textContent = remaining;
+            document.getElementById('progressPercent').textContent = percent + '%';
+            document.getElementById('progressBar').style.width = percent + '%';
+            document.getElementById('progressBar').textContent = percent + '%';
+
+            // Update card styling
+            checkboxes.forEach(cb => {
+                const card = cb.closest('.test-card');
+                if (cb.checked) {
+                    card.classList.add('checked');
+                } else {
+                    card.classList.remove('checked');
+                }
+            });
+
+            // Save progress to localStorage
+            const progress = {};
+            checkboxes.forEach(cb => {
+                const testId = cb.closest('.test-card').dataset.test;
+                progress[testId] = cb.checked;
+            });
+            localStorage.setItem('skillforge_test_progress', JSON.stringify(progress));
+        }
+
+        // Load saved progress
+        window.addEventListener('DOMContentLoaded', () => {
+            const saved = localStorage.getItem('skillforge_test_progress');
+            if (saved) {
+                const progress = JSON.parse(saved);
+                Object.entries(progress).forEach(([testId, checked]) => {
+                    const card = document.querySelector(`[data-test="${testId}"]`);
+                    if (card) {
+                        const checkbox = card.querySelector('input[type="checkbox"]');
+                        checkbox.checked = checked;
+                    }
+                });
+            }
+            updateProgress();
+        });
+
+        // Reset button
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'r') {
+                if (confirm('Reset all test progress?')) {
+                    localStorage.removeItem('skillforge_test_progress');
+                    document.querySelectorAll('.test-card input[type="checkbox"]').forEach(cb => {
+                        cb.checked = false;
+                    });
+                    updateProgress();
+                }
+                e.preventDefault();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -5,6 +5,7 @@ export const ROUTES = {
   dashboard: '/dashboard',
   career: '/careers',   // matches your existing page: src/pages/careers.tsx
   courses: '/courses',
+  mentors: '/mentors',
   ai: '/ai',
   faq: '/faq',
   paths: '/paths',

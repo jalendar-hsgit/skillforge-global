@@ -25,6 +25,7 @@ from app.schemas.mentor import (
 from app.services.mentor_service import (
     MentorEligibilityService, MentorSearchService, SessionManagementService
 )
+from app.services.email_service import email_service
 
 router = APIRouter(prefix="/mentors", tags=["mentors"])
 
@@ -281,6 +282,27 @@ def book_session(
     db.commit()
     db.refresh(session)
     
+    # Send booking notification to mentor
+    mentor_user = db.query(User).filter(User.id == mentor.user_id).first()
+    if mentor_user and mentor_user.email:
+        # Note: In production, send this asynchronously using Celery/background tasks
+        try:
+            import asyncio
+            asyncio.create_task(
+                email_service.send_session_confirmation(
+                    to_email=mentor_user.email,
+                    mentor_name=mentor_user.name,
+                    student_name=current_user.name,
+                    session_date=session.scheduled_at,
+                    session_duration=session.duration_minutes,
+                    meeting_url=session.meeting_url or "TBD (will be provided when confirmed)",
+                    session_id=session.id
+                )
+            )
+        except Exception as e:
+            # Log error but don't fail the booking
+            print(f"Failed to send email: {e}")
+    
     return SessionResponse(
         id=session.id,
         mentor_id=session.mentor_id,
@@ -367,8 +389,14 @@ def update_session(
             detail="You don't have permission to update this session"
         )
     
+    # Track status change for emails
+    old_status = session.status
+    status_changed = False
+    
     # Update fields
     if updates.status and is_mentor:
+        if session.status != updates.status:
+            status_changed = True
         session.status = updates.status
         if updates.status == SessionStatus.CONFIRMED and not session.meeting_url:
             # Generate meeting URL when confirming
@@ -387,6 +415,54 @@ def update_session(
     
     db.commit()
     db.refresh(session)
+    
+    # Send email notifications on status change
+    if status_changed:
+        mentor_user = db.query(User).join(Mentor).filter(Mentor.id == session.mentor_id).first()
+        student_user = db.query(User).filter(User.id == session.student_id).first()
+        
+        try:
+            import asyncio
+            if session.status == SessionStatus.CONFIRMED and student_user and student_user.email:
+                # Notify student that session is confirmed
+                asyncio.create_task(
+                    email_service.send_session_confirmation(
+                        to_email=student_user.email,
+                        mentor_name=mentor_user.name if mentor_user else "Mentor",
+                        student_name=student_user.name,
+                        session_date=session.scheduled_at,
+                        session_duration=session.duration_minutes,
+                        meeting_url=session.meeting_url or "TBD",
+                        session_id=session.id
+                    )
+                )
+            elif session.status == SessionStatus.CANCELLED:
+                # Notify both parties about cancellation
+                if student_user and student_user.email:
+                    asyncio.create_task(
+                        email_service.send_session_cancellation(
+                            to_email=student_user.email,
+                            recipient_name=student_user.name,
+                            other_person_name=mentor_user.name if mentor_user else "Mentor",
+                            session_date=session.scheduled_at,
+                            reason=updates.mentor_notes or "Cancelled by mentor",
+                            session_id=session.id
+                        )
+                    )
+                if mentor_user and mentor_user.email:
+                    asyncio.create_task(
+                        email_service.send_session_cancellation(
+                            to_email=mentor_user.email,
+                            recipient_name=mentor_user.name,
+                            other_person_name=student_user.name if student_user else "Student",
+                            session_date=session.scheduled_at,
+                            reason="Cancelled",
+                            session_id=session.id
+                        )
+                    )
+        except Exception as e:
+            # Log error but don't fail the update
+            print(f"Failed to send email: {e}")
     
     return SessionResponse(
         id=session.id,

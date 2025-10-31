@@ -242,6 +242,162 @@ class StripeService:
             raise Exception("Invalid payload")
         except stripe.error.SignatureVerificationError as e:
             raise Exception("Invalid signature")
+    
+    @staticmethod
+    def create_subscription(
+        user_id: int,
+        email: str,
+        payment_method_id: str,
+        plan: str,
+        price_cents: int,
+        billing_cycle: str = "monthly"
+    ) -> Dict:
+        """
+        Create a Stripe subscription for a user
+        
+        Args:
+            user_id: User ID
+            email: User email
+            payment_method_id: Stripe payment method ID
+            plan: Subscription plan name
+            price_cents: Price in cents
+            billing_cycle: monthly or annual
+        
+        Returns:
+            Dict with subscription details
+        """
+        if not stripe.api_key:
+            raise ValueError("Stripe is not configured")
+        
+        try:
+            # Create or retrieve customer
+            customer = stripe.Customer.create(
+                email=email,
+                payment_method=payment_method_id,
+                invoice_settings={'default_payment_method': payment_method_id},
+                metadata={'user_id': user_id}
+            )
+            
+            # Create price if it doesn't exist (in production, create these manually in Stripe)
+            price = stripe.Price.create(
+                unit_amount=price_cents,
+                currency="usd",
+                recurring={
+                    "interval": "year" if billing_cycle == "annual" else "month"
+                },
+                product_data={
+                    "name": f"SkillForge {plan.capitalize()} Plan"
+                }
+            )
+            
+            # Create subscription
+            subscription = stripe.Subscription.create(
+                customer=customer.id,
+                items=[{'price': price.id}],
+                metadata={
+                    'user_id': user_id,
+                    'plan': plan
+                }
+            )
+            
+            return {
+                'id': subscription.id,
+                'customer': customer.id,
+                'status': subscription.status,
+                'current_period_start': subscription.current_period_start,
+                'current_period_end': subscription.current_period_end
+            }
+        
+        except stripe.error.StripeError as e:
+            print(f"Stripe subscription error: {e}")
+            raise Exception(f"Failed to create subscription: {str(e)}")
+    
+    @staticmethod
+    def cancel_subscription(subscription_id: str, cancel_immediately: bool = False) -> bool:
+        """
+        Cancel a Stripe subscription
+        
+        Args:
+            subscription_id: Stripe subscription ID
+            cancel_immediately: Cancel now or at period end
+        
+        Returns:
+            bool: True if successful
+        """
+        if not stripe.api_key:
+            return False
+        
+        try:
+            if cancel_immediately:
+                stripe.Subscription.delete(subscription_id)
+            else:
+                stripe.Subscription.modify(
+                    subscription_id,
+                    cancel_at_period_end=True
+                )
+            return True
+        
+        except stripe.error.StripeError as e:
+            print(f"Error cancelling subscription: {e}")
+            return False
+    
+    @staticmethod
+    def verify_webhook(payload: bytes, signature: str) -> Dict:
+        """Alias for verify_webhook_signature for consistency"""
+        return StripeService.verify_webhook_signature(payload, signature)
+
+    # ========= Stripe Connect (Mentor payouts) =========
+    @staticmethod
+    def create_connect_account(email: str, user_id: int) -> Dict:
+        """Create a Stripe Connect Express account for a mentor"""
+        if not stripe.api_key:
+            raise ValueError("Stripe is not configured")
+        try:
+            account = stripe.Account.create(
+                type="express",
+                email=email,
+                metadata={"user_id": user_id}
+            )
+            return account
+        except stripe.error.StripeError as e:
+            print(f"Stripe Connect create account error: {e}")
+            raise Exception(str(e))
+
+    @staticmethod
+    def create_connect_onboarding_link(account_id: str, refresh_url: str, return_url: str) -> Dict:
+        if not stripe.api_key:
+            raise ValueError("Stripe is not configured")
+        try:
+            link = stripe.AccountLink.create(
+                account=account_id,
+                refresh_url=refresh_url,
+                return_url=return_url,
+                type="account_onboarding",
+            )
+            return link
+        except stripe.error.StripeError as e:
+            print(f"Stripe Connect onboarding link error: {e}")
+            raise Exception(str(e))
+
+    @staticmethod
+    def get_connect_account(account_id: str) -> Dict:
+        if not stripe.api_key:
+            raise ValueError("Stripe is not configured")
+        try:
+            return stripe.Account.retrieve(account_id)
+        except stripe.error.StripeError as e:
+            print(f"Stripe Connect get account error: {e}")
+            raise Exception(str(e))
+
+    @staticmethod
+    def create_connect_login_link(account_id: str) -> Dict:
+        if not stripe.api_key:
+            raise ValueError("Stripe is not configured")
+        try:
+            return stripe.Account.create_login_link(account_id)
+        except stripe.error.StripeError as e:
+            print(f"Stripe Connect login link error: {e}")
+            raise Exception(str(e))
 
 
 # Singleton instance
