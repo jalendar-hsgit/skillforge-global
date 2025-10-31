@@ -87,7 +87,8 @@ class MentorSession(Base):
     
     # Payment
     price = Column(Float, default=0.0)  # Amount charged
-    payment_status = Column(String, default="pending")  # pending, paid, refunded
+    payment_status = Column(String, default="pending")  # pending, paid, refunded, captured
+    payment_intent_id = Column(String, nullable=True)  # Stripe PaymentIntent ID
     
     # Notes
     mentor_notes = Column(Text, nullable=True)  # Mentor's private notes

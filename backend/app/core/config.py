@@ -12,6 +12,15 @@ class Settings(BaseSettings):
     # YouTube
     YOUTUBE_API_KEY: str | None = None
     YOUTUBE_API_REGION: str = "US"
+    
+    # Zoom Integration
+    ZOOM_API_KEY: str | None = None
+    ZOOM_API_SECRET: str | None = None
+    
+    # Stripe Payment
+    STRIPE_SECRET_KEY: str | None = None
+    STRIPE_PUBLISHABLE_KEY: str | None = None
+    STRIPE_WEBHOOK_SECRET: str | None = None
 
     class Config:
         env_file = ".env"

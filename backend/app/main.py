@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.core.config import settings
 from app.core.db import Base, engine
@@ -17,7 +18,7 @@ from app.api.v1 import auth, courses, chat, quizzes, progress, subscribe, quiz_s
 
 # Try to import optional v1x routers
 try:
-    from app.api.v1x import courses_db, progress_db, quizzes_db, youtube_sync, coins_db, mentors
+    from app.api.v1x import courses_db, progress_db, quizzes_db, youtube_sync, coins_db, mentors, payments
 except Exception as e:
     print(f"Error importing v1x modules: {e}")
     courses_db = None
@@ -26,6 +27,7 @@ except Exception as e:
     youtube_sync = None
     coins_db = None
     mentors = None
+    payments = None
 
 # App
 app = FastAPI(title=getattr(settings, "APP_NAME", "SkillForge Global"))
@@ -79,8 +81,16 @@ def _mount_v1x_export(obj):
 
 
 # Mount all v1x exports (modules or routers)
-for _export in (courses_db, progress_db, quizzes_db, youtube_sync, coins_db, mentors):
+for _export in (courses_db, progress_db, quizzes_db, youtube_sync, coins_db, mentors, payments):
     _mount_v1x_export(_export)
+
+# Mount WebSocket server
+try:
+    from app.api.websocket.chat import socket_app
+    app.mount("/ws", socket_app)
+    print("WebSocket server mounted at /ws")
+except Exception as e:
+    print(f"Failed to mount WebSocket server: {e}")
 
 
 

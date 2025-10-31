@@ -195,10 +195,21 @@ class SessionManagementService:
         return True, "OK"
     
     @classmethod
-    def generate_meeting_url(cls, session_id: int) -> str:
+    def generate_meeting_url(cls, session_id: int, topic: str, start_time, duration_minutes: int, mentor_email: str = None) -> str:
         """
-        Generate a meeting URL for the session.
-        For now, returns a placeholder. Integrate with Zoom/Meet later.
+        Generate a meeting URL using Zoom API.
+        Falls back to Jitsi if Zoom is not configured.
         """
-        # TODO: Integrate with Zoom API or Google Meet API
-        return f"https://meet.skillforge.com/session/{session_id}"
+        from app.services.zoom_service import zoom_service
+        
+        try:
+            meeting_info = zoom_service.create_meeting(
+                topic=topic,
+                start_time=start_time,
+                duration_minutes=duration_minutes,
+                mentor_email=mentor_email
+            )
+            return meeting_info.get('join_url', f"https://meet.jit.si/skillforge-{session_id}")
+        except Exception as e:
+            print(f"Error generating meeting URL: {e}")
+            return f"https://meet.jit.si/skillforge-{session_id}"
