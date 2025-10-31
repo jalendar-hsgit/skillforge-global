@@ -5,16 +5,16 @@ import React from 'react'
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'ghost'
   size?: 'sm' | 'md' | 'lg'
+  loading?: boolean
 }
 
 export function Button({
-  className, variant = 'primary', size = 'md', children, ...props
+  className, variant = 'primary', size = 'md', children, loading, ...props
 }: ButtonProps) {
-  const sizes = {
-    sm: 'h-10 px-4 text-sm',
-    md: 'h-12 px-6 text-sm',
-    lg: 'h-14 px-7 text-base'
-  }[size]
+  const sizes =
+    size === 'sm' ? 'h-10 px-4 text-sm'
+    : size === 'lg' ? 'h-14 px-7 text-base'
+    : 'h-12 px-6 text-sm'
 
   const styles =
     variant === 'primary'

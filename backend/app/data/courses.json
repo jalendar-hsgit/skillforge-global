@@ -145,5 +145,26 @@
     "title": "State Management Overview",
     "youtubeId": "d_m5csmrf7I",
     "duration": "35m"
+  },
+  {
+    "id": "apitest-course-001",
+    "path": "python-ai",
+    "title": "API Test Course",
+    "youtubeId": "TEST123",
+    "duration": "5m"
+  },
+  {
+    "id": "apitest-edc5ec52",
+    "path": "python-ai",
+    "title": "API Test Course",
+    "youtubeId": "TESTID",
+    "duration": null
+  },
+  {
+    "id": "apitest-3e8167a1",
+    "path": "python-ai",
+    "title": "API Test Course",
+    "youtubeId": "TESTID",
+    "duration": null
   }
 ]

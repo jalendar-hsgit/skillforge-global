@@ -26,7 +26,7 @@ export default function QuizPage() {
   useEffect(() => {
     if (!slug) return
     setErr(null); setResult(null)
-    fetch(`${process.env.NEXT_PUBLIC_API_BASE}/api/v1/quizzes?path=${slug}`)
+    fetch(`/api/quizzes/list?slug=${slug}`)
       .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
       .then(setQuiz)
       .catch(()=>setErr('Quiz not found'))
@@ -39,12 +39,17 @@ export default function QuizPage() {
       path: slug,
       answers: Object.entries(answers).map(([id, idx]) => ({ id, answerIndex: idx }))
     }
-    const r = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/api/v1/quizzes/submit`, {
+    const r = await fetch('/api/v1/quizzes/submit', {
       method: 'POST',
       headers: { 'Content-Type':'application/json' },
+      credentials: 'include',
       body: JSON.stringify(payload)
     })
-    if (!r.ok) { setErr('Submit failed'); return }
+    if (!r.ok) { 
+      const errData = await r.json().catch(() => ({}))
+      setErr(typeof errData.detail === 'string' ? errData.detail : 'Submit failed')
+      return 
+    }
     const d: SubmitOut = await r.json()
     setResult(d)
 
@@ -53,6 +58,11 @@ export default function QuizPage() {
       const newBal = addCredits(10)
       setEarned(10)
       console.log('Forge AI Credits balance:', newBal)
+      
+      // Refresh coin badge in navbar
+      if (typeof window !== 'undefined' && (window as any).refreshCoins) {
+        setTimeout(() => (window as any).refreshCoins(), 500)
+      }
     }
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -113,7 +123,7 @@ export default function QuizPage() {
                 <div key={q.id} className="rounded-xl border border-white/10 p-4 bg-white/[0.06]">
                   <div className="font-medium">{qi+1}. {q.text}</div>
                   <div className="mt-2 text-sm">
-                    {r.correct ? <span className="text-green-400">Correct</span> : <span className="text-red-400">Incorrect</span>}
+                    {r.correct ? <span className="text-green-400">✓ Correct</span> : <span className="text-red-400">✗ Incorrect</span>}
                   </div>
                   {!r.correct && (
                     <div className="mt-2 text-sm">

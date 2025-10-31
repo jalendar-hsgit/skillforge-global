@@ -1,46 +1,48 @@
-export const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8001";
+const RAW_BASE = process.env.NEXT_PUBLIC_API_BASE?.trim() || "http://127.0.0.1:8001";
+export const API_BASE = RAW_BASE.replace(/\/+$/, "");
 
-async function request(path: string, options: RequestInit = {}) {
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers || {}),
-    },
-    credentials: "include",
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(text || `HTTP ${res.status}`);
-  }
-  const ct = res.headers.get("content-type") || "";
-  return ct.includes("application/json") ? res.json() : res.text();
+function buildUrl(path: string) {
+  const clean = path.startsWith("/") ? path : `/${path}`;
+  return `${API_BASE}${clean}`;
 }
 
-// session goes through Next proxies to forward cookies
-async function session(path: string, opts: RequestInit = {}) {
-  const res = await fetch(`/api/session${path}`, {
-    ...opts,
-    headers: { "Content-Type": "application/json", ...(opts.headers || {}) },
-    credentials: "include",
-  });
+export async function apiGet(path: string) {
+  const url = buildUrl(path);
+  const res = await fetch(url, { credentials: "include" });
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(text || `HTTP ${res.status}`);
+    let errorMsg = `GET ${url} failed (${res.status})`;
+    try {
+      const errorData = await res.json();
+      if (errorData.detail) {
+        errorMsg = errorData.detail;
+      }
+    } catch (e) {
+      // If JSON parsing fails, use default error message
+    }
+    throw new Error(errorMsg);
   }
-  const ct = res.headers.get("content-type") || "";
-  return ct.includes("application/json") ? res.json() : res.text();
+  return res.json();
 }
 
-export const API = {
-  signup: (email: string, password: string) =>
-    session("/signup", { method: "POST", body: JSON.stringify({ email, password }) }),
-  login: (email: string, password: string) =>
-    session("/login", { method: "POST", body: JSON.stringify({ email, password }) }),
-  me: () => session("/me"),
-  logout: () => session("/logout", { method: "POST" }),
-
-  // public/backend data (not cookie-dependent)
-  courses: (path: string) => request(`/api/v1/courses?path=${encodeURIComponent(path)}`),
-  quizzes: (path: string) => request(`/api/v1/quizzes?path=${encodeURIComponent(path)}`),
-};
+export async function apiPost(path: string, data: any) {
+  const url = buildUrl(path);
+  const res = await fetch(url, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data ?? {})
+  });
+  if (!res.ok) {
+    let errorMsg = `POST ${url} failed (${res.status})`;
+    try {
+      const errorData = await res.json();
+      if (errorData.detail) {
+        errorMsg = errorData.detail;
+      }
+    } catch (e) {
+      // If JSON parsing fails, use default error message
+    }
+    throw new Error(errorMsg);
+  }
+  return res.json();
+}

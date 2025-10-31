@@ -10,10 +10,17 @@ router = APIRouter(prefix="/progress", tags=["progress"])
 def _require_user(authorization: str | None):
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing token")
-    sub = decode_token(authorization.split(" ",1)[1])
+    # decode_token returns the JWT claims dict; extract the `sub` claim
+    claims = decode_token(authorization.split(" ",1)[1])
+    if not claims:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    sub = claims.get("sub")
     if not sub:
         raise HTTPException(status_code=401, detail="Invalid token")
-    return int(sub)
+    try:
+        return int(sub)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=401, detail="Invalid token")
 
 @router.get("", response_model=ProgressList)
 def get_progress(path: str = Query(...), authorization: str | None = Header(None), db: Session = Depends(get_db)):

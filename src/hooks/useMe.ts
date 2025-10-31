@@ -6,12 +6,32 @@ export function useMe() {
   const [loading, setLoading] = useState(true)
   useEffect(() => {
     let mounted = true
-    fetch('/api/session/me').then(async r=>{
-      if (!mounted) return
-      if (!r.ok) { setMe(null); setLoading(false); return }
-      const d = await r.json()
-      setMe(d); setLoading(false)
-    }).catch(()=>{ setMe(null); setLoading(false) })
+    
+    const checkSession = async () => {
+      try {
+        const response = await fetch('/api/v1/auth/me', {
+          credentials: 'include'
+        })
+        if (!mounted) return
+        if (!response.ok) {
+          setMe(null)
+          setLoading(false)
+          return
+        }
+        const data = await response.json()
+        setMe(data)
+      } catch (err) {
+        if (mounted) {
+          setMe(null)
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false)
+        }
+      }
+    }
+
+    checkSession()
     return () => { mounted = false }
   }, [])
   return { me, loading }

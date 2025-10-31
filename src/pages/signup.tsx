@@ -1,6 +1,7 @@
 import Head from 'next/head'
 import Layout from '@/components/Layout'
 import { useState } from 'react'
+import { apiPost } from '@/lib/api'
 
 export default function SignupPage() {
   const [name, setName] = useState('')
@@ -14,17 +15,24 @@ export default function SignupPage() {
     if (!name.trim()) return setErr('Add your name.')
     if (!/^\S+@\S+\.\S+$/.test(email)) return setErr('Invalid email.')
     if (pwd.length < 8) return setErr('Use 8+ characters.')
-    const r = await fetch('/api/session/signup', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ email, password: pwd })
-    })
-    if (!r.ok) {
-      setErr('Email already used.')
-      return
+    try {
+      const response = await fetch('/api/session/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password: pwd })
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Signup failed')
+      }
+      
+      setMsg('Account created.')
+      setTimeout(()=>{ window.location.href = '/login' }, 600)
+    } catch (err: any) {
+      const errorMsg = err?.message || 'Email already used.'
+      setErr(errorMsg)
     }
-    setMsg('Account created.')
-    setTimeout(()=>{ window.location.href = '/login' }, 600)
   }
 
   return (

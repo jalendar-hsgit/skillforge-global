@@ -3,6 +3,7 @@ import Image from 'next/image'
 import { useMe } from '@/hooks/useMe'
 import { ROUTES } from '@/lib/routes'
 import Footer from '@/components/Footer'
+import CoinBadge from '@/components/CoinBadge'
 
 export default function Layout({ children }: {children: React.ReactNode}) {
   const { me } = useMe()
@@ -19,6 +20,7 @@ export default function Layout({ children }: {children: React.ReactNode}) {
             <Link href={ROUTES.ai}>SkillAIBridge</Link>
             <Link href={ROUTES.pricing}>Pricing</Link>
             <Link href={ROUTES.faq}>FAQ</Link>
+            {me && <CoinBadge />}
             {!me && <Link href={ROUTES.login} className="text-white/80 hover:text-white">Log in</Link>}
             {me ? (
               <>

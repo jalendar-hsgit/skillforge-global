@@ -1,7 +1,7 @@
 {
   "python-ai": {
     "id": "quiz-python-ai-1",
-    "title": "Python & AI – Basics",
+    "title": "Python & AI Mastery Quiz",
     "questions": [
       {
         "id": "q1",
@@ -17,7 +17,7 @@
         "text": "Which library is most commonly used for numerical arrays?",
         "options": ["matplotlib", "pandas", "numpy", "seaborn"],
         "answerIndex": 2,
-        "explanation": "NumPy provides fast N-dimensional arrays and math."
+        "explanation": "NumPy provides fast N-dimensional arrays and math operations."
       },
       {
         "id": "q3",
@@ -26,12 +26,188 @@
         "options": ["Only inputs", "Only outputs", "Inputs and outputs (labels)", "Neither"],
         "answerIndex": 2,
         "explanation": "Supervised learning maps inputs → outputs using labeled data."
+      },
+      {
+        "id": "q4",
+        "type": "mcq",
+        "text": "What is the purpose of the activation function in neural networks?",
+        "options": ["To initialize weights", "To introduce non-linearity", "To reduce overfitting", "To normalize inputs"],
+        "answerIndex": 1,
+        "explanation": "Activation functions introduce non-linearity, allowing neural networks to learn complex patterns."
+      },
+      {
+        "id": "q5",
+        "type": "mcq",
+        "text": "Which algorithm is best for finding similar items based on features?",
+        "options": ["Linear Regression", "K-Nearest Neighbors", "Decision Trees", "Naive Bayes"],
+        "answerIndex": 1,
+        "explanation": "KNN finds the k closest neighbors based on distance metrics like Euclidean distance."
+      },
+      {
+        "id": "q6",
+        "type": "mcq",
+        "text": "What does 'epoch' mean in deep learning?",
+        "options": ["One forward pass", "One backward pass", "One complete pass through entire dataset", "One batch update"],
+        "answerIndex": 2,
+        "explanation": "An epoch is one complete iteration through the entire training dataset."
+      },
+      {
+        "id": "q7",
+        "type": "mcq",
+        "text": "Which technique helps prevent overfitting in neural networks?",
+        "options": ["Increasing learning rate", "Dropout", "Adding more layers", "Removing validation set"],
+        "answerIndex": 1,
+        "explanation": "Dropout randomly disables neurons during training to prevent overfitting."
+      },
+      {
+        "id": "q8",
+        "type": "mcq",
+        "text": "What is the vanishing gradient problem?",
+        "options": ["Gradients become too large", "Gradients become too small", "No gradients are computed", "Gradients oscillate"],
+        "answerIndex": 1,
+        "explanation": "Vanishing gradients occur when gradients become extremely small, preventing effective learning in deep networks."
+      },
+      {
+        "id": "q9",
+        "type": "mcq",
+        "text": "Which Python decorator is used to define a property?",
+        "options": ["@staticmethod", "@classmethod", "@property", "@dataclass"],
+        "answerIndex": 2,
+        "explanation": "@property decorator allows you to define methods that act like attributes."
+      },
+      {
+        "id": "q10",
+        "type": "mcq",
+        "text": "What does 'pip freeze' do?",
+        "options": ["Stops all processes", "Lists installed packages", "Freezes Python version", "Creates virtual environment"],
+        "answerIndex": 1,
+        "explanation": "pip freeze outputs all installed packages with their versions, typically used for requirements.txt."
+      },
+      {
+        "id": "q11",
+        "type": "mcq",
+        "text": "Which loss function is commonly used for binary classification?",
+        "options": ["Mean Squared Error", "Binary Cross-Entropy", "Categorical Cross-Entropy", "Hinge Loss"],
+        "answerIndex": 1,
+        "explanation": "Binary Cross-Entropy (log loss) is the standard loss function for binary classification problems."
+      },
+      {
+        "id": "q12",
+        "type": "mcq",
+        "text": "What is the purpose of batch normalization?",
+        "options": ["Increase batch size", "Normalize layer inputs", "Reduce training time", "Add regularization"],
+        "answerIndex": 1,
+        "explanation": "Batch normalization normalizes the inputs of each layer to improve training stability and speed."
+      },
+      {
+        "id": "q13",
+        "type": "mcq",
+        "text": "Which is NOT a type of RNN architecture?",
+        "options": ["LSTM", "GRU", "BiLSTM", "ResNet"],
+        "answerIndex": 3,
+        "explanation": "ResNet is a CNN architecture for image processing, not an RNN variant."
+      },
+      {
+        "id": "q14",
+        "type": "mcq",
+        "text": "What does 'transfer learning' mean in deep learning?",
+        "options": ["Transferring data between servers", "Using pre-trained models for new tasks", "Converting models to different frameworks", "Sharing weights between layers"],
+        "answerIndex": 1,
+        "explanation": "Transfer learning uses knowledge from pre-trained models to solve related tasks with less data."
+      },
+      {
+        "id": "q15",
+        "type": "mcq",
+        "text": "Which metric is best for imbalanced classification datasets?",
+        "options": ["Accuracy", "F1 Score", "Mean Absolute Error", "R-squared"],
+        "answerIndex": 1,
+        "explanation": "F1 Score balances precision and recall, making it ideal for imbalanced datasets."
+      },
+      {
+        "id": "q16",
+        "type": "mcq",
+        "text": "What is 'attention mechanism' in transformers?",
+        "options": ["A way to focus on relevant parts of input", "A regularization technique", "An optimization algorithm", "A data augmentation method"],
+        "answerIndex": 0,
+        "explanation": "Attention allows models to focus on relevant parts of input when processing sequences."
+      },
+      {
+        "id": "q17",
+        "type": "mcq",
+        "text": "Which library is used for building transformers in Python?",
+        "options": ["scikit-learn", "Hugging Face Transformers", "matplotlib", "pandas"],
+        "answerIndex": 1,
+        "explanation": "Hugging Face Transformers provides pre-trained transformer models and utilities."
+      },
+      {
+        "id": "q18",
+        "type": "mcq",
+        "text": "What is gradient descent?",
+        "options": ["A neural network architecture", "An optimization algorithm", "A loss function", "A data preprocessing technique"],
+        "answerIndex": 1,
+        "explanation": "Gradient descent is an optimization algorithm that minimizes loss by updating weights based on gradients."
+      },
+      {
+        "id": "q19",
+        "type": "mcq",
+        "text": "What does 'argmax' return?",
+        "options": ["Maximum value", "Index of maximum value", "Minimum value", "Index of minimum value"],
+        "answerIndex": 1,
+        "explanation": "argmax returns the index of the maximum value in an array."
+      },
+      {
+        "id": "q20",
+        "type": "mcq",
+        "text": "Which Python context manager ensures file closure?",
+        "options": ["try-except", "with statement", "finally block", "close() method"],
+        "answerIndex": 1,
+        "explanation": "The 'with' statement automatically handles resource cleanup, including file closure."
+      },
+      {
+        "id": "q21",
+        "type": "mcq",
+        "text": "What is the purpose of one-hot encoding?",
+        "options": ["Speed up training", "Convert categorical to numerical", "Reduce dimensionality", "Normalize data"],
+        "answerIndex": 1,
+        "explanation": "One-hot encoding converts categorical variables into binary vectors for model input."
+      },
+      {
+        "id": "q22",
+        "type": "mcq",
+        "text": "Which technique splits data for model evaluation?",
+        "options": ["Normalization", "Cross-validation", "Feature scaling", "Data augmentation"],
+        "answerIndex": 1,
+        "explanation": "Cross-validation splits data into multiple folds for robust model evaluation."
+      },
+      {
+        "id": "q23",
+        "type": "mcq",
+        "text": "What is 'embedding' in NLP?",
+        "options": ["Compressing text", "Converting words to vectors", "Tokenizing sentences", "Removing stopwords"],
+        "answerIndex": 1,
+        "explanation": "Embeddings represent words as dense vectors capturing semantic relationships."
+      },
+      {
+        "id": "q24",
+        "type": "mcq",
+        "text": "Which optimizer is most commonly used in deep learning?",
+        "options": ["SGD", "Adam", "RMSprop", "Adagrad"],
+        "answerIndex": 1,
+        "explanation": "Adam (Adaptive Moment Estimation) is widely used for its efficiency and adaptive learning rates."
+      },
+      {
+        "id": "q25",
+        "type": "mcq",
+        "text": "What is the purpose of pooling layers in CNNs?",
+        "options": ["Increase image size", "Reduce spatial dimensions", "Add non-linearity", "Normalize pixels"],
+        "answerIndex": 1,
+        "explanation": "Pooling layers downsample feature maps to reduce spatial dimensions and computational cost."
       }
     ]
   },
   "fullstack": {
     "id": "quiz-fullstack-1",
-    "title": "Full-Stack – Fundamentals",
+    "title": "Full Stack Development Quiz",
     "questions": [
       {
         "id": "q1",
@@ -39,7 +215,177 @@
         "text": "HTTP 201 means…",
         "options": ["OK", "Created", "No Content", "Bad Request"],
         "answerIndex": 1,
-        "explanation": "201 Created indicates a new resource was created by the request."
+        "explanation": "201 Created indicates a new resource was successfully created by the request."
+      },
+      {
+        "id": "q2",
+        "type": "mcq",
+        "text": "What is REST?",
+        "options": ["A database", "An architectural style for APIs", "A programming language", "A web server"],
+        "answerIndex": 1,
+        "explanation": "REST (Representational State Transfer) is an architectural style for designing networked applications."
+      },
+      {
+        "id": "q3",
+        "type": "mcq",
+        "text": "Which HTTP method is idempotent?",
+        "options": ["POST", "PUT", "PATCH", "All of the above"],
+        "answerIndex": 1,
+        "explanation": "PUT is idempotent - multiple identical requests have the same effect as a single request."
+      },
+      {
+        "id": "q4",
+        "type": "mcq",
+        "text": "What does CORS stand for?",
+        "options": ["Cross-Origin Resource Sharing", "Common Origin Request System", "Cascading Origin Response Security", "Core Object Reference Standard"],
+        "answerIndex": 0,
+        "explanation": "CORS is a security mechanism that allows controlled access to resources from different origins."
+      },
+      {
+        "id": "q5",
+        "type": "mcq",
+        "text": "Which database is NoSQL?",
+        "options": ["MySQL", "PostgreSQL", "MongoDB", "SQLite"],
+        "answerIndex": 2,
+        "explanation": "MongoDB is a document-oriented NoSQL database that stores data in JSON-like documents."
+      }
+    ]
+  },
+  "aws-devops": {
+    "id": "quiz-aws-devops-1",
+    "title": "AWS DevOps Professional Quiz",
+    "questions": [
+      {
+        "id": "q1",
+        "type": "mcq",
+        "text": "What is EC2?",
+        "options": ["Elastic Container Cloud", "Elastic Compute Cloud", "Elastic Code Compiler", "Elastic Cloud Computing"],
+        "answerIndex": 1,
+        "explanation": "EC2 (Elastic Compute Cloud) provides scalable virtual servers in AWS."
+      },
+      {
+        "id": "q2",
+        "type": "mcq",
+        "text": "Which AWS service stores objects?",
+        "options": ["EC2", "S3", "RDS", "Lambda"],
+        "answerIndex": 1,
+        "explanation": "S3 (Simple Storage Service) is AWS's object storage service for files and data."
+      },
+      {
+        "id": "q3",
+        "type": "mcq",
+        "text": "What is Infrastructure as Code (IaC)?",
+        "options": ["Writing infrastructure documentation", "Managing infrastructure through code", "Encrypting infrastructure", "Monitoring infrastructure"],
+        "answerIndex": 1,
+        "explanation": "IaC manages and provisions infrastructure through machine-readable definition files."
+      },
+      {
+        "id": "q4",
+        "type": "mcq",
+        "text": "Which tool is used for IaC in AWS?",
+        "options": ["Docker", "Kubernetes", "Terraform", "Jenkins"],
+        "answerIndex": 2,
+        "explanation": "Terraform is a popular IaC tool for provisioning AWS and other cloud resources."
+      },
+      {
+        "id": "q5",
+        "type": "mcq",
+        "text": "What is AWS Lambda?",
+        "options": ["A database service", "A serverless compute service", "A storage service", "A networking service"],
+        "answerIndex": 1,
+        "explanation": "Lambda runs code without provisioning servers, charging only for compute time used."
+      }
+    ]
+  },
+  "cybersec": {
+    "id": "quiz-cybersec-1",
+    "title": "Cybersecurity Expert Quiz",
+    "questions": [
+      {
+        "id": "q1",
+        "type": "mcq",
+        "text": "What is the CIA triad in cybersecurity?",
+        "options": ["Central Intelligence Agency", "Confidentiality, Integrity, Availability", "Computer Information Access", "Cyber Investigation Authority"],
+        "answerIndex": 1,
+        "explanation": "The CIA triad represents the three core principles of information security."
+      },
+      {
+        "id": "q2",
+        "type": "mcq",
+        "text": "What is SQL injection?",
+        "options": ["A database optimization technique", "A type of cyberattack injecting malicious SQL", "A SQL debugging method", "A database backup method"],
+        "answerIndex": 1,
+        "explanation": "SQL injection exploits vulnerabilities to inject malicious SQL code into queries."
+      },
+      {
+        "id": "q3",
+        "type": "mcq",
+        "text": "Which encryption method uses two keys?",
+        "options": ["Symmetric encryption", "Asymmetric encryption", "Hashing", "Encoding"],
+        "answerIndex": 1,
+        "explanation": "Asymmetric encryption uses a public key for encryption and a private key for decryption."
+      },
+      {
+        "id": "q4",
+        "type": "mcq",
+        "text": "What is a firewall?",
+        "options": ["A virus", "A network security system", "An encryption algorithm", "A password manager"],
+        "answerIndex": 1,
+        "explanation": "A firewall monitors and controls incoming/outgoing network traffic based on security rules."
+      },
+      {
+        "id": "q5",
+        "type": "mcq",
+        "text": "What does HTTPS ensure?",
+        "options": ["Faster loading", "Encrypted communication", "Better SEO", "More bandwidth"],
+        "answerIndex": 1,
+        "explanation": "HTTPS encrypts data between browser and server using TLS/SSL protocols."
+      }
+    ]
+  },
+  "flutter": {
+    "id": "quiz-flutter-1",
+    "title": "Flutter Mobile Development Quiz",
+    "questions": [
+      {
+        "id": "q1",
+        "type": "mcq",
+        "text": "What language is Flutter based on?",
+        "options": ["Java", "Kotlin", "Dart", "Swift"],
+        "answerIndex": 2,
+        "explanation": "Flutter uses Dart, a language optimized for UI development."
+      },
+      {
+        "id": "q2",
+        "type": "mcq",
+        "text": "What is a Widget in Flutter?",
+        "options": ["A database", "A building block of UI", "A testing framework", "A package manager"],
+        "answerIndex": 1,
+        "explanation": "Widgets are the basic building blocks of Flutter's UI, describing part of the interface."
+      },
+      {
+        "id": "q3",
+        "type": "mcq",
+        "text": "Which widget is immutable?",
+        "options": ["StatefulWidget", "StatelessWidget", "Both", "Neither"],
+        "answerIndex": 1,
+        "explanation": "StatelessWidget is immutable and doesn't maintain state that changes over time."
+      },
+      {
+        "id": "q4",
+        "type": "mcq",
+        "text": "What does 'hot reload' do?",
+        "options": ["Restarts the app", "Injects updated code without restart", "Clears cache", "Updates packages"],
+        "answerIndex": 1,
+        "explanation": "Hot reload injects updated source code into the running app without losing state."
+      },
+      {
+        "id": "q5",
+        "type": "mcq",
+        "text": "Which layout widget arranges children vertically?",
+        "options": ["Row", "Column", "Stack", "Container"],
+        "answerIndex": 1,
+        "explanation": "Column arranges its children widgets in a vertical array."
       }
     ]
   }
