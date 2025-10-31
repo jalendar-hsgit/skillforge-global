@@ -9,13 +9,15 @@ from app.models import User, Progress as LegacyProgress, QuizAttempt, CreditLedg
 from app.modelsx import Course, Video, Quiz, QuizQuestion, VideoProgress, coins
 # ensure CoinLedger table is registered (modelsx.coins defines CoinLedger)
 from app.modelsx.coins import CoinLedger
+# import mentor models
+from app.modelsx.mentor import Mentor, MentorSession, MentorAvailability, MentorMessage, MentorReview
 
 # v1 routers (existing)
 from app.api.v1 import auth, courses, chat, quizzes, progress, subscribe, quiz_status, paths
 
 # Try to import optional v1x routers
 try:
-    from app.api.v1x import courses_db, progress_db, quizzes_db, youtube_sync, coins_db
+    from app.api.v1x import courses_db, progress_db, quizzes_db, youtube_sync, coins_db, mentors
 except Exception as e:
     print(f"Error importing v1x modules: {e}")
     courses_db = None
@@ -23,6 +25,7 @@ except Exception as e:
     quizzes_db = None
     youtube_sync = None
     coins_db = None
+    mentors = None
 
 # App
 app = FastAPI(title=getattr(settings, "APP_NAME", "SkillForge Global"))
@@ -76,7 +79,7 @@ def _mount_v1x_export(obj):
 
 
 # Mount all v1x exports (modules or routers)
-for _export in (courses_db, progress_db, quizzes_db, youtube_sync, coins_db):
+for _export in (courses_db, progress_db, quizzes_db, youtube_sync, coins_db, mentors):
     _mount_v1x_export(_export)
 
 
