@@ -82,3 +82,25 @@ export default function NewResumePage() {
     </>
   );
 }
+
+// Server-side auth guard for reliable redirect
+export async function getServerSideProps(context: any) {
+  try {
+    const API_BASE = process.env.API_BASE || process.env.NEXT_PUBLIC_API_BASE || 'http://127.0.0.1:8001';
+    const cookie = context.req?.headers?.cookie || '';
+    const r = await fetch(`${API_BASE}/api/v1/auth/me`, {
+      headers: { cookie },
+    });
+    if (r.status === 401) {
+      return {
+        redirect: {
+          destination: `/login?redirect=/resumes/new`,
+          permanent: false,
+        },
+      };
+    }
+  } catch (_) {
+    // If backend not reachable, allow page to render and client-side will handle
+  }
+  return { props: {} };
+}
