@@ -26,22 +26,13 @@ export default function NewResumePage() {
   const createInitialResume = async () => {
     setCreatingResume(true);
     try {
-      const token = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('token='))
-        ?.split('=')[1];
-
-      if (!token) {
-        router.push('/login?redirect=/resumes/new');
-        return;
-      }
-
-      const response = await fetch('http://localhost:8001/api/v1x/resumes', {
+      // Create via Next.js proxy so HttpOnly cookie is forwarded automatically
+      const response = await fetch('/api/session/resumes', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
+        credentials: 'include',
         body: JSON.stringify({
           title: 'Untitled Resume',
           template: 'modern',
@@ -51,6 +42,10 @@ export default function NewResumePage() {
       if (response.ok) {
         const data = await response.json();
         setResumeId(data.id);
+      } else if (response.status === 401) {
+        // Not authenticated: send to login with redirect
+        router.push('/login?redirect=/resumes/new');
+        return;
       } else {
         console.error('Failed to create resume');
         alert('Failed to create resume. Please try again.');

@@ -1,0 +1,54 @@
+import type { NextApiRequest, NextApiResponse } from "next";
+const API_BASE = process.env.API_BASE || "http://127.0.0.1:8001";
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  try {
+    const url = `${API_BASE}/api/v1x/resumes`;
+
+    // Proxy POST (create) and GET (list)
+    if (req.method === "POST" || req.method === "GET") {
+      const r = await fetch(url, {
+        method: req.method,
+        headers: {
+          "content-type": "application/json",
+          // forward cookies to backend so it can read JWT token
+          cookie: req.headers.cookie || "",
+        },
+        credentials: "include" as any,
+        body: req.method === "POST" ? JSON.stringify(req.body || {}) : undefined,
+      });
+
+      // pass through response body and status
+      const text = await r.text();
+      res.status(r.status);
+      // forward set-cookie if backend updates token (rare here but safe)
+      const setCookie = r.headers.get("set-cookie");
+      if (setCookie) res.setHeader("set-cookie", setCookie);
+      res.send(text || "{}");
+      return;
+    }
+
+    // Proxy GET by id, PATCH, DELETE: /api/session/resumes?id=123
+    if (["PATCH", "DELETE"].includes(req.method || "")) {
+      const id = (req.query.id as string) || "";
+      if (!id) return res.status(400).json({ detail: "id is required" });
+      const r = await fetch(`${url}/${id}`, {
+        method: req.method,
+        headers: {
+          "content-type": "application/json",
+          cookie: req.headers.cookie || "",
+        },
+        credentials: "include" as any,
+        body: req.method === "PATCH" ? JSON.stringify(req.body || {}) : undefined,
+      });
+      const text = await r.text();
+      res.status(r.status).send(text || "{}");
+      return;
+    }
+
+    res.setHeader("allow", ["GET", "POST", "PATCH", "DELETE"]);
+    return res.status(405).end();
+  } catch (e: any) {
+    return res.status(500).json({ detail: e?.message || "resumes proxy error" });
+  }
+}
