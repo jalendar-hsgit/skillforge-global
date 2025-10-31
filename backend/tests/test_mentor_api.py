@@ -2,16 +2,12 @@
 Tests for Mentor System API endpoints
 """
 import pytest
-from httpx import AsyncClient
 from datetime import datetime, timedelta
-from app.main import app
-from app.core.db import get_db, Base, engine
 from app.models.user import User
-from app.modelsx.mentor import Mentor, MentorSession, MentorAvailability, MentorReview
-from app.modelsx.progress import Progress
-from app.modelsx.quiz import QuizAttempt, Quiz
-from app.core.security import hash_password
-from sqlalchemy.orm import Session
+from app.modelsx.mentor import Mentor, MentorSession
+from app.models.progress import Progress
+from app.modelsx.quiz import QuizAttempt
+from app.core.security import get_password_hash
 
 # Test data
 TEST_USER_EMAIL = "student@test.com"
@@ -20,53 +16,40 @@ TEST_PASSWORD = "testpass123"
 
 
 @pytest.fixture
-async def test_db():
-    """Create test database"""
-    Base.metadata.create_all(bind=engine)
-    yield
-    Base.metadata.drop_all(bind=engine)
-
-
-@pytest.fixture
-async def test_student(test_db):
+def test_student(db_session):
     """Create test student user"""
-    db = next(get_db())
     user = User(
         email=TEST_USER_EMAIL,
-        hashed_password=hash_password(TEST_PASSWORD),
+        hashed_password=get_password_hash(TEST_PASSWORD),
         full_name="Test Student"
     )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
     return user
 
 
 @pytest.fixture
-async def eligible_student(test_db):
+def eligible_student(db_session):
     """Create student eligible to become mentor"""
-    db = next(get_db())
-    
     # Create user
     user = User(
         email="eligible@test.com",
-        hashed_password=hash_password(TEST_PASSWORD),
+        hashed_password=get_password_hash(TEST_PASSWORD),
         full_name="Eligible Student"
     )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
     
     # Add completed progress (path completed)
     progress = Progress(
         user_id=user.id,
-        course_id=1,
-        completed_modules=5,
-        total_modules=5,
-        progress_percentage=100.0,
-        last_accessed=datetime.utcnow()
+        module_id=1,
+        completed=True,
+        completed_at=datetime.utcnow()
     )
-    db.add(progress)
+    db_session.add(progress)
     
     # Add quiz attempts with high scores (>80% average)
     quiz1 = QuizAttempt(
@@ -85,26 +68,24 @@ async def eligible_student(test_db):
         passed=True,
         completed_at=datetime.utcnow()
     )
-    db.add_all([quiz1, quiz2])
-    db.commit()
+    db_session.add_all([quiz1, quiz2])
+    db_session.commit()
     
     return user
 
 
 @pytest.fixture
-async def test_mentor(test_db):
+def test_mentor(db_session):
     """Create test mentor"""
-    db = next(get_db())
-    
     # Create user
     user = User(
         email=TEST_MENTOR_EMAIL,
-        hashed_password=hash_password(TEST_PASSWORD),
+        hashed_password=get_password_hash(TEST_PASSWORD),
         full_name="Test Mentor"
     )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
     
     # Create mentor profile
     mentor = Mentor(
@@ -116,61 +97,46 @@ async def test_mentor(test_db):
         average_rating=4.5,
         total_sessions=10
     )
-    db.add(mentor)
-    db.commit()
-    db.refresh(mentor)
+    db_session.add(mentor)
+    db_session.commit()
+    db_session.refresh(mentor)
     
     return mentor
-
-
-@pytest.fixture
-async def auth_headers(test_student):
-    """Get authentication headers"""
-    async with AsyncClient(app=app, base_url="http://test") as client:
-        response = await client.post(
-            "/api/v1/auth/login",
-            json={"email": TEST_USER_EMAIL, "password": TEST_PASSWORD}
-        )
-        assert response.status_code == 200
-        token = response.cookies.get("token")
-        return {"Cookie": f"token={token}"}
 
 
 class TestMentorEligibility:
     """Test mentor eligibility checks"""
     
-    @pytest.mark.asyncio
-    async def test_check_eligibility_not_eligible(self, test_student, auth_headers):
+    def test_check_eligibility_not_eligible(self, client, test_student):
         """Test eligibility check for non-eligible user"""
-        async with AsyncClient(app=app, base_url="http://test") as client:
-            response = await client.get(
-                "/api/v1x/mentors/eligibility",
-                headers=auth_headers
-            )
-            assert response.status_code == 200
-            data = response.json()
-            assert data["eligible"] is False
-            assert "reasons" in data
+        # Login first
+        login_response = client.post("/api/v1/auth/login", json={
+            "email": TEST_USER_EMAIL,
+            "password": TEST_PASSWORD
+        })
+        assert login_response.status_code == 200
+        
+        # Check eligibility
+        response = client.get("/api/v1x/mentors/eligibility")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["eligible"] is False
+        assert "reasons" in data
     
-    @pytest.mark.asyncio
-    async def test_check_eligibility_eligible(self, eligible_student):
+    def test_check_eligibility_eligible(self, client, eligible_student):
         """Test eligibility check for eligible user"""
         # Login as eligible student
-        async with AsyncClient(app=app, base_url="http://test") as client:
-            login_response = await client.post(
-                "/api/v1/auth/login",
-                json={"email": "eligible@test.com", "password": TEST_PASSWORD}
-            )
-            token = login_response.cookies.get("token")
-            headers = {"Cookie": f"token={token}"}
-            
-            response = await client.get(
-                "/api/v1x/mentors/eligibility",
-                headers=headers
-            )
-            assert response.status_code == 200
-            data = response.json()
-            assert data["eligible"] is True
+        login_response = client.post("/api/v1/auth/login", json={
+            "email": "eligible@test.com",
+            "password": TEST_PASSWORD
+        })
+        assert login_response.status_code == 200
+        
+        # Check eligibility
+        response = client.get("/api/v1x/mentors/eligibility")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["eligible"] is True
 
 
 class TestMentorApplication:
