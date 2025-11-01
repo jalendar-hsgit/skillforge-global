@@ -37,10 +37,11 @@ export default function WatchPage() {
   useEffect(() => {
     if (!id) return
     
-    // Fetch video details from YouTube API database
+    // Fetch video details from DB-backed API first, then fallback to file-backed courses
     const fetchVideo = async () => {
       try {
         const paths = ['python-ai', 'fullstack', 'aws-devops', 'cybersec', 'flutter']
+        let foundAny = false
         
         for (const path of paths) {
           const response = await fetch(`/api/v1x/courses-db/${path}/videos`, {
@@ -72,7 +73,37 @@ export default function WatchPage() {
                     duration: formatDuration(v.duration)
                   }))
               )
+              foundAny = true
               break
+            }
+          }
+        }
+
+        if (!foundAny) {
+          // Fallback: search in file-backed courses list (v1)
+          const r = await fetch('/api/v1/courses', { credentials: 'include' })
+          if (r.ok) {
+            const all = await r.json()
+            const found = all.find((c: any) => c.id.toString() === id)
+            if (found) {
+              setVideo({
+                id: found.id.toString(),
+                title: found.title,
+                youtubeId: found.youtubeId,
+                duration: found.duration || '—',
+                path: found.path
+              })
+              const related = all
+                .filter((c: any) => c.path === found.path && c.id.toString() !== id)
+                .slice(0, 5)
+                .map((c: any) => ({
+                  id: c.id.toString(),
+                  title: c.title,
+                  youtubeId: c.youtubeId,
+                  duration: c.duration || '—'
+                }))
+              setRelatedVideos(related)
+              foundAny = true
             }
           }
         }

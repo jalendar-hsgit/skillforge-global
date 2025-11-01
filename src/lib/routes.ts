@@ -11,6 +11,8 @@ export const ROUTES = {
   paths: '/paths',
   pricing: '/pricing',
   logout: '/logout',
+  resumeNew: '/resumes/new',
+  resumes: '/resumes',
   quiz: (slug?: string | null) => slug ? `/quiz/${slug}` : '/paths',
   path: (slug?: string | null) => slug ? `/paths/${slug}` : '/paths',
 };

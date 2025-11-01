@@ -25,7 +25,7 @@ export default function ResumePreview({ resume }: ResumePreviewProps) {
   const template = resume.template || 'modern'
 
   return (
-    <div className="bg-white text-gray-900 rounded-lg overflow-hidden border">
+    <div className="bg-white text-gray-900 rounded-lg overflow-hidden border shadow">
       {/* Header */}
       <div className={
         template === 'classic'
@@ -60,9 +60,9 @@ export default function ResumePreview({ resume }: ResumePreviewProps) {
               {resume.work_experiences.slice(0, 2).map((exp: any, idx: number) => (
                 <li key={idx}>
                   <div className="font-medium">{exp.position || 'Role'} • {exp.company || 'Company'}</div>
-                  {Array.isArray(exp.responsibilities) && exp.responsibilities.length > 0 && (
+                  {((exp.responsibilities && exp.responsibilities.length) || (exp.bullet_points && exp.bullet_points.length)) && (
                     <ul className="list-disc pl-5">
-                      {exp.responsibilities.slice(0, 2).map((r: string, i: number) => (
+                      {(exp.responsibilities || exp.bullet_points || []).slice(0, 2).map((r: string, i: number) => (
                         <li key={i}>{r}</li>
                       ))}
                     </ul>
@@ -79,7 +79,7 @@ export default function ResumePreview({ resume }: ResumePreviewProps) {
             <ul className="space-y-1">
               {resume.education.slice(0, 2).map((edu: any, idx: number) => (
                 <li key={idx}>
-                  <div className="font-medium">{edu.degree || 'Degree'} in {edu.field_of_study || 'Field'} • {edu.school || 'School'}</div>
+                  <div className="font-medium">{edu.degree || 'Degree'} in {edu.field_of_study || 'Field'} • {edu.institution || edu.school || 'Institution'}</div>
                 </li>
               ))}
             </ul>
@@ -94,6 +94,47 @@ export default function ResumePreview({ resume }: ResumePreviewProps) {
                 <span key={idx} className="px-2 py-0.5 bg-gray-100 rounded-full">{s.name || 'Skill'}</span>
               ))}
             </div>
+          </section>
+        )}
+
+        {Array.isArray(resume.projects) && resume.projects.length > 0 && (
+          <section>
+            <h3 className="font-semibold mb-1">Projects</h3>
+            <ul className="space-y-1">
+              {resume.projects.slice(0, 2).map((p: any, idx: number) => (
+                <li key={idx}>
+                  <div className="font-medium">{p.title || p.name || 'Project'}</div>
+                  {p.description && <p className="text-[11px] text-gray-600">{p.description}</p>}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {Array.isArray(resume.certificates) && resume.certificates.length > 0 && (
+          <section>
+            <h3 className="font-semibold mb-1">Certificates</h3>
+            <ul className="space-y-1">
+              {resume.certificates.slice(0, 2).map((c: any, idx: number) => (
+                <li key={idx}>
+                  <div className="font-medium">{c.name || 'Certificate'}</div>
+                  <div className="text-[11px] text-gray-600">{c.issuing_organization || c.issuer || 'Issuer'}{(c.issue_date || c.date) ? ` • ${c.issue_date || c.date}` : ''}</div>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {Array.isArray(resume.achievements) && resume.achievements.length > 0 && (
+          <section>
+            <h3 className="font-semibold mb-1">Achievements</h3>
+            <ul className="list-disc pl-5 space-y-1">
+              {resume.achievements.slice(0, 3).map((a: any, idx: number) => (
+                <li key={idx} className="text-[11px]">
+                  <strong>{a.title}</strong>{a.date ? ` (${a.date})` : ''}{a.issuer ? ` • ${a.issuer}` : ''}{a.description ? `: ${a.description}` : ''}
+                </li>
+              ))}
+            </ul>
           </section>
         )}
       </div>

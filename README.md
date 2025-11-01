@@ -55,6 +55,30 @@ API documentation available at [http://localhost:8001/docs](http://localhost:800
 
 ## Testing
 
+### E2E (Playwright)
+
+The end-to-end tests spin up both backend (FastAPI) and frontend (Next.js) automatically.
+
+```powershell
+# Install deps
+npm install
+# Install browsers (first time only)
+npx playwright install chromium
+# Run all E2E tests
+npm run e2e
+# Or run a single test (import flow)
+npx playwright test e2e/import.spec.ts --reporter=list
+```
+
+The Playwright config will:
+- Install backend requirements before starting Uvicorn
+- Start the backend on http://127.0.0.1:8001 and the frontend on http://127.0.0.1:3000
+- Set NEXT_PUBLIC_API_BASE/API_BASE so the frontend points to the backend
+
+Troubleshooting:
+- If the backend port is busy, kill the process bound to 8001 and retry.
+- On Windows PowerShell, avoid using string formatting with `-f` in one-liners unless properly scoped.
+
 ### Run Backend Tests
 
 ```powershell
@@ -71,8 +95,6 @@ Or use the convenience script:
 ```powershell
 .\scripts\run-backend-tests.ps1
 ```
-
-**Current Test Status**: ✅ All 6 E2E tests passing
 
 See [TESTING.md](TESTING.md) for detailed testing guide and troubleshooting.
 

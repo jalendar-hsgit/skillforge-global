@@ -112,16 +112,27 @@ try:
 except Exception as e:
     print(f"Failed to import hiring: {e}")
 
+try:
+    from app.api.v1x.resume_import import router as resume_import
+except Exception as e:
+    print(f"Failed to import resume_import: {e}")
+
 # App
 app = FastAPI(title=getattr(settings, "APP_NAME", "SkillForge Global"))
 
 # Create tables
 Base.metadata.create_all(bind=engine)
 
-# CORS
+# CORS - Allow multiple frontend ports
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.FRONTEND_ORIGIN, "http://localhost:3000"],
+    allow_origins=[
+        settings.FRONTEND_ORIGIN,
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:3002",
+        "http://localhost:3003",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -164,7 +175,7 @@ def _mount_v1x_export(obj):
 
 
 # Mount all v1x exports (modules or routers)
-for _export in (courses_db, progress_db, quizzes_db, youtube_sync, coins_db, mentors, payments, chat_files, payouts, subscriptions, connect, recordings, resumes, resume_ai, hiring):
+for _export in (courses_db, progress_db, quizzes_db, youtube_sync, coins_db, mentors, payments, chat_files, payouts, subscriptions, connect, recordings, resumes, resume_ai, hiring, resume_import):
     _mount_v1x_export(_export)
 
 # Mount WebSocket server

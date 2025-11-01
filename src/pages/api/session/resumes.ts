@@ -5,9 +5,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const url = `${API_BASE}/api/v1x/resumes`;
 
-    // Proxy POST (create) and GET (list)
-    if (req.method === "POST" || req.method === "GET") {
-      const r = await fetch(url, {
+    // Handle GET (list or by id) and POST (create)
+    if (req.method === "GET" || req.method === "POST") {
+      const id = (req.query.id as string) || "";
+      const target = req.method === "GET" && id ? `${url}/${id}` : url;
+      const r = await fetch(target, {
         method: req.method,
         headers: {
           "content-type": "application/json",

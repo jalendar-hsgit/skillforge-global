@@ -13,3 +13,6 @@ requests
 PyJWT
 python-multipart
 aiofiles
+python-dateutil
+PyPDF2
+python-docx

@@ -21,12 +21,8 @@ export default function ATSScoreCard({ resumeId }: { resumeId: number }) {
       try {
         setLoading(true)
         setError(null)
-        const token = document.cookie
-          .split('; ')
-          .find(row => row.startsWith('token='))
-          ?.split('=')[1]
-        const res = await fetch(`${API_BASE}/api/v1x/resume-ai/ats-analysis/${resumeId}`, {
-          headers: { Authorization: `Bearer ${token}` },
+        const res = await fetch(`/api/session/resume-ai/ats-score/${resumeId}`, {
+          credentials: 'include',
         })
         if (!res.ok) throw new Error('Failed to fetch ATS report')
         const data = await res.json()

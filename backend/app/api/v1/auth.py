@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Response
+from urllib.parse import urlparse
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 
@@ -37,10 +38,22 @@ def login(res: Response, data: LoginRequest, db: Session = Depends(get_db)):
     if not u or not verify_password(data.password, u.password_hash):
         raise HTTPException(status_code=401, detail="Invalid login")
     token = create_access_token(u.id)
-    # Lax works for same-site navigation; frontend proxy will forward cookie
+    # Cookie flags: HttpOnly + SameSite=Lax always; Secure only when frontend origin is https
+    try:
+        from app.core.config import settings
+        parsed = urlparse(getattr(settings, "FRONTEND_ORIGIN", ""))
+        secure = parsed.scheme == "https"
+    except Exception:
+        secure = False
+
     res.set_cookie(
-        "token", token,
-        httponly=True, samesite="lax", path="/", max_age=60*60*24*7
+        key="token",
+        value=token,
+        httponly=True,
+        samesite="lax",
+        path="/",
+        max_age=60 * 60 * 24 * 7,
+        secure=secure,
     )
     return {"logged": True}
 

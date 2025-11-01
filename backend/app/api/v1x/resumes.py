@@ -84,13 +84,14 @@ def get_resume(
 
 
 @router.put("/{resume_id}", response_model=ResumeOut)
+@router.patch("/{resume_id}", response_model=ResumeOut)
 def update_resume(
     resume_id: int,
     resume_data: ResumeUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Update resume"""
+    """Update resume (supports both PUT and PATCH)"""
     resume = db.query(Resume).filter(
         Resume.id == resume_id,
         Resume.user_id == current_user.id
@@ -300,6 +301,51 @@ def add_education(
     return edu
 
 
+@router.put("/education/{education_id}", response_model=EducationOut)
+def update_education(
+    education_id: int,
+    education: EducationCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Update education"""
+    edu = db.query(Education).join(Resume).filter(
+        Education.id == education_id,
+        Resume.user_id == current_user.id
+    ).first()
+    
+    if not edu:
+        raise HTTPException(status_code=404, detail="Education not found")
+    
+    for key, value in education.dict().items():
+        setattr(edu, key, value)
+    
+    db.commit()
+    db.refresh(edu)
+    
+    return edu
+
+
+@router.delete("/education/{education_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_education(
+    education_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Delete education"""
+    edu = db.query(Education).join(Resume).filter(
+        Education.id == education_id,
+        Resume.user_id == current_user.id
+    ).first()
+    
+    if not edu:
+        raise HTTPException(status_code=404, detail="Education not found")
+    
+    db.delete(edu)
+    db.commit()
+    return None
+
+
 # ==================== Projects ====================
 
 @router.post("/{resume_id}/projects", response_model=ResumeProjectOut)
@@ -324,6 +370,51 @@ def add_project(
     db.refresh(proj)
     
     return proj
+
+
+@router.put("/projects/{project_id}", response_model=ResumeProjectOut)
+def update_project(
+    project_id: int,
+    project: ResumeProjectCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Update project"""
+    proj = db.query(ResumeProject).join(Resume).filter(
+        ResumeProject.id == project_id,
+        Resume.user_id == current_user.id
+    ).first()
+    
+    if not proj:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    for key, value in project.dict().items():
+        setattr(proj, key, value)
+    
+    db.commit()
+    db.refresh(proj)
+    
+    return proj
+
+
+@router.delete("/projects/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_project(
+    project_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Delete project"""
+    proj = db.query(ResumeProject).join(Resume).filter(
+        ResumeProject.id == project_id,
+        Resume.user_id == current_user.id
+    ).first()
+    
+    if not proj:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    db.delete(proj)
+    db.commit()
+    return None
 
 
 # ==================== Skills ====================
@@ -381,6 +472,26 @@ def add_skills_bulk(
     return skill_objects
 
 
+@router.delete("/skills/{skill_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_skill(
+    skill_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Delete skill"""
+    skill = db.query(ResumeSkill).join(Resume).filter(
+        ResumeSkill.id == skill_id,
+        Resume.user_id == current_user.id
+    ).first()
+    
+    if not skill:
+        raise HTTPException(status_code=404, detail="Skill not found")
+    
+    db.delete(skill)
+    db.commit()
+    return None
+
+
 # ==================== Certificates ====================
 
 @router.post("/{resume_id}/certificates", response_model=ResumeCertificateOut)
@@ -407,6 +518,51 @@ def add_certificate(
     return cert
 
 
+@router.put("/certificates/{certificate_id}", response_model=ResumeCertificateOut)
+def update_certificate(
+    certificate_id: int,
+    certificate: ResumeCertificateCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Update certificate"""
+    cert = db.query(ResumeCertificate).join(Resume).filter(
+        ResumeCertificate.id == certificate_id,
+        Resume.user_id == current_user.id
+    ).first()
+    
+    if not cert:
+        raise HTTPException(status_code=404, detail="Certificate not found")
+    
+    for key, value in certificate.dict(exclude_unset=True).items():
+        setattr(cert, key, value)
+    
+    db.commit()
+    db.refresh(cert)
+    
+    return cert
+
+
+@router.delete("/certificates/{certificate_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_certificate(
+    certificate_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Delete certificate"""
+    cert = db.query(ResumeCertificate).join(Resume).filter(
+        ResumeCertificate.id == certificate_id,
+        Resume.user_id == current_user.id
+    ).first()
+    
+    if not cert:
+        raise HTTPException(status_code=404, detail="Certificate not found")
+    
+    db.delete(cert)
+    db.commit()
+    return None
+
+
 @router.post("/{resume_id}/certificates/from-quizzes", response_model=List[ResumeCertificateOut])
 def import_quiz_certificates(
     resume_id: int,
@@ -427,4 +583,72 @@ def import_quiz_certificates(
     return []
 
 
-# Continued in next file...
+# ==================== Achievements ====================
+
+@router.post("/{resume_id}/achievements", response_model=AchievementOut)
+def add_achievement(
+    resume_id: int,
+    achievement: AchievementCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Add achievement"""
+    resume = db.query(Resume).filter(
+        Resume.id == resume_id,
+        Resume.user_id == current_user.id
+    ).first()
+    
+    if not resume:
+        raise HTTPException(status_code=404, detail="Resume not found")
+    
+    ach = Achievement(resume_id=resume_id, **achievement.dict())
+    db.add(ach)
+    db.commit()
+    db.refresh(ach)
+    
+    return ach
+
+
+@router.put("/achievements/{achievement_id}", response_model=AchievementOut)
+def update_achievement(
+    achievement_id: int,
+    achievement: AchievementCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Update achievement"""
+    ach = db.query(Achievement).join(Resume).filter(
+        Achievement.id == achievement_id,
+        Resume.user_id == current_user.id
+    ).first()
+    
+    if not ach:
+        raise HTTPException(status_code=404, detail="Achievement not found")
+    
+    for key, value in achievement.dict().items():
+        setattr(ach, key, value)
+    
+    db.commit()
+    db.refresh(ach)
+    
+    return ach
+
+
+@router.delete("/achievements/{achievement_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_achievement(
+    achievement_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Delete achievement"""
+    ach = db.query(Achievement).join(Resume).filter(
+        Achievement.id == achievement_id,
+        Resume.user_id == current_user.id
+    ).first()
+    
+    if not ach:
+        raise HTTPException(status_code=404, detail="Achievement not found")
+    
+    db.delete(ach)
+    db.commit()
+    return None

@@ -140,7 +140,7 @@ export default function ResumeHeader({ resume, updateResume }: ResumeHeaderProps
         </div>
       </div>
 
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 print:hidden">
         <div className="flex gap-3">
           <span className="text-2xl">💡</span>
           <div>

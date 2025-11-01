@@ -45,6 +45,7 @@ export default function SkillsSection({
   onUpdate,
 }: SkillsSectionProps) {
   const [showForm, setShowForm] = useState(false);
+  const [toast, setToast] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
 
   const skillsByCategory = {
     technical: skills.filter(s => s.category === 'technical'),
@@ -55,25 +56,28 @@ export default function SkillsSection({
 
   const handleDelete = async (id: number) => {
     try {
-      const token = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('token='))
-        ?.split('=')[1];
-
       const response = await fetch(
-        `${API_BASE}/api/v1x/resumes/${resumeId}/skills/${id}`,
+        `/api/session/v1x/skills?id=${id}`,
         {
           method: 'DELETE',
-          headers: { Authorization: `Bearer ${token}` },
+          credentials: 'include',
         }
       );
 
       if (response.ok) {
         onUpdate();
+        setToast({ type: 'success', message: 'Skill removed' });
+        setTimeout(() => setToast(null), 2000);
+      } else {
+        const text = await response.text();
+        console.error('Failed to delete skill:', text);
+        setToast({ type: 'error', message: 'Failed to delete skill' });
+        setTimeout(() => setToast(null), 2600);
       }
     } catch (error) {
       console.error('Error deleting skill:', error);
-      alert('Failed to delete skill');
+      setToast({ type: 'error', message: 'Failed to delete skill' });
+      setTimeout(() => setToast(null), 2600);
     }
   };
 
@@ -81,8 +85,8 @@ export default function SkillsSection({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Skills</h2>
-          <p className="text-gray-600 mt-1">
+          <h2 className="text-2xl font-black bg-gradient-to-r from-forgePurple via-neuralBlue to-forgePurple bg-clip-text text-transparent tracking-tight">Skills</h2>
+          <p className="text-techGray/80 mt-1">
             Showcase your technical and soft skills with proficiency levels.
           </p>
         </div>
@@ -147,13 +151,15 @@ export default function SkillsSection({
           onSave={() => {
             setShowForm(false);
             onUpdate();
+            setToast({ type: 'success', message: 'Skill added' });
+            setTimeout(() => setToast(null), 2000);
           }}
         />
       )}
 
-      {/* Pro Tips */}
+      {/* Pro Tips (screen only) */}
       {skills.length > 0 && (
-        <Card className="p-4 bg-blue-50 border-blue-200">
+        <Card className="p-4 bg-blue-50 border-blue-200 print:hidden">
           <h4 className="font-semibold text-gray-900 mb-2">💡 Pro Tips:</h4>
           <ul className="text-sm text-gray-700 space-y-1">
             <li>• List 8-12 most relevant skills for the target role</li>
@@ -162,6 +168,24 @@ export default function SkillsSection({
             <li>• Include tools/frameworks mentioned in job descriptions</li>
           </ul>
         </Card>
+      )}
+
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-[60]">
+          <div
+            className={`min-w-[220px] max-w-sm px-4 py-3 rounded-xl shadow-2xl border backdrop-blur-sm transition-all ${
+              toast.type === 'success'
+                ? 'bg-green-500/20 border-green-400/40 text-green-100'
+                : toast.type === 'error'
+                ? 'bg-red-500/20 border-red-400/40 text-red-100'
+                : 'bg-blue-500/20 border-blue-400/40 text-blue-100'
+            }`}
+            role="status"
+            aria-live="polite"
+          >
+            <p className="text-sm font-semibold tracking-wide">{toast.message}</p>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -181,34 +205,32 @@ function SkillForm({ resumeId, onClose, onSave }: SkillFormProps) {
     proficiency: 'intermediate' as 'beginner' | 'intermediate' | 'advanced' | 'expert',
   });
   const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
 
     try {
-      const token = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('token='))
-        ?.split('=')[1];
-
-      const response = await fetch(`${API_BASE}/api/v1x/resumes/${resumeId}/skills`, {
+      const response = await fetch(`/api/session/v1x/skills?resumeId=${resumeId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
+        credentials: 'include',
         body: JSON.stringify(formData),
       });
 
       if (response.ok) {
         onSave();
       } else {
-        alert('Failed to add skill');
+        setToast({ type: 'error', message: 'Failed to add skill' });
+        setTimeout(() => setToast(null), 2600);
       }
     } catch (error) {
       console.error('Error adding skill:', error);
-      alert('Failed to add skill');
+      setToast({ type: 'error', message: 'Failed to add skill' });
+      setTimeout(() => setToast(null), 2600);
     } finally {
       setSaving(false);
     }
@@ -301,6 +323,23 @@ function SkillForm({ resumeId, onClose, onSave }: SkillFormProps) {
           </Button>
         </div>
       </form>
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-[60]">
+          <div
+            className={`min-w-[220px] max-w-sm px-4 py-3 rounded-xl shadow-2xl border backdrop-blur-sm transition-all ${
+              toast.type === 'success'
+                ? 'bg-green-500/20 border-green-400/40 text-green-100'
+                : toast.type === 'error'
+                ? 'bg-red-500/20 border-red-400/40 text-red-100'
+                : 'bg-blue-500/20 border-blue-400/40 text-blue-100'
+            }`}
+            role="status"
+            aria-live="polite"
+          >
+            <p className="text-sm font-semibold tracking-wide">{toast.message}</p>
+          </div>
+        </div>
+      )}
     </Card>
   );
 }

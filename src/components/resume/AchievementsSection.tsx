@@ -40,16 +40,11 @@ export default function AchievementsSection({
     if (!confirm('Are you sure you want to delete this achievement?')) return;
 
     try {
-      const token = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('token='))
-        ?.split('=')[1];
-
       const response = await fetch(
-        `${API_BASE}/api/v1x/resumes/${resumeId}/achievements/${id}`,
+        `/api/session/v1x/achievements?id=${id}`,
         {
           method: 'DELETE',
-          headers: { Authorization: `Bearer ${token}` },
+          credentials: 'include',
         }
       );
 
@@ -66,8 +61,8 @@ export default function AchievementsSection({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Achievements & Awards</h2>
-          <p className="text-gray-600 mt-1">
+          <h2 className="text-2xl font-black bg-gradient-to-r from-forgePurple via-neuralBlue to-forgePurple bg-clip-text text-transparent tracking-tight">Achievements & Awards</h2>
+          <p className="text-techGray/80 mt-1">
             Highlight your accomplishments, awards, and recognitions.
           </p>
         </div>
@@ -133,9 +128,9 @@ export default function AchievementsSection({
         />
       )}
 
-      {/* Pro Tips */}
+      {/* Pro Tips (screen only) */}
       {achievements.length > 0 && (
-        <Card className="p-4 bg-blue-50 border-blue-200">
+        <Card className="p-4 bg-blue-50 border-blue-200 print:hidden">
           <h4 className="font-semibold text-gray-900 mb-2">💡 Pro Tips:</h4>
           <ul className="text-sm text-gray-700 space-y-1">
             <li>• Include quantifiable metrics (e.g., "increased sales by 40%")</li>
@@ -170,21 +165,16 @@ function AchievementForm({ resumeId, achievementId, onClose, onSave }: Achieveme
     setSaving(true);
 
     try {
-      const token = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('token='))
-        ?.split('=')[1];
-
       const url = achievementId
-        ? `${API_BASE}/api/v1x/resumes/${resumeId}/achievements/${achievementId}`
-        : `${API_BASE}/api/v1x/resumes/${resumeId}/achievements`;
+        ? `/api/session/v1x/achievements?id=${achievementId}`
+        : `/api/session/v1x/achievements?resumeId=${resumeId}`;
 
       const response = await fetch(url, {
         method: achievementId ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
+        credentials: 'include',
         body: JSON.stringify(formData),
       });
 

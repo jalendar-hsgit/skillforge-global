@@ -34,6 +34,7 @@ export default function Layout({ children, maxWidth = '7xl', showFooter = true }
     { href: ROUTES.paths, label: 'Courses', icon: '📚' },
     { href: ROUTES.mentors, label: 'Mentors', icon: '👥' },
     { href: ROUTES.ai, label: 'AI Assistant', icon: '🤖' },
+    { href: ROUTES.resumeNew, label: 'Create Resume', icon: '📄' },
     { href: ROUTES.pricing, label: 'Pricing', icon: '💳' },
   ]
 

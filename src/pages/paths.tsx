@@ -51,9 +51,22 @@ export default function PathsPage() {
           
           for (const path of data) {
             try {
-              // Fetch total videos
+              // Fetch total videos (DB-backed first, fallback to file-backed)
+              let videos: any[] = []
               const videosRes = await fetch(`/api/v1x/courses-db/${path.slug}/videos`)
-              const videos = videosRes.ok ? await videosRes.json() : []
+              if (videosRes.ok) {
+                const dbVideos = await videosRes.json()
+                if (Array.isArray(dbVideos) && dbVideos.length > 0) {
+                  videos = dbVideos
+                }
+              }
+              if (videos.length === 0) {
+                const fbRes = await fetch(`/api/v1/courses?path=${path.slug}`)
+                if (fbRes.ok) {
+                  const fb = await fbRes.json()
+                  videos = Array.isArray(fb) ? fb : []
+                }
+              }
               
               // Fetch user progress
               const progressRes = await fetch(`/api/progress/get?path=${path.slug}`)

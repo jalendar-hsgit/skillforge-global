@@ -12,6 +12,8 @@ const nextConfig = {
     NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '',
   },
 
+  // Keep experimental options minimal for stable dev
+
   // Proxy API requests to backend
   async rewrites() {
     return [

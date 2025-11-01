@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Input } from '@/components/Input';
+import ModalShell from './ModalShell';
+import { Lightbulb } from 'lucide-react';
 
 interface Project {
   id: number;
@@ -79,16 +81,11 @@ export default function ProjectsSection({
     if (!confirm('Are you sure you want to delete this project?')) return;
 
     try {
-      const token = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('token='))
-        ?.split('=')[1];
-
       const response = await fetch(
-        `${API_BASE}/api/v1x/resumes/${resumeId}/projects/${id}`,
+        `/api/session/v1x/projects?id=${id}`,
         {
           method: 'DELETE',
-          headers: { Authorization: `Bearer ${token}` },
+          credentials: 'include',
         }
       );
 
@@ -105,8 +102,8 @@ export default function ProjectsSection({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Projects</h2>
-          <p className="text-gray-600 mt-1">
+          <h2 className="text-2xl font-black bg-gradient-to-r from-forgePurple via-neuralBlue to-forgePurple bg-clip-text text-transparent tracking-tight">Projects</h2>
+          <p className="text-techGray/80 mt-1">
             Showcase your personal or professional projects that demonstrate your skills.
           </p>
         </div>
@@ -236,9 +233,9 @@ export default function ProjectsSection({
         />
       )}
 
-      {/* Pro Tips */}
+      {/* Pro Tips (screen only) */}
       {projects.length > 0 && (
-        <Card className="p-4 bg-blue-50 border-blue-200">
+        <Card className="p-4 bg-blue-50 border-blue-200 print:hidden">
           <h4 className="font-semibold text-gray-900 mb-2">💡 Pro Tips:</h4>
           <ul className="text-sm text-gray-700 space-y-1">
             <li>• Focus on 2-4 most impressive and relevant projects</li>
@@ -290,24 +287,22 @@ function ProjectForm({ resumeId, projectId, template, onClose, onSave }: Project
     setSaving(true);
 
     try {
-      const token = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('token='))
-        ?.split('=')[1];
-
       const url = projectId
-        ? `${API_BASE}/api/v1x/resumes/${resumeId}/projects/${projectId}`
-        : `${API_BASE}/api/v1x/resumes/${resumeId}/projects`;
+        ? `/api/session/v1x/projects?id=${projectId}`
+        : `/api/session/v1x/projects?resumeId=${resumeId}`;
 
       const response = await fetch(url, {
         method: projectId ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
+        credentials: 'include',
         body: JSON.stringify({
-          ...formData,
+          title: formData.name,
+          description: formData.description,
           tech_stack: formData.tech_stack.filter(t => t.trim() !== ''),
+          github_url: formData.github_url,
+          demo_url: formData.live_url,
         }),
       });
 
@@ -488,48 +483,57 @@ interface ProjectTemplatesModalProps {
 }
 
 function ProjectTemplatesModal({ onSelect, onClose }: ProjectTemplatesModalProps) {
+  const footer = (
+    <>
+      <p className="text-white/60 text-sm">
+        Choose a template to get started. You can customize it after adding.
+      </p>
+      <button
+        onClick={onClose}
+        className="px-6 py-3 rounded-xl text-white/70 hover:text-white hover:bg-white/5 transition-all"
+      >
+        Cancel
+      </button>
+    </>
+  );
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <Card className="max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Project Templates</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            ✕
-          </button>
-        </div>
-
-        <p className="text-gray-600 mb-6">
-          Choose a template to get started. You can customize it after adding.
-        </p>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {PROJECT_TEMPLATES.map((template, idx) => (
-            <Card
-              key={idx}
-              className="p-4 hover:shadow-lg transition-all cursor-pointer border-2 border-transparent hover:border-blue-500"
-              onClick={() => onSelect(template)}
-            >
-              <h3 className="font-bold text-gray-900 mb-2">{template.name}</h3>
-              <p className="text-sm text-gray-600 mb-3">{template.description}</p>
-              <div className="flex flex-wrap gap-2">
-                {template.tech_stack.slice(0, 3).map((tech, techIdx) => (
-                  <span
-                    key={techIdx}
-                    className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium"
-                  >
-                    {tech}
-                  </span>
-                ))}
-                {template.tech_stack.length > 3 && (
-                  <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs font-medium">
-                    +{template.tech_stack.length - 3} more
-                  </span>
-                )}
-              </div>
-            </Card>
-          ))}
-        </div>
-      </Card>
-    </div>
+    <ModalShell
+      isOpen={true}
+      onClose={onClose}
+      title="Project Templates"
+      icon={<Lightbulb className="w-6 h-6" />}
+      accent="amber"
+      size="xl"
+      footer={footer}
+    >
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {PROJECT_TEMPLATES.map((template, idx) => (
+          <div
+            key={idx}
+            className="p-5 rounded-xl bg-white/5 border border-white/10 hover:border-amber-400/50 hover:bg-white/10 transition-all cursor-pointer group"
+            onClick={() => onSelect(template)}
+          >
+            <h3 className="font-bold text-white mb-2 group-hover:text-amber-300 transition-colors">{template.name}</h3>
+            <p className="text-sm text-white/60 mb-3">{template.description}</p>
+            <div className="flex flex-wrap gap-2">
+              {template.tech_stack.slice(0, 3).map((tech, techIdx) => (
+                <span
+                  key={techIdx}
+                  className="px-2 py-1 bg-amber-500/20 text-amber-200 rounded text-xs font-medium border border-amber-400/30"
+                >
+                  {tech}
+                </span>
+              ))}
+              {template.tech_stack.length > 3 && (
+                <span className="px-2 py-1 bg-white/10 text-white/70 rounded text-xs font-medium border border-white/20">
+                  +{template.tech_stack.length - 3} more
+                </span>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </ModalShell>
   );
 }

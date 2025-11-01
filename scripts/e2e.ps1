@@ -1,21 +1,28 @@
 param(
   [string]$AppUrl = "http://localhost:3000",
-  [string]$ApiUrl = "http://127.0.0.1:8001"
+  [string]$ApiUrl = "http://127.0.0.1:8001",
+  [switch]$Headed
 )
 
 Write-Host "Starting E2E test environment..." -ForegroundColor Cyan
 
 # Use a dedicated sqlite file for tests
 $env:DATABASE_URL = "sqlite:///./app/data/test_e2e.db"
+$env:NEXT_PUBLIC_API_BASE = $ApiUrl
+$env:PORT = "3000"
 
 # Kill any existing processes
 Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force
 Get-Process python -ErrorAction SilentlyContinue | Stop-Process -Force
 
-# Start backend
-Push-Location backend
-$backend = Start-Process -FilePath "uvicorn" -ArgumentList "app.main:app","--reload","--host","0.0.0.0","--port","8001" -PassThru
-Pop-Location
+# Start backend (prefer python -m uvicorn for reliability)
+$backendStart = {
+  Set-Location backend
+  $cmd = "python"
+  $args = @("-m","uvicorn","app.main:app","--host","127.0.0.1","--port","8001")
+  Start-Process -FilePath $cmd -ArgumentList $args -PassThru
+}
+$backend = & $backendStart
 
 # Wait for backend up
 $backendReady = $false
@@ -36,7 +43,7 @@ if (-not $frontendReady) { Write-Host "Frontend failed to start" -ForegroundColo
 
 # Run Playwright tests
 try {
-  npx playwright test
+  if ($Headed) { npx playwright test --headed } else { npx playwright test }
   $result = $LASTEXITCODE
 } finally {
   # Teardown

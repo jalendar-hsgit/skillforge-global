@@ -43,16 +43,11 @@ export default function CertificatesSection({
     if (!confirm('Are you sure you want to delete this certificate?')) return;
 
     try {
-      const token = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('token='))
-        ?.split('=')[1];
-
       const response = await fetch(
-        `${API_BASE}/api/v1x/resumes/${resumeId}/certificates/${id}`,
+        `/api/session/v1x/certificates?id=${id}`,
         {
           method: 'DELETE',
-          headers: { Authorization: `Bearer ${token}` },
+          credentials: 'include',
         }
       );
 
@@ -69,8 +64,8 @@ export default function CertificatesSection({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Certificates & Licenses</h2>
-          <p className="text-gray-600 mt-1">
+          <h2 className="text-2xl font-black bg-gradient-to-r from-forgePurple via-neuralBlue to-forgePurple bg-clip-text text-transparent tracking-tight">Certificates & Licenses</h2>
+          <p className="text-techGray/80 mt-1">
             List professional certifications, licenses, and training programs.
           </p>
         </div>
@@ -179,22 +174,24 @@ function CertificateForm({ resumeId, certificateId, onClose, onSave }: Certifica
     setSaving(true);
 
     try {
-      const token = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('token='))
-        ?.split('=')[1];
-
       const url = certificateId
-        ? `${API_BASE}/api/v1x/resumes/${resumeId}/certificates/${certificateId}`
-        : `${API_BASE}/api/v1x/resumes/${resumeId}/certificates`;
+        ? `/api/session/v1x/certificates?id=${certificateId}`
+        : `/api/session/v1x/certificates?resumeId=${resumeId}`;
 
       const response = await fetch(url, {
         method: certificateId ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(formData),
+        credentials: 'include',
+        body: JSON.stringify({
+          name: formData.name,
+          issuing_organization: formData.issuer,
+          issue_date: formData.issue_date,
+          expiry_date: formData.expiry_date,
+          credential_id: formData.credential_id,
+          credential_url: formData.credential_url,
+        }),
       });
 
       if (response.ok) {

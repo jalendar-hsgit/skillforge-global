@@ -38,26 +38,52 @@ export default function PathPage() {
 
   useEffect(() => {
     if (!slug) return
+    let cancelled = false
     setErr(null)
-    // Use YouTube API database endpoint for dynamic content
-    fetch(`/api/v1x/courses-db/${slug}/videos`, {
-      credentials: 'include'
-    })
-      .then(r => {
-        if (!r.ok) throw new Error('Failed to fetch')
-        return r.json()
-      })
-      .then(data => {
-        // Transform database format to frontend format
-        const transformed = data.map((v: any) => ({
-          id: v.id.toString(),
-          title: v.title,
-          youtubeId: v.youtube_id,
-          duration: formatDuration(v.duration)
-        }))
-        setItems(transformed)
-      })
-      .catch(()=>setErr('Content unavailable'))
+
+    const load = async () => {
+      // Try DB-backed API first (v1x)
+      try {
+        const r = await fetch(`/api/v1x/courses-db/${slug}/videos`, { credentials: 'include' })
+        if (r.ok) {
+          const data = await r.json()
+          if (Array.isArray(data) && data.length > 0) {
+            const transformed = data.map((v: any) => ({
+              id: v.id.toString(),
+              title: v.title,
+              youtubeId: v.youtube_id,
+              duration: formatDuration(v.duration)
+            }))
+            if (!cancelled) setItems(transformed)
+            return
+          }
+        }
+      } catch {}
+
+      // Fallback to file-backed API (v1)
+      try {
+        const r2 = await fetch(`/api/v1/courses?path=${slug}`, { credentials: 'include' })
+        if (r2.ok) {
+          const data2 = await r2.json()
+          if (Array.isArray(data2) && data2.length > 0) {
+            const transformed = data2.map((c: any) => ({
+              id: c.id,
+              title: c.title,
+              youtubeId: c.youtubeId,
+              duration: c.duration || undefined
+            }))
+            if (!cancelled) setItems(transformed)
+            return
+          }
+        }
+        if (!cancelled) setErr('Content unavailable')
+      } catch {
+        if (!cancelled) setErr('Content unavailable')
+      }
+    }
+
+    load()
+    return () => { cancelled = true }
   }, [slug])
 
   // Helper to format duration seconds to HH:MM:SS or MM:SS
