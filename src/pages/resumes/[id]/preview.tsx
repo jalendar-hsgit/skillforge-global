@@ -4,6 +4,7 @@ import Head from 'next/head'
 
 interface Resume {
   id: number
+  user_id?: number
   title: string
   template: string
   full_name?: string
@@ -43,6 +44,10 @@ export default function ResumePreviewPage() {
         if (res.ok) {
           const data = await res.json()
           setResume(data)
+            // Track resume view event
+            if (data?.id && data?.user_id) {
+              fetch(`${API_BASE}/api/v1x/resume-analytics/events/view/${data.id}?user_id=${data.user_id}`, { method: 'POST' });
+            }
         } else {
           console.error('Failed to load resume')
         }
@@ -97,7 +102,28 @@ export default function ResumePreviewPage() {
               ← Back to Editor
             </button>
             <button
-              onClick={() => window.print()}
+              onClick={() => {
+                const shareUrl = window.location.href;
+                navigator.clipboard.writeText(shareUrl).then(() => {
+                  alert('Resume link copied to clipboard!');
+                  // Track share event
+                  if (resume?.id && resume?.user_id) {
+                    fetch(`${API_BASE}/api/v1x/resume-analytics/events/share/${resume.id}?user_id=${resume.user_id}`, { method: 'POST' });
+                  }
+                });
+              }}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            >
+              🔗 Share
+            </button>
+            <button
+              onClick={() => {
+                window.print();
+                // Track download event
+                if (resume?.id && resume?.user_id) {
+                  fetch(`${API_BASE}/api/v1x/resume-analytics/events/download/${resume.id}?user_id=${resume.user_id}`, { method: 'POST' });
+                }
+              }}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
               🖨️ Print / Save as PDF
@@ -875,18 +901,17 @@ function CreativeTemplate({ resume }: { resume: Resume }) {
               {resume.achievements.map((ach: any, idx: number) => (
                 <li key={idx} className="text-gray-700 text-sm leading-relaxed">
                   <strong className="text-gray-900">{ach.title || 'Achievement'}</strong>
-                  {ach.date && ` (${ach.date})`}
-                  {ach.description && `: ${ach.description}`}
+                  {ach.date && <span className="text-gray-600"> ({ach.date})</span>}
+                  {ach.issuer && <span className="text-gray-600"> • {ach.issuer}</span>}
+                  {ach.description && <span>: {ach.description}</span>}
                 </li>
               ))}
             </ul>
           </section>
         )}
       </div>
-    </div>
-  )
-}
-
+    )
+  }
 
   // Executive Template - Premium design for senior leadership
   function ExecutiveTemplate({ resume }: { resume: Resume }) {

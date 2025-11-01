@@ -293,6 +293,10 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
   const handleTemplateChange = (template: string) => {
     updateResume({ template });
     setShowTemplateSelector(false);
+    // Track template change event
+    if (resume?.id && resume?.user_id) {
+      fetch(`${API_BASE}/api/v1x/resume-analytics/events/template/${resume.id}?user_id=${resume.user_id}&template_id=${template}`, { method: 'POST' });
+    }
   };
 
   if (loading || !resume) {
