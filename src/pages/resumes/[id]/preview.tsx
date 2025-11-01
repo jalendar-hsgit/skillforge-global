@@ -113,6 +113,9 @@ export default function ResumePreviewPage() {
             {template === 'classic' && <ClassicTemplate resume={resume} />}
             {template === 'minimal' && <MinimalTemplate resume={resume} />}
             {template === 'creative' && <CreativeTemplate resume={resume} />}
+              {template === 'executive' && <ExecutiveTemplate resume={resume} />}
+              {template === 'tech' && <TechTemplate resume={resume} />}
+              {template === 'academic' && <AcademicTemplate resume={resume} />}
           </div>
         </div>
       </div>
@@ -883,3 +886,457 @@ function CreativeTemplate({ resume }: { resume: Resume }) {
     </div>
   )
 }
+
+
+  // Executive Template - Premium design for senior leadership
+  function ExecutiveTemplate({ resume }: { resume: Resume }) {
+    return (
+      <div className="p-12 text-gray-900" style={{ fontFamily: "'Source Serif 4', Georgia, serif" }}>
+        {/* Header - Bold and prominent */}
+        <header className="text-center border-b-4 border-double border-gray-800 pb-8 mb-10">
+          <h1 className="text-6xl font-bold text-gray-900 mb-4 tracking-tight" style={{ letterSpacing: '-0.02em' }}>
+            {resume.full_name || 'Your Name'}
+          </h1>
+          {resume.professional_summary && (
+            <p className="text-lg text-gray-700 leading-relaxed max-w-3xl mx-auto mb-6 italic">
+              {resume.professional_summary}
+            </p>
+          )}
+          <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-gray-600 font-medium border-t border-gray-300 pt-5 mt-5">
+            {resume.email && <span>{resume.email}</span>}
+            {resume.phone && <span>•</span>}
+            {resume.phone && <span>{resume.phone}</span>}
+            {resume.location && <span>•</span>}
+            {resume.location && <span>{resume.location}</span>}
+          </div>
+        </header>
+
+        {/* Core Competencies */}
+        {resume.skills?.length > 0 && (
+          <section className="mb-10">
+            <h2 className="text-2xl font-bold text-gray-900 mb-5 border-b-2 border-gray-800 pb-2 uppercase" style={{ letterSpacing: '0.1em' }}>
+              Core Competencies
+            </h2>
+            <div className="grid grid-cols-3 gap-4">
+              {resume.skills.map((skill: any, idx: number) => (
+                <div key={idx} className="text-center py-3 px-4 bg-gray-50 border border-gray-200">
+                  <span className="text-gray-900 font-semibold text-sm uppercase tracking-wide">
+                    {typeof skill === 'string' ? skill : skill.name}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Executive Experience */}
+        {resume.work_experiences?.length > 0 && (
+          <section className="mb-10">
+            <h2 className="text-2xl font-bold text-gray-900 mb-5 border-b-2 border-gray-800 pb-2 uppercase" style={{ letterSpacing: '0.1em' }}>
+              Executive Leadership
+            </h2>
+            {resume.work_experiences.map((exp: any, idx: number) => (
+              <div key={idx} className="mb-8 last:mb-0">
+                <div className="flex justify-between items-baseline mb-3">
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900">{exp.title || exp.position || 'Position'}</h3>
+                    <p className="text-lg text-gray-700 italic">{exp.company || 'Company'}</p>
+                  </div>
+                  <div className="text-right text-sm text-gray-600 whitespace-nowrap ml-4">
+                    {exp.start_date && <span>{exp.start_date}</span>}
+                    {exp.start_date && exp.end_date && <span> — </span>}
+                    {exp.end_date && <span>{exp.end_date}</span>}
+                    {exp.location && <div className="text-xs mt-1">{exp.location}</div>}
+                  </div>
+                </div>
+                {exp.description && (
+                  <p className="text-gray-700 mb-3 leading-relaxed">{exp.description}</p>
+                )}
+                {(exp.bullet_points || exp.responsibilities)?.filter((r: string) => r.trim()).length > 0 && (
+                  <ul className="space-y-2 pl-0">
+                    {(exp.bullet_points || exp.responsibilities).filter((r: string) => r.trim()).map((resp: string, i: number) => (
+                      <li key={i} className="text-gray-700 leading-relaxed flex">
+                        <span className="mr-3 text-gray-500 font-bold">▪</span>
+                        <span>{resp}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
+          </section>
+        )}
+
+        {/* Education */}
+        {resume.education?.length > 0 && (
+          <section className="mb-10">
+            <h2 className="text-2xl font-bold text-gray-900 mb-5 border-b-2 border-gray-800 pb-2 uppercase" style={{ letterSpacing: '0.1em' }}>
+              Education
+            </h2>
+            {resume.education.map((edu: any, idx: number) => (
+              <div key={idx} className="mb-4 last:mb-0 flex justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">
+                    {edu.degree || 'Degree'} {edu.field && `in ${edu.field}`}
+                  </h3>
+                  <p className="text-gray-700 italic">{(edu.institution || edu.school) || 'Institution'}</p>
+                </div>
+                <div className="text-sm text-gray-600 whitespace-nowrap text-right ml-4">
+                  {edu.graduation_date || edu.end_date || edu.date}
+                </div>
+              </div>
+            ))}
+          </section>
+        )}
+
+        {/* Board Positions / Certifications */}
+        {resume.certificates?.length > 0 && (
+          <section className="mb-10">
+            <h2 className="text-2xl font-bold text-gray-900 mb-5 border-b-2 border-gray-800 pb-2 uppercase" style={{ letterSpacing: '0.1em' }}>
+              Professional Credentials
+            </h2>
+            <div className="grid grid-cols-2 gap-4">
+              {resume.certificates.map((cert: any, idx: number) => (
+                <div key={idx} className="py-3 px-4 bg-gray-50 border-l-4 border-gray-800">
+                  <h3 className="font-bold text-gray-900">{cert.name || 'Certificate'}</h3>
+                  <p className="text-sm text-gray-600">
+                    {(cert.issuing_organization || cert.issuer) || 'Issuer'}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
+    )
+  }
+
+  // Tech Template - Developer-focused with modern aesthetic
+  function TechTemplate({ resume }: { resume: Resume }) {
+    return (
+      <div className="p-10 text-gray-900" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+        {/* Header - Clean with tech accent */}
+        <header className="mb-8">
+          <div className="flex items-end justify-between mb-4">
+            <div>
+              <h1 className="text-5xl font-black text-gray-900 mb-2 tracking-tight">
+                {resume.full_name || 'Your Name'}
+              </h1>
+              <p className="text-xl text-blue-600 font-semibold">Software Engineer</p>
+            </div>
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg"></div>
+          </div>
+          <div className="flex flex-wrap gap-4 text-sm text-gray-600">
+            {resume.email && (
+              <span className="flex items-center gap-2">
+                <span className="w-5 h-5 bg-gray-200 rounded flex items-center justify-center text-xs">@</span>
+                {resume.email}
+              </span>
+            )}
+            {resume.phone && (
+              <span className="flex items-center gap-2">
+                <span className="w-5 h-5 bg-gray-200 rounded flex items-center justify-center text-xs">☎</span>
+                {resume.phone}
+              </span>
+            )}
+            {resume.github && (
+              <span className="flex items-center gap-2">
+                <span className="w-5 h-5 bg-gray-900 text-white rounded flex items-center justify-center text-xs">GH</span>
+                {resume.github.replace('https://github.com/', '')}
+              </span>
+            )}
+            {resume.linkedin && (
+              <span className="flex items-center gap-2">
+                <span className="w-5 h-5 bg-blue-600 text-white rounded flex items-center justify-center text-xs">in</span>
+                {resume.linkedin.replace('https://linkedin.com/in/', '')}
+              </span>
+            )}
+          </div>
+        </header>
+
+        {/* Summary with code-block styling */}
+        {resume.professional_summary && (
+          <section className="mb-8 p-5 bg-gray-50 border-l-4 border-blue-600 rounded-r">
+            <h2 className="text-xs uppercase font-bold text-gray-500 tracking-wider mb-2">// About</h2>
+            <p className="text-gray-700 leading-relaxed font-mono text-sm">{resume.professional_summary}</p>
+          </section>
+        )}
+
+        {/* Tech Stack */}
+        {resume.skills?.length > 0 && (
+          <section className="mb-8">
+            <h2 className="text-sm uppercase font-black text-gray-900 mb-4 tracking-wider flex items-center gap-2">
+              <span className="w-1 h-4 bg-blue-600"></span>
+              Tech Stack
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {resume.skills.map((skill: any, idx: number) => (
+                <span
+                  key={idx}
+                  className="px-3 py-1.5 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 text-blue-900 text-xs font-semibold rounded font-mono"
+                >
+                  {typeof skill === 'string' ? skill : skill.name}
+                </span>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Projects - Prominent for developers */}
+        {resume.projects?.length > 0 && (
+          <section className="mb-8">
+            <h2 className="text-sm uppercase font-black text-gray-900 mb-4 tracking-wider flex items-center gap-2">
+              <span className="w-1 h-4 bg-blue-600"></span>
+              Featured Projects
+            </h2>
+            {resume.projects.map((proj: any, idx: number) => (
+              <div key={idx} className="mb-6 last:mb-0 p-5 border border-gray-200 rounded-lg hover:border-blue-300 transition-colors">
+                <div className="flex justify-between items-start mb-2">
+                  <h3 className="text-lg font-bold text-gray-900">{proj.title || proj.name || 'Project'}</h3>
+                  <div className="flex gap-2">
+                    {proj.github_url && (
+                      <span className="text-xs px-2 py-1 bg-gray-900 text-white rounded font-mono">GitHub</span>
+                    )}
+                    {(proj.demo_url || proj.live_url) && (
+                      <span className="text-xs px-2 py-1 bg-blue-600 text-white rounded font-mono">Live</span>
+                    )}
+                  </div>
+                </div>
+                {proj.description && (
+                  <p className="text-sm text-gray-700 mb-3 leading-relaxed">{proj.description}</p>
+                )}
+                {proj.tech_stack?.filter((t: string) => t.trim()).length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {proj.tech_stack.filter((t: string) => t.trim()).map((tech: string, i: number) => (
+                      <span key={i} className="text-xs px-2 py-0.5 bg-gray-100 text-gray-700 rounded font-mono">
+                        {tech}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </section>
+        )}
+
+        {/* Experience */}
+        {resume.work_experiences?.length > 0 && (
+          <section className="mb-8">
+            <h2 className="text-sm uppercase font-black text-gray-900 mb-4 tracking-wider flex items-center gap-2">
+              <span className="w-1 h-4 bg-blue-600"></span>
+              Work Experience
+            </h2>
+            {resume.work_experiences.map((exp: any, idx: number) => (
+              <div key={idx} className="mb-6 last:mb-0">
+                <div className="flex justify-between items-baseline mb-2">
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900">{exp.title || exp.position || 'Position'}</h3>
+                    <p className="text-blue-600 font-semibold">{exp.company || 'Company'}</p>
+                  </div>
+                  <span className="text-xs text-gray-500 font-mono whitespace-nowrap ml-4">
+                    {exp.start_date} - {exp.end_date || 'Present'}
+                  </span>
+                </div>
+                {(exp.bullet_points || exp.responsibilities)?.filter((r: string) => r.trim()).length > 0 && (
+                  <ul className="space-y-1.5 pl-0">
+                    {(exp.bullet_points || exp.responsibilities).filter((r: string) => r.trim()).map((resp: string, i: number) => (
+                      <li key={i} className="text-sm text-gray-700 leading-relaxed flex items-start">
+                        <span className="mr-2 text-blue-600 mt-1">▸</span>
+                        <span>{resp}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
+          </section>
+        )}
+
+        {/* Education - Compact */}
+        {resume.education?.length > 0 && (
+          <section className="mb-8">
+            <h2 className="text-sm uppercase font-black text-gray-900 mb-4 tracking-wider flex items-center gap-2">
+              <span className="w-1 h-4 bg-blue-600"></span>
+              Education
+            </h2>
+            {resume.education.map((edu: any, idx: number) => (
+              <div key={idx} className="mb-3 last:mb-0">
+                <div className="flex justify-between">
+                  <span className="font-bold text-gray-900">
+                    {edu.degree || 'Degree'} {edu.field && `• ${edu.field}`}
+                  </span>
+                  <span className="text-xs text-gray-500 font-mono">{edu.graduation_date || edu.end_date || edu.date}</span>
+                </div>
+                <p className="text-sm text-gray-600">{(edu.institution || edu.school) || 'Institution'}</p>
+              </div>
+            ))}
+          </section>
+        )}
+      </div>
+    )
+  }
+
+  // Academic Template - Research-oriented layout
+  function AcademicTemplate({ resume }: { resume: Resume }) {
+    return (
+      <div className="p-12 text-gray-900" style={{ fontFamily: "'Source Serif 4', 'Times New Roman', serif" }}>
+        {/* Header - Traditional academic */}
+        <header className="text-center mb-10 pb-6 border-b-2 border-gray-800">
+          <h1 className="text-5xl font-bold text-gray-900 mb-3" style={{ letterSpacing: '0.02em' }}>
+            {resume.full_name || 'Your Name'}
+          </h1>
+          <div className="text-sm text-gray-600 space-y-1">
+            <div className="flex justify-center gap-6">
+              {resume.email && <span>{resume.email}</span>}
+              {resume.phone && <span>•</span>}
+              {resume.phone && <span>{resume.phone}</span>}
+            </div>
+            {resume.location && <div>{resume.location}</div>}
+            {resume.website && (
+              <div className="italic">
+                <a href={resume.website} className="text-blue-700 underline">{resume.website}</a>
+              </div>
+            )}
+          </div>
+        </header>
+
+        {/* Research Interests / Summary */}
+        {resume.professional_summary && (
+          <section className="mb-8">
+            <h2 className="text-xl font-bold text-gray-900 mb-3 uppercase tracking-wide">Research Interests</h2>
+            <p className="text-gray-700 leading-relaxed text-justify">{resume.professional_summary}</p>
+          </section>
+        )}
+
+        {/* Education - Most prominent for academics */}
+        {resume.education?.length > 0 && (
+          <section className="mb-8">
+            <h2 className="text-xl font-bold text-gray-900 mb-4 uppercase tracking-wide">Education</h2>
+            {resume.education.map((edu: any, idx: number) => (
+              <div key={idx} className="mb-5 last:mb-0">
+                <div className="flex justify-between items-baseline">
+                  <h3 className="text-lg font-bold text-gray-900">
+                    {edu.degree || 'Degree'}
+                  </h3>
+                  <span className="text-sm text-gray-600 italic whitespace-nowrap ml-4">
+                    {edu.graduation_date || edu.end_date || edu.date}
+                  </span>
+                </div>
+                <p className="text-gray-700">
+                  {edu.field && <span className="italic">{edu.field}, </span>}
+                  {(edu.institution || edu.school) || 'Institution'}
+                </p>
+                {edu.gpa && <p className="text-sm text-gray-600">GPA: {edu.gpa}</p>}
+                {edu.achievements?.filter((a: string) => a.trim()).length > 0 && (
+                  <ul className="mt-2 space-y-1">
+                    {edu.achievements.filter((a: string) => a.trim()).map((achievement: string, i: number) => (
+                      <li key={i} className="text-sm text-gray-700 italic">
+                        — {achievement}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
+          </section>
+        )}
+
+        {/* Academic Experience / Teaching */}
+        {resume.work_experiences?.length > 0 && (
+          <section className="mb-8">
+            <h2 className="text-xl font-bold text-gray-900 mb-4 uppercase tracking-wide">Academic Appointments</h2>
+            {resume.work_experiences.map((exp: any, idx: number) => (
+              <div key={idx} className="mb-6 last:mb-0">
+                <div className="flex justify-between items-baseline mb-1">
+                  <h3 className="text-lg font-bold text-gray-900">{exp.title || exp.position || 'Position'}</h3>
+                  <span className="text-sm text-gray-600 italic whitespace-nowrap ml-4">
+                    {exp.start_date}—{exp.end_date || 'Present'}
+                  </span>
+                </div>
+                <p className="text-gray-700 mb-2">{exp.company || 'Institution'}</p>
+                {exp.description && (
+                  <p className="text-sm text-gray-700 italic mb-2">{exp.description}</p>
+                )}
+                {(exp.bullet_points || exp.responsibilities)?.filter((r: string) => r.trim()).length > 0 && (
+                  <ul className="space-y-1 text-sm">
+                    {(exp.bullet_points || exp.responsibilities).filter((r: string) => r.trim()).map((resp: string, i: number) => (
+                      <li key={i} className="text-gray-700 leading-relaxed">
+                        • {resp}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
+          </section>
+        )}
+
+        {/* Publications (using projects as placeholder) */}
+        {resume.projects?.length > 0 && (
+          <section className="mb-8">
+            <h2 className="text-xl font-bold text-gray-900 mb-4 uppercase tracking-wide">Publications</h2>
+            {resume.projects.map((proj: any, idx: number) => (
+              <div key={idx} className="mb-4 last:mb-0 pl-8" style={{ textIndent: '-2rem' }}>
+                <p className="text-gray-700 leading-relaxed">
+                  <span className="font-semibold">{proj.title || proj.name || 'Publication Title'}</span>
+                  {proj.description && `. ${proj.description}`}
+                  {proj.date && ` (${proj.date})`}
+                </p>
+              </div>
+            ))}
+          </section>
+        )}
+
+        {/* Skills / Areas of Expertise */}
+        {resume.skills?.length > 0 && (
+          <section className="mb-8">
+            <h2 className="text-xl font-bold text-gray-900 mb-4 uppercase tracking-wide">Areas of Expertise</h2>
+            <div className="text-gray-700">
+              {resume.skills.map((skill: any, idx: number) => (
+                <span key={idx}>
+                  {typeof skill === 'string' ? skill : skill.name}
+                  {idx < resume.skills.length - 1 && ' • '}
+                </span>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Honors & Awards (using certificates) */}
+        {resume.certificates?.length > 0 && (
+          <section className="mb-8">
+            <h2 className="text-xl font-bold text-gray-900 mb-4 uppercase tracking-wide">Honors & Awards</h2>
+            {resume.certificates.map((cert: any, idx: number) => (
+              <div key={idx} className="mb-2 last:mb-0">
+                <div className="flex justify-between">
+                  <span className="text-gray-700">
+                    <strong>{cert.name || 'Award'}</strong>
+                    {(cert.issuing_organization || cert.issuer) && `, ${cert.issuing_organization || cert.issuer}`}
+                  </span>
+                  <span className="text-sm text-gray-600 italic whitespace-nowrap ml-4">
+                    {cert.issue_date || cert.date}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </section>
+        )}
+
+        {/* Professional Service / Achievements */}
+        {resume.achievements?.length > 0 && (
+          <section className="mb-8">
+            <h2 className="text-xl font-bold text-gray-900 mb-4 uppercase tracking-wide">Professional Service</h2>
+            <ul className="space-y-2">
+              {resume.achievements.map((ach: any, idx: number) => (
+                <li key={idx} className="text-gray-700 leading-relaxed">
+                  • <strong>{ach.title || 'Achievement'}</strong>
+                  {ach.date && ` (${ach.date})`}
+                  {ach.description && `. ${ach.description}`}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+      </div>
+    )
+  }

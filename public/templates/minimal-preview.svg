@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="800">
+  <rect width="100%" height="100%" fill="#0b1020"/>
+  <rect x="40" y="60" width="520" height="18" fill="#E2E8F0" rx="4"/>
+  <rect x="40" y="100" width="400" height="8" fill="#CBD5E1" rx="4"/>
+  <rect x="40" y="120" width="380" height="8" fill="#CBD5E1" rx="4"/>
+  <rect x="40" y="170" width="520" height="10" fill="#E2E8F0" rx="3"/>
+  <rect x="40" y="190" width="500" height="6" fill="#CBD5E1" rx="3"/>
+  <rect x="40" y="206" width="480" height="6" fill="#CBD5E1" rx="3"/>
+  <text x="40" y="760" fill="#94A3B8" font-size="12" font-family="Inter, Segoe UI, sans-serif">Minimal template placeholder</text>
+</svg>
