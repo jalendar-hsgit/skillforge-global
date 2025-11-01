@@ -20,6 +20,8 @@ from app.modelsx.chat_file import MentorChatFile
 from app.modelsx.resume import Resume, WorkExperience, Education, ResumeProject, ResumeSkill, ResumeCertificate, Achievement, ResumeTemplate, AIProjectTemplate, ResumeAnalytics, ATSReport
 # import hiring models
 from app.modelsx.hiring import Company, CompanyTeamMember, JobPosting, JobApplication, Interview, TechnicalAssessment, BackgroundCheck, EducationVerification, EmploymentVerification, ReferenceCheck, JobOffer, HiringMetrics
+# import job application tracking
+from app.modelsx.job_application import JobApplication as JobApplicationTracker
 
 # v1 routers (existing)
 from app.api.v1 import auth, courses, chat, quizzes, progress, subscribe, quiz_status, paths
@@ -117,6 +119,11 @@ try:
 except Exception as e:
     print(f"Failed to import resume_import: {e}")
 
+try:
+    from app.api.v1x.job_applications import router as job_applications
+except Exception as e:
+    print(f"Failed to import job_applications: {e}")
+
 # App
 app = FastAPI(title=getattr(settings, "APP_NAME", "SkillForge Global"))
 
@@ -175,7 +182,7 @@ def _mount_v1x_export(obj):
 
 
 # Mount all v1x exports (modules or routers)
-for _export in (courses_db, progress_db, quizzes_db, youtube_sync, coins_db, mentors, payments, chat_files, payouts, subscriptions, connect, recordings, resumes, resume_ai, hiring, resume_import):
+for _export in (courses_db, progress_db, quizzes_db, youtube_sync, coins_db, mentors, payments, chat_files, payouts, subscriptions, connect, recordings, resumes, resume_ai, hiring, resume_import, job_applications):
     _mount_v1x_export(_export)
 
 # Mount WebSocket server
