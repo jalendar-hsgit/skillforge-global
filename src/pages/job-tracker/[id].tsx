@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/router';
 import Head from 'next/head';
 import Layout from '@/components/Layout';
+import CalendarExport from '@/components/job-tracker/CalendarExport';
 import { API_BASE } from '@/lib/apiBase';
 import { ArrowLeft, Edit, Trash2, Download, Share2, MessageSquare, Calendar, MapPin, DollarSign, Briefcase, Clock, TrendingUp } from 'lucide-react';
 
@@ -355,19 +356,29 @@ export default function JobApplicationDetail() {
               <div className="space-y-3">
                 {application.interviews.map((interview, i) => (
                   <div key={i} className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                    <p className="font-semibold text-gray-900">{interview.type.toUpperCase()}</p>
-                    <p className="text-sm text-gray-600">
-                      {new Date(interview.date).toLocaleString()}
-                    </p>
-                    {interview.interviewer && (
-                      <p className="text-sm text-gray-600">Interviewer: {interview.interviewer}</p>
-                    )}
-                    {interview.notes && (
-                      <p className="text-sm text-gray-700 mt-2">{interview.notes}</p>
-                    )}
-                    {interview.status && (
-                      <p className="text-sm font-semibold text-gray-700 mt-2">Status: {interview.status}</p>
-                    )}
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <p className="font-semibold text-gray-900">{interview.type.toUpperCase()}</p>
+                        <p className="text-sm text-gray-600">
+                          {new Date(interview.date).toLocaleString()}
+                        </p>
+                        {interview.interviewer && (
+                          <p className="text-sm text-gray-600">Interviewer: {interview.interviewer}</p>
+                        )}
+                        {interview.notes && (
+                          <p className="text-sm text-gray-700 mt-2">{interview.notes}</p>
+                        )}
+                        {interview.status && (
+                          <p className="text-sm font-semibold text-gray-700 mt-2">Status: {interview.status}</p>
+                        )}
+                      </div>
+                      <div className="ml-4">
+                        <CalendarExport 
+                          applicationId={application.id} 
+                          interviewIndex={i}
+                        />
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>

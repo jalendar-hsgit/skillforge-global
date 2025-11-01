@@ -124,6 +124,16 @@ try:
 except Exception as e:
     print(f"Failed to import job_applications: {e}")
 
+try:
+    from app.api.v1x.job_application_notifications import router as job_notifications
+except Exception as e:
+    print(f"Failed to import job_notifications: {e}")
+
+try:
+    from app.api.v1x.job_application_calendar import router as job_calendar
+except Exception as e:
+    print(f"Failed to import job_calendar: {e}")
+
 # App
 app = FastAPI(title=getattr(settings, "APP_NAME", "SkillForge Global"))
 
@@ -182,7 +192,7 @@ def _mount_v1x_export(obj):
 
 
 # Mount all v1x exports (modules or routers)
-for _export in (courses_db, progress_db, quizzes_db, youtube_sync, coins_db, mentors, payments, chat_files, payouts, subscriptions, connect, recordings, resumes, resume_ai, hiring, resume_import, job_applications):
+for _export in (courses_db, progress_db, quizzes_db, youtube_sync, coins_db, mentors, payments, chat_files, payouts, subscriptions, connect, recordings, resumes, resume_ai, hiring, resume_import, job_applications, job_notifications, job_calendar):
     _mount_v1x_export(_export)
 
 # Mount WebSocket server

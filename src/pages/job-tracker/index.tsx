@@ -161,13 +161,22 @@ export default function JobTrackerDashboard() {
               </h1>
               <p className="text-gray-600 mt-2">Track, manage, and optimize your job search</p>
             </div>
-            <button
-              onClick={handleAddApplication}
-              className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition"
-            >
-              <Plus className="w-5 h-5" />
-              Add Application
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => router.push('/job-tracker/settings')}
+                className="flex items-center gap-2 bg-white border border-gray-300 text-gray-800 px-4 py-3 rounded-lg hover:bg-gray-50 transition"
+              >
+                <Calendar className="w-5 h-5 text-gray-600" />
+                Settings
+              </button>
+              <button
+                onClick={handleAddApplication}
+                className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition"
+              >
+                <Plus className="w-5 h-5" />
+                Add Application
+              </button>
+            </div>
           </div>
 
           {/* Stats Cards */}

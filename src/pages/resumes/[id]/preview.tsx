@@ -758,7 +758,7 @@ function CreativeTemplate({ resume }: { resume: Resume }) {
     <div className="text-gray-900">
       <header 
         className="bg-gradient-to-r from-purple-600 via-pink-500 to-blue-600 text-white p-12" 
-        style={{ printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact' }}
+        style={{ printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact' } as React.CSSProperties}
       >
         <h1 className="text-5xl font-bold mb-3 tracking-tight" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
           {resume.full_name || 'Your Name'}
