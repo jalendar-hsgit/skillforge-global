@@ -752,9 +752,167 @@ function MinimalTemplate({ resume }: { resume: Resume }) {
   )
 }
 
-// Creative Template (temporarily disabled in build to resolve JSX parsing error)
+// Creative Template
 function CreativeTemplate({ resume }: { resume: Resume }) {
-  return null
+  return (
+    <div className="text-gray-900">
+      <header 
+        className="bg-gradient-to-r from-purple-600 via-pink-500 to-blue-600 text-white p-12" 
+        style={{ printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact' } as React.CSSProperties}
+      >
+        <h1 className="text-5xl font-bold mb-3 tracking-tight" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
+          {resume.full_name || 'Your Name'}
+        </h1>
+        <div className="text-sm space-x-4 opacity-95 font-medium">
+          {resume.email && <span>📧 {resume.email}</span>}
+          {resume.phone && <span>📱 {resume.phone}</span>}
+          {resume.location && <span>📍 {resume.location}</span>}
+        </div>
+        {(resume.linkedin || resume.github || resume.website) && (
+          <div className="text-sm mt-3 space-x-3 opacity-90">
+            {resume.linkedin && <a href={resume.linkedin} className="hover:underline">🔗 LinkedIn</a>}
+            {resume.github && <a href={resume.github} className="hover:underline">💻 GitHub</a>}
+            {resume.website && <a href={resume.website} className="hover:underline">🌐 Website</a>}
+          </div>
+        )}
+      </header>
+
+      <div className="p-12">
+        {resume.professional_summary && (
+          <section className="mb-6">
+            <h2 className="text-xl font-bold text-purple-600 mb-3 uppercase tracking-wide border-l-4 border-purple-600 pl-3">
+              Professional Summary
+            </h2>
+            <p className="text-gray-800 leading-relaxed">{resume.professional_summary}</p>
+          </section>
+        )}
+
+        {resume.work_experiences && resume.work_experiences.length > 0 && (
+          <section className="mb-6">
+            <h2 className="text-xl font-bold text-purple-600 mb-3 uppercase tracking-wide border-l-4 border-purple-600 pl-3">
+              Work Experience
+            </h2>
+            {resume.work_experiences.map((exp: any, idx: number) => (
+              <div key={idx} className="mb-4 last:mb-0 pl-4 border-l-2 border-gray-200">
+                <div className="flex justify-between items-baseline mb-1">
+                  <h3 className="text-lg font-semibold text-gray-900">{exp.position || 'Position'}</h3>
+                  <span className="text-sm text-gray-600 whitespace-nowrap ml-4">
+                    {exp.start_date || ''} {exp.start_date && '—'} {exp.is_current ? 'Present' : (exp.end_date || '')}
+                  </span>
+                </div>
+                <p className="text-md font-medium text-gray-700 mb-2">
+                  {exp.company || 'Company'}{exp.location && ` • ${exp.location}`}
+                </p>
+                {(exp.bullet_points?.length || exp.responsibilities?.length) && (
+                  <ul className="list-disc pl-5 space-y-1 text-sm">
+                    {(exp.bullet_points || exp.responsibilities || []).map((resp: string, i: number) => (
+                      <li key={i} className="text-gray-700 leading-relaxed">{resp}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
+          </section>
+        )}
+
+        {resume.education && resume.education.length > 0 && (
+          <section className="mb-6">
+            <h2 className="text-xl font-bold text-purple-600 mb-3 uppercase tracking-wide border-l-4 border-purple-600 pl-3">
+              Education
+            </h2>
+            {resume.education.map((edu: any, idx: number) => (
+              <div key={idx} className="mb-3 last:mb-0 pl-4">
+                <div className="flex justify-between items-baseline">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    {edu.degree || 'Degree'} {edu.field_of_study && `in ${edu.field_of_study}`}
+                  </h3>
+                  <span className="text-sm text-gray-600 whitespace-nowrap ml-4">
+                    {edu.start_date || ''} {edu.start_date && '—'} {edu.is_current ? 'Present' : (edu.end_date || '')}
+                  </span>
+                </div>
+                <p className="text-md font-medium text-gray-700">{edu.institution || edu.school || 'Institution'}</p>
+              </div>
+            ))}
+          </section>
+        )}
+
+        {resume.skills && resume.skills.length > 0 && (
+          <section className="mb-6">
+            <h2 className="text-xl font-bold text-purple-600 mb-3 uppercase tracking-wide border-l-4 border-purple-600 pl-3">
+              Skills
+            </h2>
+            <div className="flex flex-wrap gap-2 pl-4">
+              {resume.skills.map((skill: any, idx: number) => (
+                <span
+                  key={idx}
+                  className="px-3 py-1.5 bg-gradient-to-r from-purple-100 to-blue-100 text-purple-900 rounded-full text-sm font-medium shadow-sm"
+                  style={{ printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact' } as React.CSSProperties}
+                >
+                  {skill.name || skill || 'Skill'}
+                </span>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {resume.projects && resume.projects.length > 0 && (
+          <section className="mb-6">
+            <h2 className="text-xl font-bold text-purple-600 mb-3 uppercase tracking-wide border-l-4 border-purple-600 pl-3">
+              Projects
+            </h2>
+            {resume.projects.map((proj: any, idx: number) => (
+              <div key={idx} className="mb-4 last:mb-0 pl-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">{proj.title || proj.name || 'Project'}</h3>
+                {proj.description && <p className="text-gray-700 mb-2 text-sm leading-relaxed">{proj.description}</p>}
+                {proj.tech_stack && proj.tech_stack.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {proj.tech_stack.filter((t: string) => t && t.trim()).map((tech: string, i: number) => (
+                      <span key={i} className="px-2 py-0.5 bg-gray-200 text-gray-800 rounded text-xs">{tech}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </section>
+        )}
+
+        {resume.certificates && resume.certificates.length > 0 && (
+          <section className="mb-6">
+            <h2 className="text-xl font-bold text-purple-600 mb-3 uppercase tracking-wide border-l-4 border-purple-600 pl-3">
+              Certificates
+            </h2>
+            {resume.certificates.map((cert: any, idx: number) => (
+              <div key={idx} className="mb-2 last:mb-0 pl-4">
+                <h3 className="font-semibold text-gray-900">{cert.name || 'Certificate'}</h3>
+                <p className="text-sm text-gray-700">
+                  {(cert.issuing_organization || cert.issuer) || 'Issuer'}
+                  {(cert.issue_date || cert.date) ? ` • ${cert.issue_date || cert.date}` : ''}
+                </p>
+              </div>
+            ))}
+          </section>
+        )}
+
+        {resume.achievements && resume.achievements.length > 0 && (
+          <section className="mb-6">
+            <h2 className="text-xl font-bold text-purple-600 mb-3 uppercase tracking-wide border-l-4 border-purple-600 pl-3">
+              Achievements
+            </h2>
+            <ul className="list-disc pl-9 space-y-1.5">
+              {resume.achievements.map((ach: any, idx: number) => (
+                <li key={idx} className="text-gray-700 text-sm leading-relaxed">
+                  <strong className="text-gray-900">{ach.title || 'Achievement'}</strong>
+                  {ach.date && <span className="text-gray-600"> ({ach.date})</span>}
+                  {ach.issuer && <span className="text-gray-600"> • {ach.issuer}</span>}
+                  {ach.description && <span>: {ach.description}</span>}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+      </div>
+    </div>
+  );
 }
 
   // Executive Template - Premium design for senior leadership
