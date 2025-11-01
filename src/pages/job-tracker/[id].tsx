@@ -8,6 +8,11 @@ import CalendarExport from '@/components/job-tracker/CalendarExport';
 import { API_BASE } from '@/lib/apiBase';
 import { ArrowLeft, Edit, Trash2, Download, Share2, MessageSquare, Calendar, MapPin, DollarSign, Briefcase, Clock, TrendingUp } from 'lucide-react';
 
+// Force this page to be SSR to avoid static export errors for dynamic routes
+export async function getServerSideProps() {
+  return { props: {} };
+}
+
 interface JobApplication {
   id: number;
   company_name: string;
@@ -381,6 +386,35 @@ export default function JobApplicationDetail() {
                     </div>
                   </div>
                 ))}
+              </div>
+
+              {/* Download all interviews for this application */}
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={async () => {
+                    try {
+                      const res = await fetch(`${API_BASE}/api/v1x/job-applications-calendar/${application.id}/all-interviews/ical`, { credentials: 'include' });
+                      if (res.ok) {
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `all-interviews-${application.id}.ics`;
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                      } else {
+                        alert('No interviews to export');
+                      }
+                    } catch (error) {
+                      console.error('Error downloading all interviews:', error);
+                      alert('Failed to download calendar file');
+                    }
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                >
+                  <Download className="w-4 h-4" />
+                  Download all interviews (.ics)
+                </button>
               </div>
             </div>
           )}

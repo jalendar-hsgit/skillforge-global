@@ -7,6 +7,11 @@ import Layout from '@/components/Layout';
 import { API_BASE } from '@/lib/apiBase';
 import { Save, ArrowLeft, Plus, Trash2, Calendar, X } from 'lucide-react';
 
+// Force this page to be SSR to avoid static export errors for dynamic routes
+export async function getServerSideProps() {
+  return { props: {} };
+}
+
 interface Interview {
   date: string;
   type: string;
