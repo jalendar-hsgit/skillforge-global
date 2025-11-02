@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/router';
+import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Layout from '@/components/Layout';
 import CalendarExport from '@/components/job-tracker/CalendarExport';
@@ -73,7 +73,7 @@ const statusEmojis: Record<string, string> = {
 
 export default function JobApplicationDetail() {
   const router = useRouter();
-  const { id } = useParams();
+  const { id } = (router.query || {}) as { id?: string };
 
   const [application, setApplication] = useState<JobApplication | null>(null);
   const [loading, setLoading] = useState(true);

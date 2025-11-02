@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { SortableContext, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Layout from '@/components/Layout';
@@ -143,6 +146,42 @@ export default function JobTrackerDashboard() {
     rejected: filteredApplications.filter(a => a.status === 'rejected'),
   };
 
+  // DnD sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  );
+
+  const onDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over) return;
+    const activeId = String(active.id);
+    const overId = String(over.id);
+    if (!activeId.startsWith('app-')) return;
+    const appId = Number(activeId.replace('app-', ''));
+    const newStatus = overId as JobApplication['status'];
+    const app = applications.find(a => a.id === appId);
+    if (!app || app.status === newStatus) return;
+
+    // optimistic update
+    setApplications(prev => prev.map(a => a.id === appId ? { ...a, status: newStatus } : a));
+
+    try {
+      await fetch(`${API_BASE}/api/v1x/job-applications/${appId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ ...app, status: newStatus })
+      });
+      // refresh stats after move
+      const statsRes = await fetch(`${API_BASE}/api/v1x/job-applications/stats`, { credentials: 'include' });
+      if (statsRes.ok) setStats(await statsRes.json());
+    } catch (e) {
+      console.error('Failed to update status', e);
+      // revert on error
+      setApplications(prev => prev.map(a => a.id === appId ? { ...a, status: app!.status } : a));
+    }
+  };
+
   return (
     <>
       <Head>
@@ -153,7 +192,7 @@ export default function JobTrackerDashboard() {
       <Layout>
         <div className="max-w-7xl mx-auto px-4 py-8">
           {/* Header */}
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
             <div>
               <h1 className="text-4xl font-bold text-gray-900 flex items-center gap-3">
                 <Briefcase className="w-10 h-10 text-blue-600" />
@@ -399,6 +438,23 @@ export default function JobTrackerDashboard() {
 
           {/* Kanban View */}
           {!loading && viewMode === 'kanban' && (
+            <DndContext sensors={sensors} onDragEnd={onDragEnd}>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {(['wishlist','applied','screening','interview','assessment','offer','accepted','rejected'] as const).map(col => (
+                  <KanbanColumn
+                    key={col}
+                    id={col}
+                    title={`${statusEmojis[col]} ${col.charAt(0).toUpperCase()+col.slice(1)}`}
+                    colorClass={statusColors[col]}
+                    items={groupedByStatus[col]}
+                  />
+                ))}
+              </div>
+            </DndContext>
+          )}
+
+          {/* Kanban View */}
+          {!loading && viewMode === 'kanban' && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {Object.entries(groupedByStatus).map(([status, apps]) => (
                 <div key={status} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
@@ -434,5 +490,47 @@ export default function JobTrackerDashboard() {
         </div>
       </Layout>
     </>
+  );
+}
+
+// Sortable card for application
+function KanbanCard({ item, onClick }: { item: JobApplication; onClick: (id: number) => void }) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: `app-${item.id}` });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    cursor: 'grab',
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}
+      onClick={() => onClick(item.id)}
+      className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm hover:shadow transition">
+      <div className="font-semibold text-gray-900">{item.position_title}</div>
+      <div className="text-sm text-gray-600">{item.company_name}</div>
+      {item.location && <div className="text-xs text-gray-500 mt-1">📍 {item.location}</div>}
+      {item.days_since_applied !== undefined && (
+        <div className="text-xs text-gray-500 mt-1">⏱️ {item.days_since_applied}d ago</div>
+      )}
+    </div>
+  );
+}
+
+// Droppable column with SortableContext
+function KanbanColumn({ id, title, colorClass, items }: { id: string; title: string; colorClass: string; items: JobApplication[] }) {
+  return (
+    <div id={id} className="bg-gray-50 rounded-lg border border-gray-200 p-3">
+      <div className={`inline-block px-3 py-1 rounded-full text-xs font-semibold border mb-3 ${colorClass}`}>{title}</div>
+      <SortableContext items={items.map(i => `app-${i.id}`)} strategy={rectSortingStrategy}>
+        <div className="space-y-2 min-h-[60px]">
+          {items.map(item => (
+            <KanbanCard key={item.id} item={item} onClick={(id) => {
+              // navigate to detail
+              window.location.href = `/job-tracker/${id}`;
+            }} />
+          ))}
+        </div>
+      </SortableContext>
+    </div>
   );
 }

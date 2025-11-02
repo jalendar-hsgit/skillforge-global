@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/router';
+import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Layout from '@/components/Layout';
 import { API_BASE } from '@/lib/apiBase';
@@ -59,7 +59,7 @@ interface JobApplicationForm {
 
 export default function JobApplicationForm() {
   const router = useRouter();
-  const { id } = useParams();
+  const { id } = (router.query || {}) as { id?: string };
   const isEditing = !!id;
 
   const [form, setForm] = useState<JobApplicationForm>({

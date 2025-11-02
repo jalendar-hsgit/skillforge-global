@@ -21,12 +21,12 @@ router = APIRouter(prefix="/api/v1x/job-applications-notifications", tags=["job-
 def send_email(to_email: str, subject: str, body: str, html_body: Optional[str] = None):
     """Send email notification"""
     try:
-        # Email settings from environment variables
-        smtp_server = getattr(settings, 'SMTP_SERVER', 'smtp.gmail.com')
+        # Email settings from environment variables (aligned with core/config.py)
+        smtp_server = getattr(settings, 'SMTP_HOST', 'smtp.gmail.com')
         smtp_port = getattr(settings, 'SMTP_PORT', 587)
         smtp_user = getattr(settings, 'SMTP_USER', None)
         smtp_password = getattr(settings, 'SMTP_PASSWORD', None)
-        from_email = getattr(settings, 'FROM_EMAIL', smtp_user)
+        from_email = getattr(settings, 'EMAIL_FROM', smtp_user)
         
         if not smtp_user or not smtp_password:
             print("Email not configured. Set SMTP_USER and SMTP_PASSWORD in environment.")
