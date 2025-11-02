@@ -1,14 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { DndContext, DragEndEvent, DragOverEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Layout from '@/components/Layout';
 import { API_BASE } from '@/lib/apiBase';
-import { Briefcase, Plus, Filter, Calendar, TrendingUp, CheckCircle, AlertCircle, Clock } from 'lucide-react';
+import { Briefcase, Plus, Filter, Calendar, TrendingUp, CheckCircle, AlertCircle, Clock, GripVertical } from 'lucide-react';
+import { useToast } from '@/components/Toast';
 
 interface JobApplication {
   id: number;
@@ -67,6 +68,7 @@ const statusEmojis: Record<string, string> = {
 
 export default function JobTrackerDashboard() {
   const router = useRouter();
+  const { addToast } = useToast();
   const [applications, setApplications] = useState<JobApplication[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -74,6 +76,7 @@ export default function JobTrackerDashboard() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [priorityFilter, setPriorityFilter] = useState<number | 'all'>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [activeDropId, setActiveDropId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -151,7 +154,13 @@ export default function JobTrackerDashboard() {
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
 
+  const onDragOver = (event: DragOverEvent) => {
+    const { over } = event;
+    setActiveDropId(over ? String(over.id) : null);
+  };
+
   const onDragEnd = async (event: DragEndEvent) => {
+    setActiveDropId(null);
     const { active, over } = event;
     if (!over) return;
     const activeId = String(active.id);
@@ -175,10 +184,12 @@ export default function JobTrackerDashboard() {
       // refresh stats after move
       const statsRes = await fetch(`${API_BASE}/api/v1x/job-applications/stats`, { credentials: 'include' });
       if (statsRes.ok) setStats(await statsRes.json());
+      addToast({ type: 'success', title: 'Status updated', message: `Moved to ${newStatus}` });
     } catch (e) {
       console.error('Failed to update status', e);
       // revert on error
       setApplications(prev => prev.map(a => a.id === appId ? { ...a, status: app!.status } : a));
+      addToast({ type: 'error', title: 'Update failed', message: 'Could not update status. Please try again.' });
     }
   };
 
@@ -438,7 +449,7 @@ export default function JobTrackerDashboard() {
 
           {/* Kanban View */}
           {!loading && viewMode === 'kanban' && (
-            <DndContext sensors={sensors} onDragEnd={onDragEnd}>
+            <DndContext sensors={sensors} onDragOver={onDragOver} onDragEnd={onDragEnd}>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {(['wishlist','applied','screening','interview','assessment','offer','accepted','rejected'] as const).map(col => (
                   <KanbanColumn
@@ -447,45 +458,11 @@ export default function JobTrackerDashboard() {
                     title={`${statusEmojis[col]} ${col.charAt(0).toUpperCase()+col.slice(1)}`}
                     colorClass={statusColors[col]}
                     items={groupedByStatus[col]}
+                    isOver={activeDropId === col}
                   />
                 ))}
               </div>
             </DndContext>
-          )}
-
-          {/* Kanban View */}
-          {!loading && viewMode === 'kanban' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {Object.entries(groupedByStatus).map(([status, apps]) => (
-                <div key={status} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <span>{statusEmojis[status]}</span>
-                    {status.charAt(0).toUpperCase() + status.slice(1)}
-                    <span className="bg-gray-300 text-gray-800 text-xs rounded-full w-6 h-6 flex items-center justify-center ml-auto">
-                      {apps.length}
-                    </span>
-                  </h3>
-                  
-                  <div className="space-y-3">
-                    {apps.map((app) => (
-                      <div
-                        key={app.id}
-                        onClick={() => handleViewApplication(app.id)}
-                        className="bg-white p-3 rounded-lg border border-gray-300 hover:shadow-md transition cursor-pointer"
-                      >
-                        <p className="font-semibold text-gray-900 text-sm line-clamp-2">{app.position_title}</p>
-                        <p className="text-gray-600 text-xs">{app.company_name}</p>
-                        {app.priority && (
-                          <div className="mt-2 pt-2 border-t border-gray-200">
-                            <span className="text-xs font-semibold">Priority: {app.priority}/5</span>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
           )}
         </div>
       </Layout>
@@ -499,27 +476,49 @@ function KanbanCard({ item, onClick }: { item: JobApplication; onClick: (id: num
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
-    cursor: 'grab',
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}
-      onClick={() => onClick(item.id)}
-      className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm hover:shadow transition">
-      <div className="font-semibold text-gray-900">{item.position_title}</div>
-      <div className="text-sm text-gray-600">{item.company_name}</div>
-      {item.location && <div className="text-xs text-gray-500 mt-1">📍 {item.location}</div>}
-      {item.days_since_applied !== undefined && (
-        <div className="text-xs text-gray-500 mt-1">⏱️ {item.days_since_applied}d ago</div>
-      )}
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      data-testid={`kanban-card-${item.id}`}
+      className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm hover:shadow transition"
+    >
+      <div className="flex items-start gap-2">
+        <button
+          aria-label="Drag handle"
+          className="shrink-0 p-1 rounded hover:bg-gray-100 cursor-grab active:cursor-grabbing"
+          {...listeners}
+        >
+          <GripVertical className="w-4 h-4 text-gray-500" />
+        </button>
+        <div className="min-w-0 flex-1" onClick={() => onClick(item.id)}>
+          <div className="font-semibold text-gray-900 truncate">{item.position_title}</div>
+          <div className="text-sm text-gray-600 truncate">{item.company_name}</div>
+          {item.location && <div className="text-xs text-gray-500 mt-1">📍 {item.location}</div>}
+          {item.days_since_applied !== undefined && (
+            <div className="text-xs text-gray-500 mt-1">⏱️ {item.days_since_applied}d ago</div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
 
 // Droppable column with SortableContext
-function KanbanColumn({ id, title, colorClass, items }: { id: string; title: string; colorClass: string; items: JobApplication[] }) {
+function KanbanColumn({ id, title, colorClass, items, isOver }: { id: string; title: string; colorClass: string; items: JobApplication[]; isOver?: boolean }) {
   return (
-    <div id={id} className="bg-gray-50 rounded-lg border border-gray-200 p-3">
+    <div 
+      id={id} 
+      data-testid={`kanban-column-${id}`} 
+      className={`rounded-lg border p-3 transition-all duration-200 ${
+        isOver 
+          ? 'bg-blue-50 border-blue-300 border-2 shadow-md' 
+          : 'bg-gray-50 border-gray-200'
+      }`}
+    >
       <div className={`inline-block px-3 py-1 rounded-full text-xs font-semibold border mb-3 ${colorClass}`}>{title}</div>
       <SortableContext items={items.map(i => `app-${i.id}`)} strategy={rectSortingStrategy}>
         <div className="space-y-2 min-h-[60px]">

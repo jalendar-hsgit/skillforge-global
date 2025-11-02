@@ -507,7 +507,7 @@ export default function JobApplicationForm() {
             <div className="bg-white rounded-lg border border-gray-200 p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">🛠️ Skills Required</h2>
 
-              <div className="flex gap-2 mb-4">
+              <div className="flex flex-col sm:flex-row gap-2 mb-4">
                 <input
                   type="text"
                   value={skillInput}
@@ -591,7 +591,7 @@ export default function JobApplicationForm() {
               </div>
 
               {form.interviews.map((interview, i) => (
-                <div key={i} className="bg-gray-50 p-3 rounded-lg mb-2 flex justify-between items-start">
+                <div key={i} className="bg-gray-50 p-3 rounded-lg mb-2 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
                   <div>
                     <p className="font-semibold">{interview.type} - {new Date(interview.date).toLocaleString()}</p>
                     {interview.interviewer && <p className="text-sm text-gray-600">Interviewer: {interview.interviewer}</p>}
@@ -600,7 +600,7 @@ export default function JobApplicationForm() {
                   <button
                     type="button"
                     onClick={() => handleRemoveInterview(i)}
-                    className="text-red-600 hover:text-red-700"
+                    className="text-red-600 hover:text-red-700 sm:self-auto self-end"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -664,7 +664,7 @@ export default function JobApplicationForm() {
               </div>
 
               {form.contacts.map((contact, i) => (
-                <div key={i} className="bg-gray-50 p-3 rounded-lg mb-2 flex justify-between items-start">
+                <div key={i} className="bg-gray-50 p-3 rounded-lg mb-2 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
                   <div>
                     <p className="font-semibold">{contact.name}</p>
                     {contact.role && <p className="text-sm text-gray-600">{contact.role}</p>}
@@ -673,7 +673,7 @@ export default function JobApplicationForm() {
                   <button
                     type="button"
                     onClick={() => handleRemoveContact(i)}
-                    className="text-red-600 hover:text-red-700"
+                    className="text-red-600 hover:text-red-700 sm:self-auto self-end"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -695,7 +695,7 @@ export default function JobApplicationForm() {
             </div>
 
             {/* Submit */}
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-4">
               <button
                 type="submit"
                 disabled={loading}

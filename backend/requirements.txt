@@ -16,3 +16,4 @@ aiofiles
 python-dateutil
 PyPDF2
 python-docx
+APScheduler==3.10.4

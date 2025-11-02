@@ -204,4 +204,19 @@ except Exception as e:
     print(f"Failed to mount WebSocket server: {e}")
 
 
+# Background scheduler for reminders
+try:
+    from app.services.scheduler import start_scheduler, shutdown_scheduler
+
+    @app.on_event("startup")
+    async def _start_scheduler():
+        start_scheduler()
+
+    @app.on_event("shutdown")
+    async def _stop_scheduler():
+        shutdown_scheduler()
+    print("Scheduler lifecycle hooks registered")
+except Exception as e:
+    print(f"Failed to register scheduler: {e}")
+
 
