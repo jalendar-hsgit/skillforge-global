@@ -61,7 +61,14 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 export function useToast() {
   const ctx = useContext(ToastContext);
   if (!ctx) {
-    throw new Error('useToast must be used within a ToastProvider');
+    // Return a no-op implementation for SSR or when provider is missing
+    return {
+      addToast: () => {
+        if (typeof window !== 'undefined') {
+          console.warn('useToast called outside ToastProvider');
+        }
+      }
+    };
   }
   return ctx;
 }
