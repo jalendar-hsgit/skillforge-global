@@ -467,27 +467,42 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
       <div
         ref={setNodeRef}
         style={style}
-        className={`group flex items-center gap-3 p-4 rounded-xl border-2 transition-all duration-200 cursor-pointer ${
+        onClick={(e) => {
+          const target = e.target as HTMLElement
+          if (target.closest('.drag-handle') || target.tagName.toLowerCase() === 'input') return
+          setActiveSection(section.id)
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            setActiveSection(section.id)
+          }
+        }}
+        tabIndex={0}
+        className={`group flex items-center gap-3 p-4 rounded-xl border-2 transition-all duration-200 select-none ${
           isActive
             ? 'bg-gradient-to-r from-forgePurple/30 to-neuralBlue/20 border-forgePurple shadow-lg shadow-forgePurple/20 scale-[1.02]'
-            : 'bg-white/5 border-white/10 hover:border-white/30 hover:bg-white/10 hover:shadow-md'
+            : 'bg-white/5 border-white/10 hover:border-white/30 hover:bg-white/10 hover:shadow-md cursor-pointer'
         }`}
       >
         <button
           {...attributes}
           {...listeners}
-          className="cursor-grab active:cursor-grabbing p-1.5 hover:bg-white/20 rounded-lg transition-colors"
+          className="drag-handle cursor-grab active:cursor-grabbing p-1.5 hover:bg-white/20 rounded-lg transition-colors"
+          style={{ touchAction: 'none' }}
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+          aria-label="Drag to reorder section"
         >
           <GripVertical className={`w-4 h-4 ${isActive ? 'text-white' : 'text-techGray group-hover:text-white'} transition-colors`} />
         </button>
-        <button
-          onClick={() => setActiveSection(section.id)}
+        <div
           className="flex-1 text-left font-semibold text-sm tracking-wide flex items-center gap-2.5"
           style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}
         >
-          <span className="text-lg">{section.icon}</span>
+          <span className="text-lg" aria-hidden>{section.icon}</span>
           <span className={isActive ? 'text-white' : 'text-techGray/90 group-hover:text-white'}>{section.title}</span>
-        </button>
+        </div>
         <input
           type="checkbox"
           checked={section.enabled}
@@ -497,6 +512,8 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
             );
           }}
           className="w-5 h-5 rounded border-2 border-white/20 bg-white/5 checked:bg-forgePurple checked:border-forgePurple cursor-pointer transition-all"
+          aria-label={`Toggle ${section.title} section`}
+          onClick={(e) => e.stopPropagation()}
         />
       </div>
     );
