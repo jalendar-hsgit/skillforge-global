@@ -48,7 +48,7 @@ export function useWebSocket({
   const connect = useCallback(() => {
     if (!enabled || socketRef.current?.connected) return
 
-    const socket = io(process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:8001', {
+    const socket = io(process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:8001/collab', {
       transports: ['websocket', 'polling'],
       auth: {
         userId,
@@ -60,6 +60,7 @@ export function useWebSocket({
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       reconnectionAttempts: maxReconnectAttempts,
+      path: '/collab/socket.io',
     })
 
     socket.on('connect', () => {

@@ -250,6 +250,14 @@ try:
 except Exception as e:
     print(f"Failed to mount WebSocket server: {e}")
 
+# Mount Collaboration WebSocket server
+try:
+    from app.api.websocket.collaboration import collab_socket_app
+    app.mount("/collab", collab_socket_app)
+    print("Collaboration WebSocket server mounted at /collab")
+except Exception as e:
+    print(f"Failed to mount Collaboration WebSocket server: {e}")
+
 
 # Background scheduler for reminders
 try:
