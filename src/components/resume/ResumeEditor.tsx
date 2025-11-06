@@ -9,7 +9,7 @@ import { exportResumePDF, exportResumePDFFromPreview } from '@/lib/pdf';
 import { 
   Save, Download, Eye, Layout as LayoutIcon, GripVertical, 
   Wand2, FileText, Check, Sparkles, ChevronDown, ChevronUp, 
-  Linkedin, GitCompare, Palette 
+  Linkedin, GitCompare, Palette, Wifi, WifiOff 
 } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
@@ -33,6 +33,7 @@ import CoverLetterModal from './CoverLetterModal';
 import KeyboardShortcutsModal from './KeyboardShortcutsModal';
 import ExportOptionsModal from './ExportOptionsModal';
 import { useUndoRedo, UndoRedoControls, AutoSaveIndicator } from '@/hooks/useUndoRedo';
+import { useWebSocket, PresenceIndicator, RemoteCursor } from '@/hooks/useWebSocket';
 import { API_BASE } from '@/lib/apiBase';
 
 interface Resume {
@@ -98,6 +99,25 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
     canRedo,
     history,
   } = useUndoRedo<Resume | null>(null, 50);
+  
+  // WebSocket collaboration
+  const wsData = useWebSocket({
+    resumeId: String(resumeId),
+    userId: typeof window !== 'undefined' ? (resume?.user_id?.toString() || 'anonymous') : 'anonymous',
+    userName: typeof window !== 'undefined' ? (resume?.full_name || 'Anonymous User') : 'Anonymous User',
+    onUpdate: (data) => {
+      // Merge remote updates without creating undo history
+      if (resume) {
+        setResumeWithHistory({ ...resume, ...data });
+      }
+    },
+    enabled: !!resumeId && !!resume,
+  });
+  
+  const wsConnected = wsData.connected;
+  const activeUsers = wsData.activeUsers;
+  const wsSendUpdate = wsData.sendUpdate;
+  const sendCursor = wsData.sendCursor;
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -488,6 +508,12 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
       if (!prev) return prev;
       const updated = { ...prev, ...updates };
       saveResume(updates);
+      
+      // Broadcast update to other collaborators
+      if (wsConnected) {
+        wsSendUpdate(updates);
+      }
+      
       return updated;
     });
   };
@@ -604,6 +630,25 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            {/* Collaboration Status & Presence */}
+            <div className="flex items-center gap-2">
+              {wsConnected ? (
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/20 border border-green-500/30 rounded-lg">
+                  <Wifi className="w-4 h-4 text-green-400" />
+                  <span className="text-xs text-green-300 font-medium">Live</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-500/20 border border-gray-500/30 rounded-lg">
+                  <WifiOff className="w-4 h-4 text-gray-400" />
+                  <span className="text-xs text-gray-300 font-medium">Offline</span>
+                </div>
+              )}
+              
+              {wsConnected && activeUsers.length > 0 && (
+                <PresenceIndicator users={activeUsers} maxVisible={3} />
+              )}
+            </div>
+            
             {/* Auto-save Indicator */}
             <AutoSaveIndicator status={saveStatus} />
             
@@ -1061,6 +1106,11 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
           {saving ? 'Saving…' : lastSaved ? `Saved ${lastSaved.toLocaleTimeString()}` : '—'}
         </div>
       </div>
+      
+      {/* Remote Cursors for Collaboration */}
+      {wsConnected && activeUsers.map((user) => (
+        <RemoteCursor key={user.id} user={user} />
+      ))}
     </Layout>
   );
 }
