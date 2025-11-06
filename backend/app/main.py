@@ -10,6 +10,8 @@ from app.models import User, Progress as LegacyProgress, QuizAttempt, CreditLedg
 from app.modelsx import Course, Video, Quiz, QuizQuestion, VideoProgress, coins
 # ensure CoinLedger table is registered (modelsx.coins defines CoinLedger)
 from app.modelsx.coins import CoinLedger
+# import quiz template models for AI-generated quizzes
+from app.modelsx.quiz_template import GeneratedQuiz, QuizSession
 # import mentor models
 from app.modelsx.mentor import Mentor, MentorSession, MentorAvailability, MentorMessage, MentorReview
 from app.modelsx.payout import MentorPayout, MentorEarning
@@ -19,12 +21,13 @@ from app.modelsx.chat_file import MentorChatFile
 # import resume models
 from app.modelsx.resume import Resume, WorkExperience, Education, ResumeProject, ResumeSkill, ResumeCertificate, Achievement, ResumeTemplate, AIProjectTemplate, ResumeAnalytics, ATSReport
 # import hiring models
-from app.modelsx.hiring import Company, CompanyTeamMember, JobPosting, JobApplication, Interview, TechnicalAssessment, BackgroundCheck, EducationVerification, EmploymentVerification, ReferenceCheck, JobOffer, HiringMetrics
 # import job application tracking
 from app.modelsx.job_application import JobApplication as JobApplicationTracker
+# import marketplace models
+from app.modelsx.order import Order, Coupon, CartItem
 
 # v1 routers (existing)
-from app.api.v1 import auth, courses, chat, quizzes, progress, subscribe, quiz_status, paths
+from app.api.v1 import auth, courses, progress, quizzes, chat, subscribe, quiz_status, paths, achievements, dashboard
 
 # Try to import optional v1x routers directly (bypass v1x __init__.py)
 courses_db = None
@@ -110,6 +113,21 @@ except Exception as e:
     print(f"Failed to import resume_ai: {e}")
 
 try:
+    from app.api.v1x.cover_letter import router as cover_letter
+except Exception as e:
+    print(f"Failed to import cover_letter: {e}")
+
+try:
+    from app.api.v1x.resume_comparison import router as resume_comparison
+except Exception as e:
+    print(f"Failed to import resume_comparison: {e}")
+
+try:
+    from app.api.v1x.linkedin_import import router as linkedin_import
+except Exception as e:
+    print(f"Failed to import linkedin_import: {e}")
+
+try:
     from app.api.v1x.hiring import router as hiring
 except Exception as e:
     print(f"Failed to import hiring: {e}")
@@ -118,6 +136,11 @@ try:
     from app.api.v1x.resume_import import router as resume_import
 except Exception as e:
     print(f"Failed to import resume_import: {e}")
+
+try:
+    from app.api.v1x.marketplace import router as marketplace
+except Exception as e:
+    print(f"Failed to import marketplace: {e}")
 
 try:
     from app.api.v1x.job_applications import router as job_applications
@@ -134,8 +157,22 @@ try:
 except Exception as e:
     print(f"Failed to import job_calendar: {e}")
 
+try:
+    from app.api.v1x.resume_export import router as resume_export
+except Exception as e:
+    print(f"Failed to import resume_export: {e}")
+
+try:
+    from app.api.v1x.resume_templates import router as resume_templates
+except Exception as e:
+    print(f"Failed to import resume_templates: {e}")
+
 # App
 app = FastAPI(title=getattr(settings, "APP_NAME", "SkillForge Global"))
+
+# Configure error logging and exception handlers
+from app.core.logging_middleware import setup_logging
+setup_logging(app)
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -168,6 +205,16 @@ app.include_router(progress.router,   prefix="/api/v1")
 app.include_router(subscribe.router,  prefix="/api/v1")
 app.include_router(quiz_status.router,prefix="/api/v1")
 app.include_router(paths.router,      prefix="/api/v1")
+app.include_router(achievements.router, prefix="/api/v1")
+app.include_router(dashboard.router,  prefix="/api/v1")
+
+# Admin routers
+try:
+    from app.api.v1.admin_quizzes import router as admin_quizzes
+    app.include_router(admin_quizzes, prefix="/api/v1")
+    print("Admin quizzes router mounted")
+except Exception as e:
+    print(f"Failed to mount admin_quizzes: {e}")
 
 from fastapi import APIRouter
 
@@ -192,7 +239,7 @@ def _mount_v1x_export(obj):
 
 
 # Mount all v1x exports (modules or routers)
-for _export in (courses_db, progress_db, quizzes_db, youtube_sync, coins_db, mentors, payments, chat_files, payouts, subscriptions, connect, recordings, resumes, resume_ai, hiring, resume_import, job_applications, job_notifications, job_calendar):
+for _export in (courses_db, progress_db, quizzes_db, youtube_sync, coins_db, mentors, payments, chat_files, payouts, subscriptions, connect, recordings, resumes, resume_ai, cover_letter, resume_comparison, linkedin_import, hiring, resume_import, marketplace, job_applications, job_notifications, job_calendar, resume_export, resume_templates):
     _mount_v1x_export(_export)
 
 # Mount WebSocket server

@@ -44,7 +44,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         body: req.method === "PATCH" ? JSON.stringify(req.body || {}) : undefined,
       });
       const text = await r.text();
-      res.status(r.status).send(text || "{}");
+      // For 204 No Content, don't send a body
+      if (r.status === 204) {
+        res.status(204).end();
+      } else {
+        res.status(r.status).send(text || "{}");
+      }
       return;
     }
 

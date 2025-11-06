@@ -12,7 +12,7 @@ from app.core.db import get_db
 from app.core.security import get_current_user
 from app.models.user import User
 from app.modelsx.hiring import (
-    Company, JobPosting, JobApplication, Interview,
+    Company, JobPosting, HiringJobApplication, Interview,
     TechnicalAssessment, BackgroundCheck, ReferenceCheck,
     JobOffer, ApplicationStatus, VerificationStatus
 )
@@ -149,9 +149,9 @@ def apply_to_job(
         raise HTTPException(status_code=404, detail="Job not found or not accepting applications")
     
     # Check if already applied
-    existing = db.query(JobApplication).filter(
-        JobApplication.job_id == job_id,
-        JobApplication.user_id == current_user.id
+    existing = db.query(HiringJobApplication).filter(
+        HiringJobApplication.job_id == job_id,
+        HiringJobApplication.user_id == current_user.id
     ).first()
     
     if existing:
@@ -170,7 +170,7 @@ def apply_to_job(
     match_analysis = calculate_match_score(resume, job)
     
     # Create application
-    application = JobApplication(
+    application = HiringJobApplication(
         job_id=job_id,
         user_id=current_user.id,
         resume_id=resume_id,
@@ -202,9 +202,9 @@ def get_application_status(
     current_user: User = Depends(get_current_user)
 ):
     """Get application status and timeline"""
-    application = db.query(JobApplication).filter(
-        JobApplication.id == application_id,
-        JobApplication.user_id == current_user.id
+    application = db.query(HiringJobApplication).filter(
+        HiringJobApplication.id == application_id,
+        HiringJobApplication.user_id == current_user.id
     ).first()
     
     if not application:
@@ -232,8 +232,8 @@ def initiate_education_verification(
     current_user: User = Depends(get_current_user)
 ):
     """Initiate automated education verification"""
-    application = db.query(JobApplication).filter(
-        JobApplication.id == application_id
+    application = db.query(HiringJobApplication).filter(
+        HiringJobApplication.id == application_id
     ).first()
     
     if not application:
@@ -274,8 +274,8 @@ def initiate_employment_verification(
     current_user: User = Depends(get_current_user)
 ):
     """Initiate automated employment verification"""
-    application = db.query(JobApplication).filter(
-        JobApplication.id == application_id
+    application = db.query(HiringJobApplication).filter(
+        HiringJobApplication.id == application_id
     ).first()
     
     if not application:
@@ -350,8 +350,8 @@ def send_skill_verification_test(
     current_user: User = Depends(get_current_user)
 ):
     """Send automated skill verification test"""
-    application = db.query(JobApplication).filter(
-        JobApplication.id == application_id
+    application = db.query(HiringJobApplication).filter(
+        HiringJobApplication.id == application_id
     ).first()
     
     if not application:
@@ -398,8 +398,8 @@ def request_references(
     current_user: User = Depends(get_current_user)
 ):
     """Send automated reference check requests"""
-    application = db.query(JobApplication).filter(
-        JobApplication.id == application_id
+    application = db.query(HiringJobApplication).filter(
+        HiringJobApplication.id == application_id
     ).first()
     
     if not application:
@@ -443,8 +443,8 @@ def schedule_interview(
     current_user: User = Depends(get_current_user)
 ):
     """Schedule an interview automatically"""
-    application = db.query(JobApplication).filter(
-        JobApplication.id == application_id
+    application = db.query(HiringJobApplication).filter(
+        HiringJobApplication.id == application_id
     ).first()
     
     if not application:
@@ -489,8 +489,8 @@ def generate_offer_letter(
     current_user: User = Depends(get_current_user)
 ):
     """Auto-generate and send offer letter"""
-    application = db.query(JobApplication).filter(
-        JobApplication.id == application_id
+    application = db.query(HiringJobApplication).filter(
+        HiringJobApplication.id == application_id
     ).first()
     
     if not application:
@@ -533,15 +533,15 @@ def get_job_candidates(
     current_user: User = Depends(get_current_user)
 ):
     """Get all candidates for a job with filtering"""
-    query = db.query(JobApplication).filter(JobApplication.job_id == job_id)
+    query = db.query(HiringJobApplication).filter(HiringJobApplication.job_id == job_id)
     
     if status:
-        query = query.filter(JobApplication.status == status)
+        query = query.filter(HiringJobApplication.status == status)
     
     if min_score:
-        query = query.filter(JobApplication.match_score >= min_score)
+        query = query.filter(HiringJobApplication.match_score >= min_score)
     
-    applications = query.order_by(JobApplication.match_score.desc()).all()
+    applications = query.order_by(HiringJobApplication.match_score.desc()).all()
     
     return {
         "job_id": job_id,
@@ -572,9 +572,9 @@ def get_hiring_metrics(
     # Get all applications for company's jobs in date range
     cutoff = datetime.utcnow() - timedelta(days=days)
     
-    applications = db.query(JobApplication).join(JobPosting).filter(
+    applications = db.query(HiringJobApplication).join(JobPosting).filter(
         JobPosting.company_id == company_id,
-        JobApplication.applied_at >= cutoff
+        HiringJobApplication.applied_at >= cutoff
     ).all()
     
     # Calculate funnel metrics

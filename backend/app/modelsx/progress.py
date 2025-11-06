@@ -6,8 +6,8 @@ class VideoProgress(Base):
     __tablename__ = "video_progress"
 
     id = Column(Integer, primary_key=True, index=True)
-    # Match your legacy table name (use "user.id" not "users.id")
-    user_id = Column(Integer, ForeignKey("user.id"), nullable=False, index=True)
+    # Match your legacy table name (use "users.id" not "user.id")
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     video_id = Column(Integer, ForeignKey("videos.id"), nullable=False, index=True)
 
     progress_percent = Column(Integer, nullable=False, default=0)

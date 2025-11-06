@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
-import Card from './Card';
-import Button from './Button';
-import Input from './Input';
+import { Card } from './Card';
+import { Button } from './Button';
+import { Input } from './Input';
 import VideoCall from './VideoCall';
 
 interface Message {

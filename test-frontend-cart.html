@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Add to Cart</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #fff; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; background: #6366f1; color: white; border: none; border-radius: 5px; }
+        button:hover { background: #4f46e5; }
+        .log { background: #2a2a2a; padding: 15px; margin: 10px 0; border-radius: 5px; max-height: 400px; overflow-y: auto; }
+        .success { color: #10b981; }
+        .error { color: #ef4444; }
+        input { padding: 8px; margin: 5px; background: #2a2a2a; border: 1px solid #444; color: white; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>🛒 Frontend Cart Test</h1>
+    <p>Testing the exact same fetch calls as the Next.js frontend</p>
+
+    <div>
+        <input type="email" id="email" placeholder="Email" value="test@example.com">
+        <input type="password" id="password" placeholder="Password" value="Test123!">
+    </div>
+
+    <div>
+        <button onclick="testSignup()">1. Signup</button>
+        <button onclick="testLogin()">2. Login</button>
+        <button onclick="testMe()">3. Check /me</button>
+        <button onclick="testGetCourses()">4. Get Courses</button>
+        <button onclick="testAddToCart()">5. Add to Cart</button>
+        <button onclick="testViewCart()">6. View Cart</button>
+    </div>
+
+    <div class="log" id="log"></div>
+
+    <script>
+        const API_BASE = 'http://localhost:8001';
+        let courseId = null;
+
+        function log(msg, type = 'info') {
+            const div = document.getElementById('log');
+            const className = type === 'success' ? 'success' : type === 'error' ? 'error' : '';
+            div.innerHTML += `<div class="${className}">[${new Date().toLocaleTimeString()}] ${msg}</div>`;
+            div.scrollTop = div.scrollHeight;
+        }
+
+        async function testSignup() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/auth/signup`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ 
+                        email: `${Date.now()}@test.com`, 
+                        password: password,
+                        full_name: 'Test User'
+                    })
+                });
+                
+                const data = await response.json();
+                log(`Signup: ${JSON.stringify(data)}`, response.ok ? 'success' : 'error');
+            } catch (error) {
+                log(`Signup Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testLogin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                log(`Login: ${JSON.stringify(data)}`, response.ok ? 'success' : 'error');
+                
+                // Check cookies
+                log(`Cookies: ${document.cookie}`, 'info');
+            } catch (error) {
+                log(`Login Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testMe() {
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/auth/me`, {
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`/me: ${JSON.stringify(data)}`, 'success');
+                } else {
+                    log(`/me failed: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log(`/me Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testGetCourses() {
+            try {
+                const response = await fetch(`${API_BASE}/api/v1x/marketplace/courses`, {
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                const paidCourse = data.find(c => c.is_paid);
+                if (paidCourse) {
+                    courseId = paidCourse.id;
+                    log(`Found paid course: ${paidCourse.title} (ID: ${courseId})`, 'success');
+                } else {
+                    log('No paid courses found', 'error');
+                }
+            } catch (error) {
+                log(`Get Courses Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testAddToCart() {
+            if (!courseId) {
+                log('Run "Get Courses" first!', 'error');
+                return;
+            }
+
+            try {
+                log(`Adding course ${courseId} to cart...`, 'info');
+                
+                const response = await fetch(`${API_BASE}/api/v1x/marketplace/cart/add`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ course_id: courseId })
+                });
+                
+                const data = await response.json();
+                log(`Add to Cart Response (${response.status}): ${JSON.stringify(data)}`, response.ok ? 'success' : 'error');
+            } catch (error) {
+                log(`Add to Cart Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testViewCart() {
+            try {
+                const response = await fetch(`${API_BASE}/api/v1x/marketplace/cart`, {
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`Cart: ${JSON.stringify(data, null, 2)}`, 'success');
+                } else {
+                    log(`View Cart failed: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log(`View Cart Error: ${error.message}`, 'error');
+            }
+        }
+
+        log('Ready to test! Click buttons in order 1-6', 'info');
+    </script>
+</body>
+</html>

@@ -70,3 +70,25 @@ def get_current_user(
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
     return user
+
+
+def get_current_user_optional(
+    request: Request,
+    db: Session = Depends(get_db),
+) -> Optional[User]:
+    """
+    Returns the current user if authenticated, otherwise None.
+    Use for endpoints that work with or without authentication.
+    """
+    token = _get_token_from_request(request)
+    if not token:
+        return None
+    try:
+        claims = decode_token(token)
+        uid = claims.get("sub")
+        if uid:
+            user = db.query(User).filter(User.id == int(uid)).first()
+            return user
+    except (JWTError, ValueError, HTTPException):
+        pass
+    return None

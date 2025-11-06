@@ -25,7 +25,7 @@ class Mentor(Base):
     __tablename__ = "mentors"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("user.id", ondelete="CASCADE"), unique=True, nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False, index=True)
     
     # Profile Information
     bio = Column(Text, nullable=False)  # Mentor's bio/introduction
@@ -45,8 +45,8 @@ class Mentor(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
-    # Relationships
-    user = relationship("User", back_populates="mentor_profile")
+    # Relationships (User qualified to avoid conflicts)
+    user = relationship("app.models.user.User", back_populates="mentor_profile")
     sessions = relationship("MentorSession", back_populates="mentor", cascade="all, delete-orphan")
     availability = relationship("MentorAvailability", back_populates="mentor", cascade="all, delete-orphan")
     reviews = relationship("MentorReview", back_populates="mentor", cascade="all, delete-orphan")
@@ -72,7 +72,7 @@ class MentorSession(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     mentor_id = Column(Integer, ForeignKey("mentors.id", ondelete="CASCADE"), nullable=False, index=True)
-    student_id = Column(Integer, ForeignKey("user.id", ondelete="CASCADE"), nullable=False, index=True)
+    student_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     
     # Session Details
     topic = Column(String, nullable=False)  # Session topic/focus
@@ -100,7 +100,7 @@ class MentorSession(Base):
     
     # Relationships
     mentor = relationship("Mentor", back_populates="sessions")
-    student = relationship("User", foreign_keys=[student_id])
+    student = relationship("app.models.user.User", foreign_keys=[student_id])
     review = relationship("MentorReview", uselist=False, back_populates="session")
     chat_files = relationship("MentorChatFile", back_populates="session")
     
@@ -149,7 +149,7 @@ class MentorMessage(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     session_id = Column(Integer, ForeignKey("mentor_sessions.id", ondelete="CASCADE"), nullable=False, index=True)
-    sender_id = Column(Integer, ForeignKey("user.id", ondelete="CASCADE"), nullable=False, index=True)
+    sender_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     
     # Message Content
     message = Column(Text, nullable=False)
@@ -178,7 +178,7 @@ class MentorReview(Base):
     id = Column(Integer, primary_key=True, index=True)
     mentor_id = Column(Integer, ForeignKey("mentors.id", ondelete="CASCADE"), nullable=False, index=True)
     session_id = Column(Integer, ForeignKey("mentor_sessions.id", ondelete="CASCADE"), unique=True, nullable=False)
-    student_id = Column(Integer, ForeignKey("user.id", ondelete="CASCADE"), nullable=False, index=True)
+    student_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     
     # Rating & Review
     rating = Column(Integer, nullable=False)  # 1-5 stars
@@ -193,7 +193,7 @@ class MentorReview(Base):
     # Relationships
     mentor = relationship("Mentor", back_populates="reviews")
     session = relationship("MentorSession", back_populates="review")
-    student = relationship("User", foreign_keys=[student_id])
+    student = relationship("app.models.user.User", foreign_keys=[student_id])
     
     def __repr__(self):
         return f"<MentorReview(id={self.id}, mentor_id={self.mentor_id}, rating={self.rating})>"

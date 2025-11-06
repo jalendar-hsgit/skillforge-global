@@ -11,7 +11,18 @@ const API_BASE = process.env.API_BASE || process.env.NEXT_PUBLIC_API_BASE || "ht
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     const segments = (req.query.path as string[] | undefined) || [];
-    const target = `${API_BASE}/api/v1x/${segments.join("/")}`;
+    let target = `${API_BASE}/api/v1x/${segments.join("/")}`;
+    
+    // Forward query parameters
+    const { path, ...queryParams } = req.query;
+    const queryString = new URLSearchParams(
+      Object.entries(queryParams).flatMap(([key, value]) =>
+        Array.isArray(value) ? value.map(v => [key, v]) : [[key, String(value)]]
+      )
+    ).toString();
+    if (queryString) {
+      target += `?${queryString}`;
+    }
 
     // Build headers, preserving content-type and cookies
     const headers: Record<string, string> = {

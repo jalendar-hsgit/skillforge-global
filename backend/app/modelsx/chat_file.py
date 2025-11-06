@@ -14,7 +14,7 @@ class MentorChatFile(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     session_id = Column(Integer, ForeignKey("mentor_sessions.id"), nullable=False, index=True)
-    sender_id = Column(Integer, ForeignKey("user.id"), nullable=False)
+    sender_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     filename = Column(String, nullable=False)
     original_filename = Column(String, nullable=False)
     file_path = Column(String, nullable=False)
@@ -24,4 +24,4 @@ class MentorChatFile(Base):
     
     # Relationships
     session = relationship("MentorSession", back_populates="chat_files")
-    sender = relationship("User")
+    sender = relationship("app.models.user.User")

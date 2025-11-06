@@ -79,7 +79,7 @@ class CompanyTeamMember(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=False)
-    user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
     role = Column(String(50), nullable=False)  # "admin", "recruiter", "hiring_manager", "interviewer"
     permissions = Column(JSON)  # Granular permissions
@@ -143,18 +143,18 @@ class JobPosting(Base):
     
     # Relationships
     company = relationship("Company", back_populates="jobs")
-    applications = relationship("JobApplication", back_populates="job")
+    applications = relationship("app.modelsx.hiring.HiringJobApplication", back_populates="job")
 
 
 # ==================== Application & Screening ====================
 
-class JobApplication(Base):
+class HiringJobApplication(Base):
     """Candidate applications to jobs"""
     __tablename__ = "job_applications"
     
     id = Column(Integer, primary_key=True, index=True)
     job_id = Column(Integer, ForeignKey("job_postings.id"), nullable=False)
-    user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     resume_id = Column(Integer, ForeignKey("resumes.id"), nullable=False)
     
     # Application Details
@@ -180,7 +180,7 @@ class JobApplication(Base):
     rejected_at = Column(DateTime)
     rejection_reason = Column(Text)
     
-    # Relationships
+    # Relationships (using fully-qualified paths to avoid registry conflicts)
     job = relationship("JobPosting", back_populates="applications")
     interviews = relationship("Interview", back_populates="application")
     assessments = relationship("TechnicalAssessment", back_populates="application")
@@ -237,7 +237,7 @@ class Interview(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     completed_at = Column(DateTime)
     
-    application = relationship("JobApplication", back_populates="interviews")
+    application = relationship("app.modelsx.hiring.HiringJobApplication", back_populates="interviews")
 
 
 # ==================== Technical Assessment ====================
@@ -292,7 +292,7 @@ class TechnicalAssessment(Base):
     
     status = Column(String(50), default="pending")  # pending, in_progress, submitted, graded
     
-    application = relationship("JobApplication", back_populates="assessments")
+    application = relationship("app.modelsx.hiring.HiringJobApplication", back_populates="assessments")
 
 
 # ==================== Background Verification ====================
@@ -331,7 +331,7 @@ class BackgroundCheck(Base):
     cost = Column(Float)
     currency = Column(String(10), default="USD")
     
-    application = relationship("JobApplication", back_populates="background_checks")
+    application = relationship("app.modelsx.hiring.HiringJobApplication", back_populates="background_checks")
 
 
 class EducationVerification(Base):
@@ -339,7 +339,7 @@ class EducationVerification(Base):
     __tablename__ = "education_verifications"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
     institution = Column(String(255), nullable=False)
     degree = Column(String(255), nullable=False)
@@ -368,7 +368,7 @@ class EmploymentVerification(Base):
     __tablename__ = "employment_verifications"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
     company = Column(String(255), nullable=False)
     position = Column(String(255), nullable=False)

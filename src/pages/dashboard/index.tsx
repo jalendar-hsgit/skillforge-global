@@ -97,10 +97,24 @@ export default function Dashboard({ me }: { me: Me }) {
         // Sort by progress percentage (most progress first)
         pathProgress.sort((a, b) => b.percentage - a.percentage)
 
+        // Fetch coin balance
+        let coinBalance = 0
+        try {
+          const coinRes = await fetch('/api/coins/balance', {
+            credentials: 'include'
+          })
+          if (coinRes.ok) {
+            const coinData = await coinRes.json()
+            coinBalance = coinData.balance || coinData.coins || 0
+          }
+        } catch (err) {
+          console.error('Failed to fetch coin balance', err)
+        }
+
         setStats({
           totalVideosCompleted: totalCompleted,
           totalQuizzesTaken: 0, // TODO: Fetch from quiz attempts
-          forgeCredits: 10, // TODO: Fetch from coins API
+          forgeCredits: coinBalance,
           streakDays: 1,
           pathsInProgress: pathProgress
         })

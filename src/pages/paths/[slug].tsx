@@ -21,6 +21,19 @@ export default function PathPage() {
   const [sortBy, setSortBy] = useState<'default' | 'title' | 'duration'>('default')
   const { me } = useMe()
 
+  // Helper to format duration seconds to HH:MM:SS or MM:SS
+  function formatDuration(seconds: string | number): string {
+    const sec = typeof seconds === 'string' ? parseInt(seconds) : seconds
+    if (!sec || sec === 0) return '0:00'
+    const h = Math.floor(sec / 3600)
+    const m = Math.floor((sec % 3600) / 60)
+    const s = sec % 60
+    if (h > 0) {
+      return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+    }
+    return `${m}:${s.toString().padStart(2, '0')}`
+  }
+
   useEffect(() => {
     if (!slug && router.isReady) {
       router.push(ROUTES.paths)
@@ -86,18 +99,6 @@ export default function PathPage() {
     return () => { cancelled = true }
   }, [slug])
 
-  // Helper to format duration seconds to HH:MM:SS or MM:SS
-  function formatDuration(seconds: string | number): string {
-    const sec = typeof seconds === 'string' ? parseInt(seconds) : seconds
-    if (!sec || sec === 0) return '0:00'
-    const h = Math.floor(sec / 3600)
-    const m = Math.floor((sec % 3600) / 60)
-    const s = sec % 60
-    if (h > 0) {
-      return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
-    }
-    return `${m}:${s.toString().padStart(2, '0')}`
-  }
 
   useEffect(() => { loadProgress() }, [slug, me])
 

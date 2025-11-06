@@ -338,7 +338,7 @@ export default function EnhancedResumeEditor({ resumeId }: ResumeEditorProps) {
             resume={resume}
             resumeId={resumeId}
             onClose={() => setShowAIPanel(false)}
-            onApply={(field, value) => updateResume({ [field]: value })}
+            onApply={(field: string, value: any) => updateResume({ [field]: value })}
           />
         )}
 
@@ -357,7 +357,7 @@ export default function EnhancedResumeEditor({ resumeId }: ResumeEditorProps) {
       {showTemplates && (
         <TemplateModal
           currentTemplate={resume.template}
-          onSelect={(template) => {
+          onSelect={(template: string) => {
             updateResume({ template });
             setShowTemplates(false);
           }}
@@ -441,12 +441,12 @@ function HeaderSection({ resume, updateResume }: any) {
         Contact Information
       </h2>
       <div className="grid md:grid-cols-2 gap-4">
-        <InputField label="Full Name" value={resume.full_name} onChange={(v) => updateResume({ full_name: v })} placeholder="John Doe" />
-        <InputField label="Email" value={resume.email} onChange={(v) => updateResume({ email: v })} placeholder="john@example.com" type="email" />
-        <InputField label="Phone" value={resume.phone} onChange={(v) => updateResume({ phone: v })} placeholder="+1 (555) 123-4567" />
-        <InputField label="Location" value={resume.location} onChange={(v) => updateResume({ location: v })} placeholder="San Francisco, CA" />
-        <InputField label="LinkedIn" value={resume.linkedin} onChange={(v) => updateResume({ linkedin: v })} placeholder="linkedin.com/in/johndoe" />
-        <InputField label="GitHub" value={resume.github} onChange={(v) => updateResume({ github: v })} placeholder="github.com/johndoe" />
+        <InputField label="Full Name" value={resume.full_name} onChange={(v: string) => updateResume({ full_name: v })} placeholder="John Doe" />
+        <InputField label="Email" value={resume.email} onChange={(v: string) => updateResume({ email: v })} placeholder="john@example.com" type="email" />
+        <InputField label="Phone" value={resume.phone} onChange={(v: string) => updateResume({ phone: v })} placeholder="+1 (555) 123-4567" />
+        <InputField label="Location" value={resume.location} onChange={(v: string) => updateResume({ location: v })} placeholder="San Francisco, CA" />
+        <InputField label="LinkedIn" value={resume.linkedin} onChange={(v: string) => updateResume({ linkedin: v })} placeholder="linkedin.com/in/johndoe" />
+        <InputField label="GitHub" value={resume.github} onChange={(v: string) => updateResume({ github: v })} placeholder="github.com/johndoe" />
       </div>
     </div>
   );

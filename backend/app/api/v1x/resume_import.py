@@ -383,39 +383,67 @@ async def parse_resume_preview(
     """
     Parse resume file and return preview without creating a resume.
     Useful for showing user what will be imported before committing.
+    Enhanced error messages for better diagnostics.
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
     # Validate file type
     allowed_types = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
     if file.content_type not in allowed_types:
+        logger.warning(f"Invalid file type: {file.content_type}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid file type. Only PDF and DOCX files are supported."
+            detail=f"Invalid file type '{file.content_type}'. Only PDF and DOCX files are supported."
         )
     
     # Validate file size
     max_size = 10 * 1024 * 1024
     file_content = await file.read()
     if len(file_content) > max_size:
+        logger.warning(f"File too large: {len(file_content)} bytes (max {max_size})")
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail="File too large. Maximum size is 10MB."
+            detail=f"File too large ({len(file_content) // 1024 // 1024}MB). Maximum size is 10MB."
         )
     
     # Save to temp file
     temp_file = None
     try:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename or "resume.pdf")[1]) as temp_file:
+        suffix = os.path.splitext(file.filename or "resume.pdf")[1]
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
             temp_file.write(file_content)
             temp_file_path = temp_file.name
         
         # Parse based on file type
+        logger.info(f"Parsing {file.filename} ({file.content_type})")
         if file.content_type == 'application/pdf':
             parsed_data = parse_pdf_resume(temp_file_path)
         else:
             parsed_data = parse_docx_resume(temp_file_path)
+        
+        # Check for parse error
+        if "error" in parsed_data:
+            logger.error(f"Parse error: {parsed_data['error']}")
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Failed to parse resume: {parsed_data['error']}"
+            )
+        
+        if "note" in parsed_data and "not installed" in parsed_data.get("raw_text", ""):
+            logger.error("Missing parsing library")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Server configuration issue: {parsed_data.get('raw_text')}"
+            )
 
         # Add richer sections
         text = parsed_data.get("raw_text", "")
+        if not text.strip():
+            logger.warning(f"No text extracted from {file.filename}")
+            # Still return what we have so user can see the issue
+            parsed_data["note"] = "No text could be extracted from this file. It may be an image-based PDF or corrupted."
+        
         parsed_data["work_experience"] = extract_work_experience(text)
         parsed_data["education"] = extract_education(text)
         parsed_data["skills"] = extract_skills(text)
@@ -424,6 +452,7 @@ async def parse_resume_preview(
         if ai:
             parsed_data = ai_enrich(parsed_data)
         
+        logger.info(f"Parse successful: {file.filename}")
         return {
             "success": True,
             "filename": file.filename,
@@ -431,7 +460,18 @@ async def parse_resume_preview(
             "ai_used": bool(ai),
         }
         
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Unexpected error parsing {file.filename}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Unexpected error during parse: {str(e)}"
+        )
     finally:
         # Clean up temp file
         if temp_file and os.path.exists(temp_file_path):
-            os.unlink(temp_file_path)
+            try:
+                os.unlink(temp_file_path)
+            except:
+                pass

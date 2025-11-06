@@ -2,9 +2,10 @@
 
 ## ✅ Backend Status: OPERATIONAL
 
-**Server URL:** `http://localhost:8001`
-
-**Last Tested:** November 1, 2025
+**Server URL:** `http://localhost:8001`  
+**Frontend URL:** `http://localhost:3000`  
+**Last Tested:** November 3, 2025  
+**Full Status:** See `SYSTEM_STATUS.md` for comprehensive test results
 
 ---
 
@@ -16,9 +17,9 @@
 - **10 Hiring tables:** Company, CompanyTeamMember, JobPosting, JobApplication, Interview, TechnicalAssessment, BackgroundCheck, ReferenceCheck, JobOffer, EducationVerification, EmploymentVerification
 
 ### ✅ API Routers Mounted
-- `/api/v1x/resumes` - Resume CRUD operations
-- `/api/v1x/resumes/ai` - AI-powered resume assistance
-- `/api/v1x/hiring` - Complete hiring platform
+- v1: `auth`, `courses`, `chat`, `quizzes`, `progress`, `subscribe`, `quiz_status`, `paths`
+- v1x: `courses-db`, `progress-db`, `quizzes-db`, `YouTube Sync`, `coins`, `mentors`, `payments`, `chat-files`, `mentor-payouts`, `subscriptions`, `stripe-connect`, `recordings`, `resumes`, `resume-ai`, `hiring`, `resume-import`, `job-applications`, `job-notifications`, `job-calendar`
+- WebSocket server mounted at `/ws`
 
 ### ✅ Test Results
 | Endpoint | Method | Status | Notes |
@@ -26,12 +27,39 @@
 | `/healthz` | GET | ✅ PASS | Server health check |
 | `/api/v1/auth/signup` | POST | ✅ PASS | User registration |
 | `/api/v1/auth/login` | POST | ✅ PASS | User authentication |
-| `/api/v1x/resumes` | POST | ✅ PASS | Resume creation (ID: 1) |
+| `/api/v1x/resumes` | POST | ✅ PASS | Resume creation |
 | `/api/v1x/resumes/ai/bullet-points` | POST | ✅ PASS | AI bullet generation |
+
+Additional backend tests (5/5 passing):
+- `test_auth_and_hiring.py` (signup/login/me, hiring router present in OpenAPI)
+- `test_error_logging.py` (404/422 handling with X-Request-ID)
+
+See `TEST_SUMMARY.md` for the full matrix and logs.
 
 ---
 
-## 🔐 Authentication
+## �️ Frontend Build & UI Status
+
+Build: SUCCESS (Next.js)
+- 72 pages compiled, 4 API routes
+- First Load JS range: ~86–206 kB
+
+Checks (not blocking build):
+- TypeScript: 27 warnings across 11 files
+- ESLint: ~400 issues (275 errors, 125 warnings)
+
+Quick hot-fixes applied to avoid UI “freeze”/runtime quirks:
+- `src/pages/paths/[slug].tsx`: moved `formatDuration` above first use
+- `src/pages/pricing.tsx` and `src/pages/pricing-new.tsx`: moved `loadCurrentSubscription` above the effect
+
+Recommended next fixes (post-deploy):
+- Avoid calling setState directly in effects (e.g., `quiz/[slug].tsx`)
+- Prefer `next/image` over `<img>`
+- Replace `any` with typed models where flagged
+
+---
+
+## �🔐 Authentication
 
 ### 1. Create Test User
 ```bash
@@ -57,6 +85,105 @@ Content-Type: application/json
 ```
 
 **Response:** Sets HTTP-only cookie `token` with JWT
+
+---
+
+## 🧭 How to Run Tests Locally
+
+### Backend (FastAPI)
+```powershell
+cd backend
+python -m unittest discover -s tests -p "test_*.py" -v
+```
+
+### Frontend (Next.js)
+```powershell
+npm run build
+npx tsc --noEmit
+npm run lint
+```
+
+### API Sanity (optional)
+With the backend running on http://localhost:8001:
+```powershell
+python .\test_api.py
+```
+
+---
+
+## 🤖 AI Quiz Generation v2 (NEW)
+
+**See:** `AI_QUIZ_GUIDE.md` for comprehensive documentation | `OLLAMA_SETUP.md` for local setup
+
+### Quick Overview
+- **LLM Providers**: OpenAI, Anthropic, Ollama (configurable via env)
+  - **Ollama**: Run models locally (FREE, no API key needed) - See `OLLAMA_SETUP.md`
+  - **OpenAI**: Cloud-based, fast, paid (~$0.15/1K questions)
+  - **Anthropic**: Cloud-based, high quality, paid (~$3.00/1K questions)
+- **Streaming**: SSE-based real-time question generation
+- **Adaptive Difficulty**: Auto-adjusts based on user performance
+- **Persistent Templates**: Save and retake AI-generated quizzes
+
+### Key Endpoints
+```http
+POST /api/v1/quizzes/generate                 # Generate quiz (rate limited: 10/5min)
+GET  /api/v1/quizzes/generate-stream          # SSE streaming via GET (rate limited: 10/5min)
+POST /api/v1/quizzes/submit-ai                # Submit AI quiz with session tracking
+GET  /api/v1/quizzes/saved                    # List user's saved quizzes
+GET  /api/v1/quizzes/saved/{id}               # Retrieve saved quiz
+POST /api/v1/quizzes/saved/{id}/favorite      # Toggle favorite
+DELETE /api/v1/quizzes/saved/{id}             # Archive quiz
+POST /api/v1/quizzes/session/start            # Start adaptive session
+```
+
+**Demo Pages:**
+- `/quiz/[slug]` - Standard with AI fallback
+- `/quiz/stream?topic=react&difficulty=medium` - Live streaming demo
+- Pro tip: Prefer the Next.js API proxies below for same-origin cookies
+
+### Next.js API Proxies (same-origin)
+```http
+POST /api/quizzes/generate                     -> backend /api/v1/quizzes/generate
+GET  /api/quizzes/generate-stream?topic=...    -> backend /api/v1/quizzes/generate-stream
+POST /api/quizzes/submit-ai                    -> backend /api/v1/quizzes/submit-ai
+GET  /api/quizzes/saved                        -> backend /api/v1/quizzes/saved
+GET  /api/quizzes/saved/{id}                   -> backend /api/v1/quizzes/saved/{id}
+POST /api/quizzes/saved/{id}/favorite          -> backend /api/v1/quizzes/saved/{id}/favorite
+DELETE /api/quizzes/saved/{id}                 -> backend /api/v1/quizzes/saved/{id}
+POST /api/quizzes/session/start                -> backend /api/v1/quizzes/session/start
+```
+
+### Rate Limiting
+- Generation endpoints are protected to prevent abuse:
+  - `POST /api/v1/quizzes/generate`: 10 requests per 5 minutes per user
+  - `GET  /api/v1/quizzes/generate-stream`: 10 requests per 5 minutes per user
+- When exceeded, the API returns `429 Too Many Requests` with a `Retry-After` header.
+
+Example (PowerShell):
+```powershell
+$body = '{"topic":"rate-limit-demo","difficulty":"medium","num_questions":2,"options_per_question":3}'
+1..11 | ForEach-Object { Invoke-RestMethod -Method Post -Uri http://localhost:8001/api/v1/quizzes/generate -ContentType 'application/json' -Body $body -SkipHttpErrorCheck }
+```
+
+### Local AI with Ollama (No API Keys Required)
+
+**Quick Setup:**
+```bash
+# 1. Install Ollama
+winget install Ollama.Ollama
+
+# 2. Pull a model (4.7GB)
+ollama pull llama3.2
+
+# 3. Configure backend/.env
+AI_PROVIDER=ollama
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=llama3.2
+
+# 4. Restart backend - done!
+```
+
+See `OLLAMA_SETUP.md` for detailed instructions, model comparisons, and troubleshooting.
 
 ---
 

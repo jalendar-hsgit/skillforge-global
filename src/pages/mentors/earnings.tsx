@@ -48,7 +48,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8001';
 
 export default function MentorEarningsPage() {
   const router = useRouter();
-  const { user, loading: userLoading } = useMe();
+  const { me: user, loading: userLoading } = useMe();
   const [summary, setSummary] = useState<EarningsSummary | null>(null);
   const [earnings, setEarnings] = useState<EarningDetail[]>([]);
   const [payouts, setPayouts] = useState<PayoutDetail[]>([]);

@@ -2,11 +2,14 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '@/components/Layout';
 import { Card } from '@/components/Card';
+import LiveTemplatePreview from './LiveTemplatePreview';
+import SplitViewToggle from './SplitViewToggle';
 import { Button } from '@/components/Button';
 import { exportResumePDF, exportResumePDFFromPreview } from '@/lib/pdf';
 import { 
   Save, Download, Eye, Layout as LayoutIcon, GripVertical, 
-  Wand2, FileText, Check, Sparkles, ChevronDown, ChevronUp 
+  Wand2, FileText, Check, Sparkles, ChevronDown, ChevronUp, 
+  Linkedin, GitCompare, Palette 
 } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
@@ -21,12 +24,20 @@ import AchievementsSection from './AchievementsSection';
 import ResumePreview from './ResumePreview';
 import ATSScoreCard from './ATSScoreCard';
 import TemplateSelector from './TemplateSelector';
-import TemplateGallery from './TemplateGallery';
 import AIAssistantPanel from './AIAssistantPanel';
 import ATSBreakdownModal from './ATSBreakdownModal';
+import StylePanel from './StylePanel';
+import ResumeComparisonModal from './ResumeComparisonModal';
+import LinkedInImportModal from './LinkedInImportModal';
+import CoverLetterModal from './CoverLetterModal';
+import KeyboardShortcutsModal from './KeyboardShortcutsModal';
+import ExportOptionsModal from './ExportOptionsModal';
+import { useUndoRedo, UndoRedoControls, AutoSaveIndicator } from '@/hooks/useUndoRedo';
+import { API_BASE } from '@/lib/apiBase';
 
 interface Resume {
   id: number;
+  user_id?: number;
   title: string;
   template: string;
   full_name?: string;
@@ -43,6 +54,22 @@ interface Resume {
   projects: any[];
   certificates: any[];
   achievements: any[];
+  
+  // Customization fields
+  font_family?: string;
+  color_theme?: string;
+  layout?: string;
+  accent_color?: string;
+  picture_style?: string;
+  show_icons?: boolean;
+  background_type?: string;
+  rating_style?: string;
+  text_color?: string;
+  heading_color?: string;
+  line_spacing?: number;
+  font_size?: number;
+  heading_size?: number;
+  
   created_at: string;
   updated_at: string;
 }
@@ -58,34 +85,90 @@ interface ResumeEditorProps {
   resumeId: number;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8001';
-
 export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
   const router = useRouter();
-  const [resume, setResume] = useState<Resume | null>(null);
+  
+  // Undo/Redo state management
+  const {
+    state: resume,
+    setState: setResumeWithHistory,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    history,
+  } = useUndoRedo<Resume | null>(null, 50);
+  
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'saving' | 'saved' | 'error' | 'idle'>('idle');
+  const [saveError, setSaveError] = useState<string | undefined>();
   const [exporting, setExporting] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [activeSection, setActiveSection] = useState<string>('header');
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
   const [showAIPanel, setShowAIPanel] = useState(false);
+  const [showStylePanel, setShowStylePanel] = useState(false);
   const [showATSBreakdown, setShowATSBreakdown] = useState(false);
+  const [showComparisonModal, setShowComparisonModal] = useState(false);
+  const [showLinkedInModal, setShowLinkedInModal] = useState(false);
+  const [showCoverLetterModal, setShowCoverLetterModal] = useState(false);
+  const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
+  const [showExportOptions, setShowExportOptions] = useState(false);
   const [atsScore, setAtsScore] = useState<number | null>(null);
+  const [isSplitView, setIsSplitView] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('resume-editor-split-view')
+      return saved ? saved === 'true' : true
+    }
+    return true
+  });
+  const [showLivePreview, setShowLivePreview] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('resume-editor-show-preview')
+      return saved ? saved === 'true' : true
+    }
+    return true
+  });
   const [toast, setToast] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const previewRef = useRef<HTMLDivElement | null>(null);
   
-  const [sections, setSections] = useState<Section[]>([
-    { id: 'header', title: 'Contact Info', icon: '👤', enabled: true },
-    { id: 'summary', title: 'Professional Summary', icon: '📝', enabled: true },
-    { id: 'experience', title: 'Work Experience', icon: '💼', enabled: true },
-    { id: 'education', title: 'Education', icon: '🎓', enabled: true },
-    { id: 'skills', title: 'Skills', icon: '⚡', enabled: true },
-    { id: 'projects', title: 'Projects', icon: '🚀', enabled: true },
-    { id: 'certificates', title: 'Certificates', icon: '🏆', enabled: false },
-    { id: 'achievements', title: 'Achievements', icon: '⭐', enabled: false },
-  ]);
+  const [sections, setSections] = useState<Section[]>(() => {
+    const defaultSections: Section[] = [
+      { id: 'header', title: 'Contact Info', icon: '👤', enabled: true },
+      { id: 'summary', title: 'Professional Summary', icon: '📝', enabled: true },
+      { id: 'experience', title: 'Work Experience', icon: '💼', enabled: true },
+      { id: 'education', title: 'Education', icon: '🎓', enabled: true },
+      { id: 'skills', title: 'Skills', icon: '⚡', enabled: true },
+      { id: 'projects', title: 'Projects', icon: '🚀', enabled: true },
+      { id: 'certificates', title: 'Certificates', icon: '🏆', enabled: false },
+      { id: 'achievements', title: 'Achievements', icon: '⭐', enabled: false },
+    ]
+    
+    // Load saved section order from localStorage
+    if (typeof window !== 'undefined') {
+      const savedOrder = localStorage.getItem(`resume-section-order-${resumeId}`)
+      if (savedOrder) {
+        try {
+          const orderIds = JSON.parse(savedOrder) as string[]
+          const orderedSections = orderIds
+            .map(id => defaultSections.find(s => s.id === id))
+            .filter(Boolean) as Section[]
+          
+          // Add any new sections that weren't in saved order
+          const missingSections = defaultSections.filter(
+            s => !orderIds.includes(s.id)
+          )
+          return [...orderedSections, ...missingSections]
+        } catch (e) {
+          console.error('Failed to parse section order:', e)
+        }
+      }
+    }
+    
+    return defaultSections
+  });
   
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -102,6 +185,53 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
   useEffect(() => {
     loadResume();
   }, [resumeId]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl/Cmd + S to save
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault()
+        if (resume) saveResume(resume)
+      }
+      // Ctrl/Cmd + Z to undo
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault()
+        if (canUndo) undo()
+      }
+      // Ctrl/Cmd + Y or Ctrl/Cmd + Shift + Z to redo
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+        e.preventDefault()
+        if (canRedo) redo()
+      }
+      // Ctrl/Cmd + B to toggle split view
+      if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+        e.preventDefault()
+        const newValue = !isSplitView
+        setIsSplitView(newValue)
+        localStorage.setItem('resume-editor-split-view', newValue.toString())
+      }
+      // Ctrl/Cmd + P to open preview
+      if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+        e.preventDefault()
+        window.open(`/resumes/${resumeId}/preview`, '_blank')
+      }
+      // Ctrl/Cmd + Shift + A to toggle AI panel
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'A') {
+        e.preventDefault()
+        setShowAIPanel(!showAIPanel)
+        if (!showAIPanel) setShowStylePanel(false)
+      }
+      // ? to toggle keyboard shortcuts
+      if (e.key === '?' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault()
+        setShowKeyboardShortcuts(!showKeyboardShortcuts)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [resumeId, isSplitView, showAIPanel, showKeyboardShortcuts, canUndo, canRedo, undo, redo, resume])
 
   const loadResume = async () => {
     try {
@@ -123,18 +253,28 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
           github: data.github_url,
           website: data.website_url,
         };
-        setResume(normalized);
+        setResumeWithHistory(normalized);
         fetchATSScore();
       } else if (response.status === 401) {
         router.push('/login?redirect=' + encodeURIComponent(`/resumes/${resumeId}`));
         return;
       } else {
-        console.error('Failed to load resume');
-        alert('Failed to load resume');
+        const errorText = await response.text();
+        console.error('Failed to load resume:', response.status, errorText);
+        setToast({ 
+          type: 'error', 
+          message: `Failed to load resume (${response.status}): ${errorText || 'Unknown error'}` 
+        });
+        // Show error in UI but don't block the editor
+        setResumeWithHistory(null);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading resume:', error);
-      alert('Failed to load resume');
+      setToast({ 
+        type: 'error', 
+        message: `Failed to load resume: ${error?.message || 'Network error'}` 
+      });
+      setResumeWithHistory(null);
     } finally {
       setLoading(false);
     }
@@ -171,6 +311,18 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
     if ((data as any).github !== undefined) out.github_url = (data as any).github;
     if ((data as any).website !== undefined) out.website_url = (data as any).website;
     if ((data as any).professional_summary !== undefined) out.summary = (data as any).professional_summary;
+    // Style & layout persistence
+    if ((data as any).font_family !== undefined) out.font_family = (data as any).font_family;
+    if ((data as any).layout !== undefined) out.layout = (data as any).layout;
+    if ((data as any).accent_color !== undefined) out.accent_color = (data as any).accent_color;
+    if ((data as any).picture_style !== undefined) out.picture_style = (data as any).picture_style;
+    if ((data as any).show_icons !== undefined) out.show_icons = (data as any).show_icons;
+    if ((data as any).color_theme !== undefined) out.color_theme = (data as any).color_theme;
+    if ((data as any).text_color !== undefined) out.text_color = (data as any).text_color;
+    if ((data as any).heading_color !== undefined) out.heading_color = (data as any).heading_color;
+    if ((data as any).line_spacing !== undefined) out.line_spacing = (data as any).line_spacing;
+    if ((data as any).font_size !== undefined) out.font_size = (data as any).font_size;
+    if ((data as any).heading_size !== undefined) out.heading_size = (data as any).heading_size;
     return out;
   };
 
@@ -180,12 +332,15 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
       clearTimeout(saveTimeoutRef.current);
     }
 
+    setSaveStatus('saving');
+    
     saveTimeoutRef.current = setTimeout(async () => {
       try {
         setSaving(true);
         const payload = toApiPatch(data);
         if (Object.keys(payload).length === 0) {
           setSaving(false);
+          setSaveStatus('idle');
           return;
         }
         const response = await fetch(`/api/session/resumes?id=${resumeId}`, {
@@ -199,12 +354,20 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
 
         if (response.ok) {
           setLastSaved(new Date());
+          setSaveStatus('saved');
           fetchATSScore(); // Refresh ATS score after save
           setToast({ type: 'success', message: 'Changes saved' });
           setTimeout(() => setToast(null), 2200);
+          // Reset to idle after showing "saved" for a moment
+          setTimeout(() => setSaveStatus('idle'), 2000);
+        } else {
+          setSaveStatus('error');
+          setSaveError('Failed to save');
         }
       } catch (error) {
         console.error('Error saving resume:', error);
+        setSaveStatus('error');
+        setSaveError(error instanceof Error ? error.message : 'Unknown error');
         setToast({ type: 'error', message: 'Failed to auto-save. Check your connection.' });
         setTimeout(() => setToast(null), 2800);
       } finally {
@@ -213,13 +376,52 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
     }, 2000); // 2 second debounce
   }, [resumeId]);
   
+  const saveVersion = async () => {
+    try {
+      const versionName = prompt('Enter a name for this version (e.g., "Final Draft", "Software Engineer v2"):');
+      if (!versionName) return;
+
+      const response = await fetch(`${API_BASE}/api/v1x/resume-comparison/versions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          resume_id: resumeId,
+          version_name: versionName,
+          description: `Snapshot created on ${new Date().toLocaleString()}`
+        })
+      });
+
+      if (response.ok) {
+        setToast({ type: 'success', message: `Version "${versionName}" saved!` });
+        setTimeout(() => setToast(null), 2500);
+      } else {
+        throw new Error('Failed to save version');
+      }
+    } catch (error) {
+      console.error('Error saving version:', error);
+      setToast({ type: 'error', message: 'Failed to save version' });
+      setTimeout(() => setToast(null), 2500);
+    }
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (over && active.id !== over.id) {
       setSections((items) => {
         const oldIndex = items.findIndex((i) => i.id === active.id);
         const newIndex = items.findIndex((i) => i.id === over.id);
-        return arrayMove(items, oldIndex, newIndex);
+        const newOrder = arrayMove(items, oldIndex, newIndex);
+        
+        // Persist section order to localStorage
+        const sectionOrder = newOrder.map(s => s.id)
+        localStorage.setItem(`resume-section-order-${resumeId}`, JSON.stringify(sectionOrder))
+        
+        // Show feedback
+        setToast({ type: 'success', message: 'Section order updated' })
+        setTimeout(() => setToast(null), 2000)
+        
+        return newOrder;
       });
     }
   };
@@ -282,7 +484,7 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
 
   // Update resume data and trigger auto-save
   const updateResume = (updates: Partial<Resume>) => {
-    setResume(prev => {
+    setResumeWithHistory(prev => {
       if (!prev) return prev;
       const updated = { ...prev, ...updates };
       saveResume(updates);
@@ -290,16 +492,44 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
     });
   };
 
-  const handleTemplateChange = (template: string) => {
-    updateResume({ template });
+  const handleTemplateChange = (template: { id: number; name: string; config: any }) => {
+    // Update resume with template ID and apply full template config
+    const configUpdates = template.config ? {
+      font_family: template.config.font_family || template.config.font || resume?.font_family,
+      layout: template.config.layout || resume?.layout,
+      accent_color: template.config.accent_color || template.config.accent || resume?.accent_color,
+      picture_style: template.config.picture_style || template.config.picture || resume?.picture_style,
+      show_icons: template.config.show_icons !== undefined ? template.config.show_icons : (template.config.icons !== undefined ? template.config.icons : resume?.show_icons),
+      color_theme: template.config.color_theme || resume?.color_theme,
+    } : {};
+
+    updateResume({ 
+      template: template.id.toString(),
+      ...configUpdates
+    });
+    
     setShowTemplateSelector(false);
-    // Track template change event
-    if (resume?.id && resume?.user_id) {
-      fetch(`${API_BASE}/api/v1x/resume-analytics/events/template/${resume.id}?user_id=${resume.user_id}&template_id=${template}`, { method: 'POST' });
+    setToast({ type: 'success', message: `Applied template: ${template.name}` });
+    setTimeout(() => setToast(null), 2500);
+    
+    // Track template change event & popularity
+    if (template.id) {
+      // Fire-and-forget analytics; ignore failures in editor UX
+      fetch(`${API_BASE}/api/v1x/resume-templates/${template.id}/popularity`, { 
+        method: 'POST',
+        credentials: 'include' 
+      }).catch(() => {});
+      
+      if (resume?.id && resume?.user_id) {
+        fetch(`${API_BASE}/api/v1x/resume-analytics/events/template/${resume.id}?user_id=${resume.user_id}&template_id=${template.id}`, { 
+          method: 'POST',
+          credentials: 'include'
+        }).catch(() => {});
+      }
     }
   };
 
-  if (loading || !resume) {
+  if (loading) {
     return (
       <Layout showFooter={false}>
         <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-deepTech via-deepTech/95 to-deepTech/90">
@@ -320,6 +550,33 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
     );
   }
 
+  if (!resume && !loading) {
+    return (
+      <Layout showFooter={false}>
+        <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-deepTech via-deepTech/95 to-deepTech/90">
+          <div className="text-center max-w-md px-6">
+            <div className="text-6xl mb-4">⚠️</div>
+            <h2 className="text-2xl font-bold text-white mb-3">Resume Not Found</h2>
+            <p className="text-techGray mb-6">
+              {toast?.message || 'The resume could not be loaded. It may have been deleted or you may not have permission to view it.'}
+            </p>
+            <div className="flex gap-3 justify-center">
+              <Button onClick={() => router.push('/dashboard')} variant="primary">
+                Go to Dashboard
+              </Button>
+              <Button onClick={() => loadResume()} variant="secondary">
+                Try Again
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // TypeScript type narrowing: resume is guaranteed to be non-null here
+  if (!resume) return null;
+
   return (
     <Layout showFooter={false} maxWidth="full">
       {/* Top Action Bar */}
@@ -337,31 +594,37 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
             <div>
               <input
                 type="text"
-                value={resume.title}
+                value={resume?.title || ''}
                 onChange={(e) => updateResume({ title: e.target.value })}
                 className="text-2xl font-bold bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-forgePurple/50 rounded-lg px-3 py-1.5 transition-all placeholder:text-techGray/50 tracking-tight"
                 placeholder="My Professional Resume"
                 data-testid="input-title"
                 style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}
               />
-              <p className="text-xs text-techGray/80 mt-1.5 flex items-center gap-2 font-medium" data-testid="status-save">
-                {saving ? (
-                  <span className="flex items-center gap-2 text-yellow-400">
-                    <span className="animate-spin">⏳</span> 
-                    <span className="tracking-wide">Saving changes...</span>
-                  </span>
-                ) : lastSaved ? (
-                  <span className="flex items-center gap-2">
-                    <Check className="w-3 h-3 text-green-400" />
-                    <span className="tracking-wide">Saved {lastSaved.toLocaleTimeString()}</span>
-                  </span>
-                ) : (
-                  <span className="text-techGray/60 tracking-wide">Not saved yet</span>
-                )}
-              </p>
             </div>
           </div>
           <div className="flex items-center gap-3">
+            {/* Auto-save Indicator */}
+            <AutoSaveIndicator status={saveStatus} />
+            
+            {/* Undo/Redo Controls */}
+            <UndoRedoControls
+              onUndo={undo}
+              onRedo={redo}
+              canUndo={canUndo}
+              canRedo={canRedo}
+              historyCount={history.length}
+            />
+            
+            {/* Keyboard Shortcuts Button */}
+            <button
+              onClick={() => setShowKeyboardShortcuts(true)}
+              className="p-2 hover:bg-white/10 rounded-lg transition-all text-white/60 hover:text-white group"
+              title="Keyboard Shortcuts (?)"
+            >
+              <span className="text-lg group-hover:scale-110 transition-transform inline-block">⌨️</span>
+            </button>
+            
             {/* ATS Score Badge */}
             {atsScore !== null && (
               <button
@@ -451,13 +714,60 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
               )}
             </Button>
             <Button
-              onClick={() => setShowAIPanel(!showAIPanel)}
+              onClick={() => {
+                setShowAIPanel(!showAIPanel);
+                if (!showAIPanel) setShowStylePanel(false);
+              }}
               variant="secondary"
               data-testid="btn-ai-panel"
               className={`font-semibold transition-all duration-200 hover:shadow-lg ${showAIPanel ? 'bg-forgePurple/30 border-forgePurple' : ''}`}
             >
               <Wand2 className="w-4 h-4 mr-2" />
               <span className="tracking-wide">AI Assistant</span>
+            </Button>
+            <Button
+              onClick={() => {
+                setShowStylePanel(!showStylePanel);
+                if (!showStylePanel) setShowAIPanel(false);
+              }}
+              variant="secondary"
+              data-testid="btn-styles"
+              className={`font-semibold transition-all duration-200 hover:shadow-lg ${showStylePanel ? 'bg-neuralBlue/30 border-neuralBlue' : ''}`}
+            >
+              <Palette className="w-4 h-4 mr-2" />
+              <span className="tracking-wide">Styles</span>
+            </Button>
+            <Button
+              onClick={() => setShowCoverLetterModal(true)}
+              variant="secondary"
+              className="font-semibold transition-all duration-200 hover:shadow-lg bg-purple-500/20 border-purple-400/50 hover:bg-purple-500/30"
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              <span className="tracking-wide">Cover Letter</span>
+            </Button>
+            <Button
+              onClick={saveVersion}
+              variant="secondary"
+              className="font-semibold transition-all duration-200 hover:shadow-lg bg-blue-500/20 border-blue-400/50 hover:bg-blue-500/30"
+            >
+              <Save className="w-4 h-4 mr-2" />
+              <span className="tracking-wide">Save Version</span>
+            </Button>
+            <Button
+              onClick={() => setShowComparisonModal(true)}
+              variant="secondary"
+              className="font-semibold transition-all duration-200 hover:shadow-lg"
+            >
+              <GitCompare className="w-4 h-4 mr-2" />
+              <span className="tracking-wide">Compare</span>
+            </Button>
+            <Button
+              onClick={() => setShowLinkedInModal(true)}
+              variant="secondary"
+              className="font-semibold transition-all duration-200 hover:shadow-lg bg-[#0077B5]/20 border-[#0077B5]/50 hover:bg-[#0077B5]/30"
+            >
+              <Linkedin className="w-4 h-4 mr-2" />
+              <span className="tracking-wide">LinkedIn</span>
             </Button>
             <Button
               onClick={() => setShowTemplateSelector(true)}
@@ -467,6 +777,16 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
               <LayoutIcon className="w-4 h-4 mr-2" />
               <span className="tracking-wide">Templates</span>
             </Button>
+            
+            <SplitViewToggle 
+              isSplitView={isSplitView} 
+              onToggle={() => {
+                const newValue = !isSplitView
+                setIsSplitView(newValue)
+                localStorage.setItem('resume-editor-split-view', newValue.toString())
+              }} 
+            />
+            
             <Button
               onClick={() => window.open(`/resumes/${resumeId}/preview`, '_blank')}
               variant="secondary"
@@ -477,26 +797,13 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
               <span className="tracking-wide">Preview</span>
             </Button>
             <Button
-              onClick={async () => {
-                if (!resume) return;
-                try {
-                  setExporting(true);
-                  const safeTitle = (resume.title || 'Resume').replace(/\s+/g, '_').trim();
-                  await exportResumePDFFromPreview(resumeId, `${safeTitle}.pdf`);
-                } catch (e) {
-                  console.error('PDF export failed', e);
-                  alert('Failed to export PDF. Try using the Full Preview page and print to PDF.');
-                } finally {
-                  setExporting(false);
-                }
-              }}
+              onClick={() => setShowExportOptions(true)}
               variant="primary"
-              disabled={exporting}
-              data-testid="btn-export-pdf"
+              data-testid="btn-export"
               className="font-bold tracking-wide transition-all duration-200 hover:shadow-xl hover:scale-105"
             >
-              {exporting ? <span className="animate-spin mr-2">⏳</span> : <Download className="w-4 h-4 mr-2" />}
-              <span>Export PDF</span>
+              <Download className="w-4 h-4 mr-2" />
+              <span>Export</span>
             </Button>
           </div>
         </div>
@@ -622,6 +929,28 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
                 }}
               />
             </div>
+          ) : showStylePanel ? (
+            <div className="p-6 h-full flex flex-col">
+              <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/10">
+                <h3 className="text-xl font-black flex items-center gap-3" style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
+                  <div className="p-2 bg-gradient-to-br from-neuralBlue to-forgePurple rounded-lg">
+                    <Palette className="w-5 h-5 text-white" />
+                  </div>
+                  <span className="bg-gradient-to-r from-neuralBlue via-forgePurple to-neuralBlue bg-clip-text text-transparent">
+                    Style Settings
+                  </span>
+                </h3>
+                <button
+                  onClick={() => setShowStylePanel(false)}
+                  className="p-2 hover:bg-white/10 rounded-lg transition-all duration-200 group"
+                >
+                  <ChevronUp className="w-5 h-5 text-techGray group-hover:text-white transition-colors" />
+                </button>
+              </div>
+              <div className="overflow-y-auto flex-1">
+                <StylePanel resume={resume} onUpdate={(updates) => updateResume(updates)} />
+              </div>
+            </div>
           ) : (
             <div className="p-6">
               <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/10">
@@ -641,21 +970,69 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
       </div>
 
       {/* Template Gallery Modal */}
-      {showTemplateSelector && (
-        <TemplateGallery
-          currentTemplate={resume.template}
-          onSelect={handleTemplateChange}
-          onClose={() => setShowTemplateSelector(false)}
-        />
-      )}
-
-      {/* ATS Breakdown Modal */}
+        {showTemplateSelector && (
+          <TemplateSelector
+            onSelect={handleTemplateChange}
+            onClose={() => setShowTemplateSelector(false)}
+            resumeData={resume}
+            currentTemplate={resume?.template ? Number(resume.template) : undefined}
+          />
+        )}      {/* ATS Breakdown Modal */}
       {showATSBreakdown && (
         <ATSBreakdownModal
           resumeId={String(resumeId)}
           onClose={() => setShowATSBreakdown(false)}
         />
       )}
+
+      {/* Resume Comparison Modal */}
+      {showComparisonModal && (
+        <ResumeComparisonModal
+          isOpen={showComparisonModal}
+          onClose={() => setShowComparisonModal(false)}
+          resumeId={resumeId}
+        />
+      )}
+
+      {/* LinkedIn Import Modal */}
+      {showLinkedInModal && (
+        <LinkedInImportModal
+          isOpen={showLinkedInModal}
+          onClose={() => setShowLinkedInModal(false)}
+          resumeId={resumeId}
+          onImportComplete={(newResumeId) => {
+            setShowLinkedInModal(false);
+            if (newResumeId !== resumeId) {
+              router.push(`/resumes/${newResumeId}`);
+            } else {
+              loadResume();
+            }
+          }}
+        />
+      )}
+
+      {/* Cover Letter Modal */}
+      {showCoverLetterModal && (
+        <CoverLetterModal
+          isOpen={showCoverLetterModal}
+          onClose={() => setShowCoverLetterModal(false)}
+          resumeId={resumeId}
+        />
+      )}
+
+      {/* Keyboard Shortcuts Modal */}
+      <KeyboardShortcutsModal
+        isOpen={showKeyboardShortcuts}
+        onClose={() => setShowKeyboardShortcuts(false)}
+      />
+
+      {/* Export Options Modal */}
+      <ExportOptionsModal
+        isOpen={showExportOptions}
+        onClose={() => setShowExportOptions(false)}
+        resume={resume}
+        resumeId={resumeId}
+      />
 
       {/* Toasts */}
       {toast && (

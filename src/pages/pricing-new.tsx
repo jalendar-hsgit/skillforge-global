@@ -76,12 +76,6 @@ export default function PricingPage() {
   const [currentPlan, setCurrentPlan] = useState<string | null>(null)
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly')
 
-  useEffect(() => {
-    if (me) {
-      loadCurrentSubscription()
-    }
-  }, [me])
-
   const loadCurrentSubscription = async () => {
     try {
       const token = document.cookie
@@ -103,6 +97,13 @@ export default function PricingPage() {
       console.error('Error loading subscription:', error)
     }
   }
+
+  useEffect(() => {
+    if (me) {
+      loadCurrentSubscription()
+    }
+  }, [me])
+
 
   const handleSelectPlan = (plan: string) => {
     if (!me) {

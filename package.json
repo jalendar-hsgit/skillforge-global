@@ -14,7 +14,14 @@
     "e2e:ui": "playwright test --ui",
     "e2e:headed": "playwright test --headed",
     "e2e:auto": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/e2e.ps1",
-    "e2e:auto:headed": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/e2e.ps1 -Headed"
+    "e2e:auto:headed": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/e2e.ps1 -Headed",
+    "generate:template-svgs": "node ./tools/generate_template_previews.js",
+    "generate:template-pdfs": "cd backend && python generate_template_pdfs.py",
+    "generate:template-pngs": "cd backend && python generate_template_pdfs.py && python convert_pdfs_to_png.py && python update_template_thumbnails.py",
+    "generate:templates": "npm run generate:template-pngs"
+  },
+  "scriptsGenerated": {
+    "generate:template-previews": "node ./tools/generate_template_previews.js"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

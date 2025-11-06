@@ -4,7 +4,7 @@ import { useRouter } from 'next/router'
 import Layout from "@/components/Layout"
 import { Card } from "@/components/Card"
 import { Button } from "@/components/Button"
-import { PageHeader, PageSection } from "@/components/Layout"
+import { PageHeader, PageSection } from "@/components/PageLayout"
 import { useMe } from '@/hooks/useMe'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8001'
@@ -77,12 +77,6 @@ export default function PricingPage() {
   const [currentPlan, setCurrentPlan] = useState<string | null>(null)
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly')
 
-  useEffect(() => {
-    if (me) {
-      loadCurrentSubscription()
-    }
-  }, [me])
-
   const loadCurrentSubscription = async () => {
     try {
       const token = document.cookie
@@ -104,6 +98,12 @@ export default function PricingPage() {
       console.error('Error loading subscription:', error)
     }
   }
+
+  useEffect(() => {
+    if (me) {
+      loadCurrentSubscription()
+    }
+  }, [me])
 
   const handleSelectPlan = (plan: string) => {
     if (!me) {

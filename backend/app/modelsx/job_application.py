@@ -35,7 +35,7 @@ class JobApplication(Base):
     __tablename__ = "job_application_tracker"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
     # Company and position details
     company_name = Column(String(255), nullable=False, index=True)

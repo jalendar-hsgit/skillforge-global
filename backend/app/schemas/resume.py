@@ -179,6 +179,18 @@ class ResumeUpdate(BaseModel):
     summary: Optional[str] = None
     is_primary: Optional[bool] = None
     is_public: Optional[bool] = None
+    # Customization fields (optional)
+    font_family: Optional[str] = None
+    color_theme: Optional[str] = None
+    picture_style: Optional[str] = None
+    layout: Optional[str] = None
+    accent_color: Optional[str] = None
+    text_color: Optional[str] = None
+    heading_color: Optional[str] = None
+    line_spacing: Optional[float] = None
+    font_size: Optional[int] = None
+    heading_size: Optional[int] = None
+    show_icons: Optional[bool] = None
 
 
 class ResumeOut(ResumeBase):

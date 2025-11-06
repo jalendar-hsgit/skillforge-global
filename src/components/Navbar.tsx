@@ -13,6 +13,7 @@ export function Navbar() {
 
           <nav className="hidden md:flex items-center gap-8 text-sm text-techGray">
             <Link href="/paths" className="hover:text-white">Career Paths</Link>
+            <Link href="/marketplace" className="hover:text-white">Marketplace</Link>
             <Link href="/ai" className="hover:text-white">SkillAIBridge</Link>
             <Link href="/resumes/new" className="hover:text-white">Create Resume</Link>
             <a href="#pricing" className="hover:text-white">Pricing</a>

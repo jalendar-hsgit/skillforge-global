@@ -6,8 +6,8 @@ import {
   useStripe,
   useElements
 } from '@stripe/react-stripe-js';
-import Button from './Button';
-import Card from './Card';
+import { Button } from './Button';
+import { Card } from './Card';
 import { API_BASE } from '@/lib/apiBase';
 
 // Load Stripe - replace with your publishable key

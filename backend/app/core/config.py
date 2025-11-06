@@ -5,6 +5,9 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite:///./app/data/skillforge.db"
     JWT_SECRET: str = "dev-secret-key-change-me"
     FRONTEND_ORIGIN: str = "http://localhost:3000"
+    
+    # Debug / Logging
+    DEBUG: bool = True  # Include verbose error details in responses (dev only)
 
     # Admin key for protected v1 endpoints (matches X-Admin-Key header)
     ADMIN_KEY: str | None = None
@@ -12,6 +15,18 @@ class Settings(BaseSettings):
     # YouTube
     YOUTUBE_API_KEY: str | None = None
     YOUTUBE_API_REGION: str = "US"
+    
+    # LLM Provider for AI Quiz Generation
+    AI_PROVIDER: str = "openai"  # Options: openai, anthropic, azure, ollama
+    OPENAI_API_KEY: str | None = None
+    OPENAI_MODEL: str = "gpt-4o-mini"
+    ANTHROPIC_API_KEY: str | None = None
+    ANTHROPIC_MODEL: str = "claude-3-5-sonnet-20241022"
+    AZURE_OPENAI_ENDPOINT: str | None = None
+    AZURE_OPENAI_API_KEY: str | None = None
+    AZURE_OPENAI_DEPLOYMENT: str | None = None
+    OLLAMA_BASE_URL: str = "http://localhost:11434"
+    OLLAMA_MODEL: str = "llama3.2"
     
     # Zoom Integration
     ZOOM_API_KEY: str | None = None

@@ -2,6 +2,17 @@
 
 A comprehensive learning platform with mentor sessions, subscriptions, and AI-powered features.
 
+## 🆕 Latest Updates (Nov 3, 2025)
+
+**New Features Implemented:**
+- ✅ **Email System** - Welcome emails, password reset, automated reminders (100% complete)
+- ✅ **Coin Economy** - Real balances, 100-coin welcome bonus, functional shop with 6 items (95% complete)
+- ✅ **Enhanced Security** - Rate limiting on signup/login to prevent brute force attacks (75% complete)
+
+**System Progress:** 78% → 82% (+4% overall completion)
+
+---
+
 ## Quick Start
 
 ### Frontend (Next.js)
@@ -16,11 +27,65 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 ### Backend (FastAPI)
 
 ```bash
+## CI/CD & Development Workflow
+
+### Continuous Integration
+
+GitHub Actions automatically runs on every push and pull request:
+
+**Backend Pipeline:**
+- ✅ Unit tests (`unittest` - auth, hiring, error logging)
+- ✅ E2E tests (pytest)
+- ✅ Linting (flake8 - syntax errors)
+- ✅ Import checks (smoke test)
+- ✅ Database migrations (Alembic)
+
+**Frontend Pipeline:**
+- ✅ TypeScript type checking
+- ✅ Next.js build
+- ✅ ESLint linting
+- ✅ Playwright e2e tests (optional)
+
+### Pre-commit Hooks
+
+Install pre-commit hooks to catch issues before committing:
+
+```bash
+# Install pre-commit
+pip install pre-commit
+
+# Setup hooks
+pre-commit install
+
+# Run manually on all files
+pre-commit run --all-files
+```
+
+**Hooks include:**
+- Python formatting (Black)
+- Import sorting (isort)
+- Linting (flake8)
+- Frontend formatting (Prettier)
+- Security scanning (detect-secrets)
+
+### Running Tests Locally
+
+**Backend tests:**
+```bash
+cd backend
+python -m unittest discover -s tests -p "test_*.py" -v
+```
+
+**Frontend build:**
+```bash
+npm run build
+npm run lint
+```
+
 cd backend
 python -m venv .venv
-.venv\Scripts\Activate.ps1  # Windows PowerShell
-pip install -r requirements.txt
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8001
+- [Migrations Guide](backend/MIGRATIONS.md) - Database migration workflows
+- [CHANGELOG](CHANGELOG.md) - Version history and recent changes
 ```
 
 API documentation available at [http://localhost:8001/docs](http://localhost:8001/docs)
@@ -45,7 +110,19 @@ API documentation available at [http://localhost:8001/docs](http://localhost:800
 
 ## Key Features
 
-- 🎓 **Learning Paths**: Structured courses with video content and quizzes
+### 🤖 AI Quiz Generation v2 (NEW)
+- **Multi-Provider LLM**: OpenAI, Anthropic, **Ollama (local, FREE)** support
+- **Real-time Streaming**: Watch questions appear as they're generated (SSE)
+- **Adaptive Difficulty**: Auto-adjusts based on your performance
+- **Save & Retake**: Build a personal quiz library
+- **Offline Fallback**: Works without API keys (deterministic mode)
+
+**🦙 Ollama Setup:** See [OLLAMA_SETUP.md](OLLAMA_SETUP.md) - Run AI locally, no API keys!  
+**Quick Start:** See [AI_QUIZ_QUICKSTART.md](AI_QUIZ_QUICKSTART.md)  
+**Full Docs:** See [AI_QUIZ_GUIDE.md](AI_QUIZ_GUIDE.md)
+
+### 🎓 Core Features
+- **Learning Paths**: Structured courses with video content and quizzes
 - 👥 **Mentor System**: Book sessions, chat, share files
 - 💳 **Subscriptions**: Tiered plans (Free, Pro, Enterprise) via Stripe
 - 💰 **Payouts**: Stripe Connect integration for mentor earnings
@@ -78,6 +155,14 @@ The Playwright config will:
 Troubleshooting:
 - If the backend port is busy, kill the process bound to 8001 and retry.
 - On Windows PowerShell, avoid using string formatting with `-f` in one-liners unless properly scoped.
+Windows tip: free port 8001 when stuck
+
+```powershell
+# Find the PID using port 8001
+netstat -ano | findstr :8001
+# Then kill it (replace <PID> with the number from the previous command)
+Taskkill /F /PID <PID>
+```
 
 ### Run Backend Tests
 
@@ -97,6 +182,25 @@ Or use the convenience script:
 ```
 
 See [TESTING.md](TESTING.md) for detailed testing guide and troubleshooting.
+
+## Database Migrations
+
+This project uses Alembic for database schema migrations. See [backend/MIGRATIONS.md](backend/MIGRATIONS.md) for detailed instructions.
+
+Quick commands:
+```powershell
+cd backend
+.\venv\Scripts\Activate.ps1
+
+# Create a new migration after model changes
+alembic revision --autogenerate -m "Description"
+
+# Apply migrations
+alembic upgrade head
+
+# Check current version
+alembic current
+```
 
 ## Configuration
 

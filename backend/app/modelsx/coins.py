@@ -7,7 +7,7 @@ class CoinLedger(Base):
     __tablename__ = "coin_ledger"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("user.id"), index=True, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
     delta = Column(Integer, nullable=False)  # positive = earn, negative = spend
     reason = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
