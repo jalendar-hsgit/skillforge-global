@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '@/components/Layout';
 import { Card } from '@/components/Card';
@@ -85,6 +85,92 @@ interface Section {
 interface ResumeEditorProps {
   resumeId: number;
 }
+
+// Memoized SortableSection component to prevent unnecessary re-renders
+const SortableSection = memo<{
+  section: Section;
+  isActive: boolean;
+  onSectionClick: (sectionId: string) => void;
+  onToggleEnabled: (sectionId: string, enabled: boolean) => void;
+}>(({ section, isActive, onSectionClick, onToggleEnabled }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id: section.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      onClick={(e) => {
+        const target = e.target as HTMLElement
+        console.log('🖱️ Section clicked:', section.id, 'Target:', target.tagName)
+        if (target.closest('.drag-handle')) {
+          console.log('❌ Blocked: drag handle')
+          return
+        }
+        if (target.tagName.toLowerCase() === 'input') {
+          console.log('❌ Blocked: checkbox')
+          return
+        }
+        console.log('✅ Activating section:', section.id)
+        onSectionClick(section.id)
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onSectionClick(section.id)
+        }
+      }}
+      tabIndex={0}
+      className={`group flex items-center gap-3 p-4 rounded-xl border-2 transition-all duration-200 select-none ${
+        isActive
+          ? 'bg-gradient-to-r from-forgePurple/30 to-neuralBlue/20 border-forgePurple shadow-lg shadow-forgePurple/20 scale-[1.02]'
+          : 'bg-white/5 border-white/10 hover:border-forgePurple/50 hover:bg-white/10 hover:shadow-md hover:shadow-forgePurple/10 cursor-pointer hover:scale-[1.01]'
+      }`}
+      role="button"
+      aria-pressed={isActive}
+      title={`Click to edit ${section.title}`}
+    >
+      <button
+        {...attributes}
+        {...listeners}
+        className="drag-handle cursor-grab active:cursor-grabbing p-1.5 hover:bg-white/20 rounded-lg transition-colors"
+        style={{ touchAction: 'none' }}
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+        aria-label="Drag to reorder section"
+      >
+        <GripVertical className={`w-4 h-4 ${isActive ? 'text-white' : 'text-techGray group-hover:text-white'} transition-colors`} />
+      </button>
+      <div
+        className="flex-1 text-left font-semibold text-sm tracking-wide flex items-center gap-2.5"
+        style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}
+      >
+        <span className="text-lg" aria-hidden>{section.icon}</span>
+        <span className={isActive ? 'text-white' : 'text-techGray/90 group-hover:text-white'}>{section.title}</span>
+      </div>
+      <input
+        type="checkbox"
+        checked={section.enabled}
+        onChange={(e) => onToggleEnabled(section.id, e.target.checked)}
+        className="w-5 h-5 rounded border-2 border-white/20 bg-white/5 checked:bg-forgePurple checked:border-forgePurple cursor-pointer transition-all"
+        aria-label={`Toggle ${section.title} section`}
+        onClick={(e) => e.stopPropagation()}
+      />
+    </div>
+  );
+});
+
+SortableSection.displayName = 'SortableSection';
 
 export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
   const router = useRouter();
@@ -302,7 +388,7 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
   
   const fetchATSScore = async () => {
     try {
-      const response = await fetch(`/api/session/resume-ai/ats-score/${resumeId}`, {
+      const response = await fetch(`/api/session/v1x/resume-ai/ats-score/${resumeId}`, {
         credentials: 'include',
       });
       if (response.ok) {
@@ -446,78 +532,16 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
     }
   };
 
-  // SortableSection component for drag-and-drop section reordering
-  const SortableSection: React.FC<{ section: Section }> = ({ section }) => {
-    const {
-      attributes,
-      listeners,
-      setNodeRef,
-      transform,
-      transition,
-    } = useSortable({ id: section.id });
+  // Callbacks for section interactions (useCallback to prevent re-renders)
+  const handleSectionClick = useCallback((sectionId: string) => {
+    setActiveSection(sectionId);
+  }, []);
 
-    const style = {
-      transform: CSS.Transform.toString(transform),
-      transition,
-    };
-
-    const isActive = activeSection === section.id;
-
-    return (
-      <div
-        ref={setNodeRef}
-        style={style}
-        onClick={(e) => {
-          const target = e.target as HTMLElement
-          if (target.closest('.drag-handle') || target.tagName.toLowerCase() === 'input') return
-          setActiveSection(section.id)
-        }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault()
-            setActiveSection(section.id)
-          }
-        }}
-        tabIndex={0}
-        className={`group flex items-center gap-3 p-4 rounded-xl border-2 transition-all duration-200 select-none ${
-          isActive
-            ? 'bg-gradient-to-r from-forgePurple/30 to-neuralBlue/20 border-forgePurple shadow-lg shadow-forgePurple/20 scale-[1.02]'
-            : 'bg-white/5 border-white/10 hover:border-white/30 hover:bg-white/10 hover:shadow-md cursor-pointer'
-        }`}
-      >
-        <button
-          {...attributes}
-          {...listeners}
-          className="drag-handle cursor-grab active:cursor-grabbing p-1.5 hover:bg-white/20 rounded-lg transition-colors"
-          style={{ touchAction: 'none' }}
-          onMouseDown={(e) => e.stopPropagation()}
-          onClick={(e) => e.stopPropagation()}
-          aria-label="Drag to reorder section"
-        >
-          <GripVertical className={`w-4 h-4 ${isActive ? 'text-white' : 'text-techGray group-hover:text-white'} transition-colors`} />
-        </button>
-        <div
-          className="flex-1 text-left font-semibold text-sm tracking-wide flex items-center gap-2.5"
-          style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}
-        >
-          <span className="text-lg" aria-hidden>{section.icon}</span>
-          <span className={isActive ? 'text-white' : 'text-techGray/90 group-hover:text-white'}>{section.title}</span>
-        </div>
-        <input
-          type="checkbox"
-          checked={section.enabled}
-          onChange={(e) => {
-            setSections(prev =>
-              prev.map(s => s.id === section.id ? { ...s, enabled: e.target.checked } : s)
-            );
-          }}
-          className="w-5 h-5 rounded border-2 border-white/20 bg-white/5 checked:bg-forgePurple checked:border-forgePurple cursor-pointer transition-all"
-          aria-label={`Toggle ${section.title} section`}
-          onClick={(e) => e.stopPropagation()}
-        />
-      </div>
+  const handleToggleEnabled = useCallback((sectionId: string, enabled: boolean) => {
+    setSections(prev =>
+      prev.map(s => s.id === sectionId ? { ...s, enabled } : s)
     );
-  };
+  }, []);
 
   // Update resume data and trigger auto-save
   const updateResume = (updates: Partial<Resume>) => {
@@ -646,64 +670,72 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
               />
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            {/* Collaboration Status & Presence */}
-            <div className="flex items-center gap-2">
-              {wsConnected ? (
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/20 border border-green-500/30 rounded-lg">
-                  <Wifi className="w-4 h-4 text-green-400" />
-                  <span className="text-xs text-green-300 font-medium">Live</span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-500/20 border border-gray-500/30 rounded-lg">
-                  <WifiOff className="w-4 h-4 text-gray-400" />
-                  <span className="text-xs text-gray-300 font-medium">Offline</span>
-                </div>
-              )}
+          
+          {/* Right Side - Actions in Two Rows */}
+          <div className="flex flex-col gap-3">
+            {/* Top Row - Status & Quick Actions */}
+            <div className="flex items-center gap-3">
+              {/* Collaboration Status & Presence */}
+              <div className="flex items-center gap-2">
+                {wsConnected ? (
+                  <div className="flex items-center gap-2 px-2.5 py-1.5 bg-green-500/20 border border-green-500/30 rounded-lg">
+                    <Wifi className="w-3.5 h-3.5 text-green-400" />
+                    <span className="text-xs text-green-300 font-medium">Live</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 px-2.5 py-1.5 bg-gray-500/20 border border-gray-500/30 rounded-lg">
+                    <WifiOff className="w-3.5 h-3.5 text-gray-400" />
+                    <span className="text-xs text-gray-300 font-medium">Offline</span>
+                  </div>
+                )}
+                
+                {wsConnected && activeUsers.length > 0 && (
+                  <PresenceIndicator users={activeUsers} maxVisible={3} />
+                )}
+              </div>
               
-              {wsConnected && activeUsers.length > 0 && (
-                <PresenceIndicator users={activeUsers} maxVisible={3} />
+              {/* Auto-save Indicator */}
+              <AutoSaveIndicator status={saveStatus} />
+              
+              {/* Undo/Redo Controls */}
+              <UndoRedoControls
+                onUndo={undo}
+                onRedo={redo}
+                canUndo={canUndo}
+                canRedo={canRedo}
+                historyCount={history.length}
+              />
+              
+              {/* Keyboard Shortcuts Button */}
+              <button
+                onClick={() => setShowKeyboardShortcuts(true)}
+                className="p-1.5 hover:bg-white/10 rounded-lg transition-all text-white/60 hover:text-white group"
+                title="Keyboard Shortcuts (?)"
+              >
+                <span className="text-base group-hover:scale-110 transition-transform inline-block">⌨️</span>
+              </button>
+              
+              {/* ATS Score Badge */}
+              {atsScore !== null && (
+                <button
+                  onClick={() => setShowATSBreakdown(true)}
+                  className={`px-3 py-2 rounded-lg border backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer ${
+                    atsScore >= 80 ? 'bg-gradient-to-br from-green-500/30 to-green-600/20 border-green-400/50 text-green-100 shadow-lg shadow-green-500/20 hover:shadow-green-500/40' :
+                    atsScore >= 60 ? 'bg-gradient-to-br from-yellow-500/30 to-yellow-600/20 border-yellow-400/50 text-yellow-100 shadow-lg shadow-yellow-500/20 hover:shadow-yellow-500/40' :
+                    'bg-gradient-to-br from-red-500/30 to-red-600/20 border-red-400/50 text-red-100 shadow-lg shadow-red-500/20 hover:shadow-red-500/40'
+                  }`}
+                  title="Click for detailed analysis"
+                >
+                  <div className="text-[9px] font-bold uppercase tracking-wider opacity-80">ATS</div>
+                  <div className="text-lg font-black tracking-tight">{atsScore}%</div>
+                </button>
               )}
             </div>
             
-            {/* Auto-save Indicator */}
-            <AutoSaveIndicator status={saveStatus} />
-            
-            {/* Undo/Redo Controls */}
-            <UndoRedoControls
-              onUndo={undo}
-              onRedo={redo}
-              canUndo={canUndo}
-              canRedo={canRedo}
-              historyCount={history.length}
-            />
-            
-            {/* Keyboard Shortcuts Button */}
-            <button
-              onClick={() => setShowKeyboardShortcuts(true)}
-              className="p-2 hover:bg-white/10 rounded-lg transition-all text-white/60 hover:text-white group"
-              title="Keyboard Shortcuts (?)"
-            >
-              <span className="text-lg group-hover:scale-110 transition-transform inline-block">⌨️</span>
-            </button>
-            
-            {/* ATS Score Badge */}
-            {atsScore !== null && (
-              <button
-                onClick={() => setShowATSBreakdown(true)}
-                className={`px-5 py-3 rounded-xl border-2 backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer ${
-                  atsScore >= 80 ? 'bg-gradient-to-br from-green-500/30 to-green-600/20 border-green-400/50 text-green-100 shadow-lg shadow-green-500/20 hover:shadow-green-500/40' :
-                  atsScore >= 60 ? 'bg-gradient-to-br from-yellow-500/30 to-yellow-600/20 border-yellow-400/50 text-yellow-100 shadow-lg shadow-yellow-500/20 hover:shadow-yellow-500/40' :
-                  'bg-gradient-to-br from-red-500/30 to-red-600/20 border-red-400/50 text-red-100 shadow-lg shadow-red-500/20 hover:shadow-red-500/40'
-                }`}
-                title="Click for detailed analysis"
-              >
-                <div className="text-[10px] font-bold uppercase tracking-wider opacity-80">ATS Score</div>
-                <div className="text-2xl font-black tracking-tight mt-0.5">{atsScore}%</div>
-              </button>
-            )}
-            <Button
-              onClick={async () => {
+            {/* Bottom Row - Main Action Buttons */}
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={async () => {
                 if (!resume || saving) return;
                 try {
                   setSaving(true);
@@ -761,17 +793,17 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
               variant="secondary"
               disabled={saving}
               data-testid="btn-save"
-              className="font-semibold transition-all duration-200 hover:shadow-lg bg-green-500/20 border-green-400/50 hover:bg-green-500/30"
+              className="font-medium text-sm px-3 py-1.5 transition-all duration-200 hover:shadow-lg bg-green-500/20 border-green-400/50 hover:bg-green-500/30"
             >
               {saving ? (
                 <>
-                  <span className="animate-spin mr-2">⏳</span>
-                  <span className="tracking-wide">Saving...</span>
+                  <span className="animate-spin mr-1.5">⏳</span>
+                  <span>Saving...</span>
                 </>
               ) : (
                 <>
-                  <Save className="w-4 h-4 mr-2" />
-                  <span className="tracking-wide">Save</span>
+                  <Save className="w-3.5 h-3.5 mr-1.5" />
+                  <span>Save</span>
                 </>
               )}
             </Button>
@@ -782,10 +814,10 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
               }}
               variant="secondary"
               data-testid="btn-ai-panel"
-              className={`font-semibold transition-all duration-200 hover:shadow-lg ${showAIPanel ? 'bg-forgePurple/30 border-forgePurple' : ''}`}
+              className={`font-medium text-sm px-3 py-1.5 transition-all duration-200 hover:shadow-lg ${showAIPanel ? 'bg-forgePurple/30 border-forgePurple' : ''}`}
             >
-              <Wand2 className="w-4 h-4 mr-2" />
-              <span className="tracking-wide">AI Assistant</span>
+              <Wand2 className="w-3.5 h-3.5 mr-1.5" />
+              <span>AI</span>
             </Button>
             <Button
               onClick={() => {
@@ -794,50 +826,50 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
               }}
               variant="secondary"
               data-testid="btn-styles"
-              className={`font-semibold transition-all duration-200 hover:shadow-lg ${showStylePanel ? 'bg-neuralBlue/30 border-neuralBlue' : ''}`}
+              className={`font-medium text-sm px-3 py-1.5 transition-all duration-200 hover:shadow-lg ${showStylePanel ? 'bg-neuralBlue/30 border-neuralBlue' : ''}`}
             >
-              <Palette className="w-4 h-4 mr-2" />
-              <span className="tracking-wide">Styles</span>
+              <Palette className="w-3.5 h-3.5 mr-1.5" />
+              <span>Styles</span>
             </Button>
             <Button
               onClick={() => setShowCoverLetterModal(true)}
               variant="secondary"
-              className="font-semibold transition-all duration-200 hover:shadow-lg bg-purple-500/20 border-purple-400/50 hover:bg-purple-500/30"
+              className="font-medium text-sm px-3 py-1.5 transition-all duration-200 hover:shadow-lg bg-purple-500/20 border-purple-400/50 hover:bg-purple-500/30"
             >
-              <FileText className="w-4 h-4 mr-2" />
-              <span className="tracking-wide">Cover Letter</span>
+              <FileText className="w-3.5 h-3.5 mr-1.5" />
+              <span>Cover Letter</span>
             </Button>
             <Button
               onClick={saveVersion}
               variant="secondary"
-              className="font-semibold transition-all duration-200 hover:shadow-lg bg-blue-500/20 border-blue-400/50 hover:bg-blue-500/30"
+              className="font-medium text-sm px-3 py-1.5 transition-all duration-200 hover:shadow-lg bg-blue-500/20 border-blue-400/50 hover:bg-blue-500/30"
             >
-              <Save className="w-4 h-4 mr-2" />
-              <span className="tracking-wide">Save Version</span>
+              <Save className="w-3.5 h-3.5 mr-1.5" />
+              <span>Version</span>
             </Button>
             <Button
               onClick={() => setShowComparisonModal(true)}
               variant="secondary"
-              className="font-semibold transition-all duration-200 hover:shadow-lg"
+              className="font-medium text-sm px-3 py-1.5 transition-all duration-200 hover:shadow-lg"
             >
-              <GitCompare className="w-4 h-4 mr-2" />
-              <span className="tracking-wide">Compare</span>
+              <GitCompare className="w-3.5 h-3.5 mr-1.5" />
+              <span>Compare</span>
             </Button>
             <Button
               onClick={() => setShowLinkedInModal(true)}
               variant="secondary"
-              className="font-semibold transition-all duration-200 hover:shadow-lg bg-[#0077B5]/20 border-[#0077B5]/50 hover:bg-[#0077B5]/30"
+              className="font-medium text-sm px-3 py-1.5 transition-all duration-200 hover:shadow-lg bg-[#0077B5]/20 border-[#0077B5]/50 hover:bg-[#0077B5]/30"
             >
-              <Linkedin className="w-4 h-4 mr-2" />
-              <span className="tracking-wide">LinkedIn</span>
+              <Linkedin className="w-3.5 h-3.5 mr-1.5" />
+              <span>LinkedIn</span>
             </Button>
             <Button
               onClick={() => setShowTemplateSelector(true)}
               variant="secondary"
-              className="font-semibold transition-all duration-200 hover:shadow-lg"
+              className="font-medium text-sm px-3 py-1.5 transition-all duration-200 hover:shadow-lg"
             >
-              <LayoutIcon className="w-4 h-4 mr-2" />
-              <span className="tracking-wide">Templates</span>
+              <LayoutIcon className="w-3.5 h-3.5 mr-1.5" />
+              <span>Templates</span>
             </Button>
             
             <SplitViewToggle 
@@ -853,21 +885,22 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
               onClick={() => window.open(`/resumes/${resumeId}/preview`, '_blank')}
               variant="secondary"
               data-testid="btn-full-preview"
-              className="font-semibold transition-all duration-200 hover:shadow-lg"
+              className="font-medium text-sm px-3 py-1.5 transition-all duration-200 hover:shadow-lg"
             >
-              <Eye className="w-4 h-4 mr-2" />
-              <span className="tracking-wide">Preview</span>
+              <Eye className="w-3.5 h-3.5 mr-1.5" />
+              <span>Preview</span>
             </Button>
             <Button
               onClick={() => setShowExportOptions(true)}
               variant="primary"
               data-testid="btn-export"
-              className="font-bold tracking-wide transition-all duration-200 hover:shadow-xl hover:scale-105"
+              className="font-bold text-sm px-3 py-1.5 tracking-wide transition-all duration-200 hover:shadow-xl hover:scale-105"
             >
-              <Download className="w-4 h-4 mr-2" />
+              <Download className="w-3.5 h-3.5 mr-1.5" />
               <span>Export</span>
             </Button>
           </div>
+        </div>
         </div>
       </div>
 
@@ -894,7 +927,13 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
               >
                 <div className="space-y-3">
                   {sections.map((section) => (
-                    <SortableSection key={section.id} section={section} />
+                    <SortableSection 
+                      key={section.id} 
+                      section={section} 
+                      isActive={activeSection === section.id}
+                      onSectionClick={handleSectionClick}
+                      onToggleEnabled={handleToggleEnabled}
+                    />
                   ))}
                 </div>
               </SortableContext>
