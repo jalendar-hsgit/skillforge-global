@@ -386,6 +386,98 @@ def compare_versions(
     }
 
 
+@router.post("/versions/{version_id}/restore")
+def restore_version(
+    version_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Restore a resume to the specified version snapshot.
+    This replaces core resume fields and fully replaces child collections
+    (work experiences, education, skills, projects) with the snapshot.
+    """
+    # Fetch version and ownership
+    version = db.query(ResumeVersion).filter(
+        ResumeVersion.id == version_id,
+        ResumeVersion.user_id == current_user.id,
+    ).first()
+
+    if not version:
+        raise HTTPException(status_code=404, detail="Version not found")
+
+    resume = db.query(Resume).filter(
+        Resume.id == version.resume_id,
+        Resume.user_id == current_user.id,
+    ).first()
+    if not resume:
+        raise HTTPException(status_code=404, detail="Resume not found")
+
+    data = version.snapshot_data or {}
+
+    # Restore basic fields (defensive defaults)
+    resume.title = data.get("title", resume.title)
+    resume.full_name = data.get("full_name", resume.full_name)
+    resume.email = data.get("email", resume.email)
+    resume.phone = data.get("phone", resume.phone)
+    resume.location = data.get("location", resume.location)
+    resume.linkedin_url = data.get("linkedin_url", resume.linkedin_url)
+    resume.summary = data.get("summary", resume.summary)
+    # Preserve customization fields as-is; versions typically track content
+
+    # Replace child collections
+    # Work Experiences
+    resume.work_experiences.clear()
+    for exp in data.get("work_experiences", []) or []:
+        resume.work_experiences.append(WorkExperience(
+            company=exp.get("company"),
+            position=exp.get("position"),
+            location=exp.get("location"),
+            start_date=exp.get("start_date"),
+            end_date=exp.get("end_date"),
+            description=exp.get("description"),
+            bullet_points=exp.get("bullet_points") or [],
+        ))
+
+    # Education
+    resume.education.clear()
+    for edu in data.get("education", []) or []:
+        resume.education.append(Education(
+            institution=edu.get("institution"),
+            degree=edu.get("degree"),
+            field_of_study=edu.get("field_of_study"),
+            start_date=edu.get("start_date"),
+            end_date=edu.get("end_date"),
+        ))
+
+    # Skills (map common keys)
+    resume.skills.clear()
+    for sk in data.get("skills", []) or []:
+        # Accept either {name, level} or {name, category, proficiency}
+        resume.skills.append(ResumeSkill(
+            name=sk.get("name") or sk.get("skill_name"),
+            category=sk.get("category"),
+            proficiency=sk.get("level") or sk.get("proficiency"),
+        ))
+
+    # Projects (map snapshot keys to model fields)
+    resume.projects.clear()
+    for pr in data.get("projects", []) or []:
+        resume.projects.append(ResumeProject(
+            title=pr.get("name") or pr.get("title"),
+            description=pr.get("description"),
+            tech_stack=pr.get("technologies") or pr.get("tech_stack"),
+        ))
+
+    # Bump resume.version and timestamps
+    resume.version = (resume.version or 1) + 1
+
+    db.add(resume)
+    db.commit()
+    db.refresh(resume)
+
+    return {"message": "Resume restored to selected version", "resume_id": resume.id, "version": resume.version}
+
+
 @router.get("/score-history/{resume_id}", response_model=List[ScoreHistoryResponse])
 def get_score_history(
     resume_id: int,
