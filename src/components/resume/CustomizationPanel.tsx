@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { 
-  Type, Palette, Image, BarChart3, Icons, 
+  Type, Palette, Image, BarChart3,
   Sliders, ChevronDown, ChevronUp, X 
 } from 'lucide-react';
 
@@ -120,9 +120,10 @@ export default function CustomizationPanel({ resume, onUpdate, onClose }: Custom
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+            className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
+            aria-label="Close customization panel"
           >
-            <X className="w-5 h-5 text-gray-400" />
+            <X className="w-3.5 h-3.5 text-gray-400" />
           </button>
         </div>
 
@@ -137,13 +138,13 @@ export default function CustomizationPanel({ resume, onUpdate, onClose }: Custom
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap ${
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
                 activeTab === tab.id
                   ? 'bg-neuralBlue text-white shadow-lg shadow-neuralBlue/30'
                   : 'text-gray-400 hover:text-white hover:bg-white/5'
               }`}
             >
-              <tab.icon className="w-4 h-4" />
+              <tab.icon className="w-3.5 h-3.5" />
               {tab.label}
             </button>
           ))}
@@ -276,7 +277,7 @@ export default function CustomizationPanel({ resume, onUpdate, onClose }: Custom
                     type="text"
                     value={resume?.accent_color || '#2563eb'}
                     onChange={(e) => handleChange('accent_color', e.target.value)}
-                    className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white font-mono text-sm focus:outline-none focus:border-neuralBlue"
+                    className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white font-mono text-sm focus:outline-none focus:border-neuralBlue"
                     placeholder="#2563eb"
                   />
                 </div>
@@ -297,7 +298,7 @@ export default function CustomizationPanel({ resume, onUpdate, onClose }: Custom
                     type="text"
                     value={resume?.text_color || '#000000'}
                     onChange={(e) => handleChange('text_color', e.target.value)}
-                    className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white font-mono text-sm focus:outline-none focus:border-neuralBlue"
+                    className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white font-mono text-sm focus:outline-none focus:border-neuralBlue"
                     placeholder="#000000"
                   />
                 </div>
@@ -318,7 +319,7 @@ export default function CustomizationPanel({ resume, onUpdate, onClose }: Custom
                     type="text"
                     value={resume?.heading_color || '#1f2937'}
                     onChange={(e) => handleChange('heading_color', e.target.value)}
-                    className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white font-mono text-sm focus:outline-none focus:border-neuralBlue"
+                    className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white font-mono text-sm focus:outline-none focus:border-neuralBlue"
                     placeholder="#1f2937"
                   />
                 </div>
@@ -452,7 +453,7 @@ export default function CustomizationPanel({ resume, onUpdate, onClose }: Custom
                     <select
                       value={resume?.page_size || 'A4'}
                       onChange={(e) => handleChange('page_size', e.target.value)}
-                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-neuralBlue"
+                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-neuralBlue"
                     >
                       <option value="A4">A4 (210 × 297 mm)</option>
                       <option value="Letter">Letter (8.5 × 11 in)</option>
@@ -468,7 +469,7 @@ export default function CustomizationPanel({ resume, onUpdate, onClose }: Custom
                       max="10"
                       value={resume?.max_pages || 2}
                       onChange={(e) => handleChange('max_pages', parseInt(e.target.value))}
-                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-neuralBlue"
+                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-neuralBlue"
                     />
                   </div>
                 </div>
@@ -481,13 +482,13 @@ export default function CustomizationPanel({ resume, onUpdate, onClose }: Custom
         <div className="flex items-center justify-between p-6 border-t border-white/10 bg-black/20">
           <button
             onClick={onClose}
-            className="px-6 py-2.5 text-gray-400 hover:text-white font-medium transition-colors"
+            className="px-4 py-2 text-gray-400 hover:text-white font-medium transition-colors"
           >
             Cancel
           </button>
           <Button
             onClick={onClose}
-            className="bg-gradient-to-r from-neuralBlue to-purple-600 hover:from-neuralBlue/90 hover:to-purple-600/90 text-white font-bold px-8 py-2.5 rounded-lg shadow-lg"
+            className="bg-gradient-to-r from-neuralBlue to-purple-600 hover:from-neuralBlue/90 hover:to-purple-600/90 text-white font-bold px-5 py-2 rounded-lg shadow-lg"
           >
             Apply Changes
           </Button>
