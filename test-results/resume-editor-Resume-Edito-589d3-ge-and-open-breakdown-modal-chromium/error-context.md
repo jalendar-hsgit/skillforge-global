@@ -1,0 +1,233 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - navigation [ref=e5]:
+        - generic [ref=e6]:
+          - link "SkillForge Global SkillForge Global" [ref=e7] [cursor=pointer]:
+            - /url: /
+            - img "SkillForge Global" [ref=e10]
+            - generic [ref=e11]: SkillForge Global
+          - generic [ref=e12]:
+            - link "📚 Courses" [ref=e13] [cursor=pointer]:
+              - /url: /paths
+              - generic [ref=e14]: 📚
+              - generic [ref=e15]: Courses
+            - link "👥 Mentors" [ref=e16] [cursor=pointer]:
+              - /url: /mentors
+              - generic [ref=e17]: 👥
+              - generic [ref=e18]: Mentors
+            - link "🤖 AI Assistant" [ref=e19] [cursor=pointer]:
+              - /url: /ai
+              - generic [ref=e20]: 🤖
+              - generic [ref=e21]: AI Assistant
+            - link "📄 Create Resume" [ref=e22] [cursor=pointer]:
+              - /url: /resumes/new
+              - generic [ref=e23]: 📄
+              - generic [ref=e24]: Create Resume
+            - link "💳 Pricing" [ref=e25] [cursor=pointer]:
+              - /url: /pricing
+              - generic [ref=e26]: 💳
+              - generic [ref=e27]: Pricing
+          - generic [ref=e28]:
+            - generic [ref=e29]:
+              - img [ref=e30]
+              - generic [ref=e33]: "100"
+              - generic [ref=e34]: credits
+            - generic [ref=e35]:
+              - link "📊 Dashboard" [ref=e36] [cursor=pointer]:
+                - /url: /dashboard
+                - generic [ref=e37]: 📊
+                - generic [ref=e38]: Dashboard
+              - link "🚪 Logout" [ref=e39] [cursor=pointer]:
+                - /url: /logout
+                - generic [ref=e40]: 🚪
+                - generic [ref=e41]: Logout
+    - main [ref=e42]:
+      - generic [ref=e43]:
+        - generic [ref=e45]:
+          - generic [ref=e46]:
+            - button "← Back" [ref=e47] [cursor=pointer]:
+              - generic [ref=e48]: ←
+              - generic [ref=e49]: Back
+            - textbox "My Professional Resume" [ref=e52]: Untitled Resume
+          - generic [ref=e53]:
+            - generic [ref=e54]:
+              - generic [ref=e56]:
+                - img [ref=e57]
+                - generic [ref=e64]: Offline
+              - generic [ref=e65]:
+                - generic [ref=e66]: —
+                - generic [ref=e67]: Not saved
+              - generic [ref=e68]:
+                - button "Undo (Ctrl+Z)" [ref=e69] [cursor=pointer]:
+                  - img [ref=e70]
+                - button "Redo (Ctrl+Y)" [disabled] [ref=e73]:
+                  - img [ref=e74]
+                - generic [ref=e77]:
+                  - img [ref=e78]
+                  - generic [ref=e82]: "3"
+              - button "⌨️" [ref=e83] [cursor=pointer]:
+                - generic [ref=e84]: ⌨️
+            - generic [ref=e85]:
+              - button "Save" [ref=e86] [cursor=pointer]:
+                - img [ref=e87]
+                - generic [ref=e91]: Save
+              - button "AI" [ref=e92] [cursor=pointer]:
+                - img [ref=e93]
+                - generic [ref=e96]: AI
+              - button "Styles" [ref=e97] [cursor=pointer]:
+                - img [ref=e98]
+                - generic [ref=e104]: Styles
+              - button "Cover Letter" [ref=e105] [cursor=pointer]:
+                - img [ref=e106]
+                - generic [ref=e109]: Cover Letter
+              - button "Version" [ref=e110] [cursor=pointer]:
+                - img [ref=e111]
+                - generic [ref=e115]: Version
+              - button "Compare" [ref=e116] [cursor=pointer]:
+                - img [ref=e117]
+                - generic [ref=e122]: Compare
+              - button "LinkedIn" [ref=e123] [cursor=pointer]:
+                - img [ref=e124]
+                - generic [ref=e128]: LinkedIn
+              - button "Templates" [ref=e129] [cursor=pointer]:
+                - img [ref=e130]
+                - generic [ref=e132]: Templates
+              - button "Full Width" [ref=e133] [cursor=pointer]:
+                - img [ref=e134]
+                - generic [ref=e139]: Full Width
+              - button "Preview" [ref=e140] [cursor=pointer]:
+                - img [ref=e141]
+                - generic [ref=e144]: Preview
+              - button "Export" [ref=e145] [cursor=pointer]:
+                - img [ref=e146]
+                - generic [ref=e149]: Export
+        - generic [ref=e150]:
+          - generic [ref=e152]:
+            - generic [ref=e153]:
+              - heading "Resume Sections" [level=3] [ref=e154]:
+                - img [ref=e155]
+                - text: Resume Sections
+              - img [ref=e158]
+            - generic [ref=e165]:
+              - button "Drag to reorder section Contact Info Toggle Contact Info section" [pressed] [ref=e166] [cursor=pointer]:
+                - button "Drag to reorder section" [ref=e167]:
+                  - img [ref=e168]
+                - generic [ref=e175]:
+                  - generic [ref=e176]: 👤
+                  - generic [ref=e177]: Contact Info
+                - checkbox "Toggle Contact Info section" [checked] [ref=e178]
+              - button "Drag to reorder section Professional Summary Toggle Professional Summary section" [ref=e179] [cursor=pointer]:
+                - button "Drag to reorder section" [ref=e180]:
+                  - img [ref=e181]
+                - generic [ref=e188]:
+                  - generic [ref=e189]: 📝
+                  - generic [ref=e190]: Professional Summary
+                - checkbox "Toggle Professional Summary section" [checked] [ref=e191]
+              - button "Drag to reorder section Work Experience Toggle Work Experience section" [ref=e192] [cursor=pointer]:
+                - button "Drag to reorder section" [ref=e193]:
+                  - img [ref=e194]
+                - generic [ref=e201]:
+                  - generic [ref=e202]: 💼
+                  - generic [ref=e203]: Work Experience
+                - checkbox "Toggle Work Experience section" [checked] [ref=e204]
+              - button "Drag to reorder section Education Toggle Education section" [ref=e205] [cursor=pointer]:
+                - button "Drag to reorder section" [ref=e206]:
+                  - img [ref=e207]
+                - generic [ref=e214]:
+                  - generic [ref=e215]: 🎓
+                  - generic [ref=e216]: Education
+                - checkbox "Toggle Education section" [checked] [ref=e217]
+              - button "Drag to reorder section Skills Toggle Skills section" [ref=e218] [cursor=pointer]:
+                - button "Drag to reorder section" [ref=e219]:
+                  - img [ref=e220]
+                - generic [ref=e227]:
+                  - generic [ref=e228]: ⚡
+                  - generic [ref=e229]: Skills
+                - checkbox "Toggle Skills section" [checked] [ref=e230]
+              - button "Drag to reorder section Projects Toggle Projects section" [ref=e231] [cursor=pointer]:
+                - button "Drag to reorder section" [ref=e232]:
+                  - img [ref=e233]
+                - generic [ref=e240]:
+                  - generic [ref=e241]: 🚀
+                  - generic [ref=e242]: Projects
+                - checkbox "Toggle Projects section" [checked] [ref=e243]
+              - button "Drag to reorder section Certificates Toggle Certificates section" [ref=e244] [cursor=pointer]:
+                - button "Drag to reorder section" [ref=e245]:
+                  - img [ref=e246]
+                - generic [ref=e253]:
+                  - generic [ref=e254]: 🏆
+                  - generic [ref=e255]: Certificates
+                - checkbox "Toggle Certificates section" [ref=e256]
+              - button "Drag to reorder section Achievements Toggle Achievements section" [ref=e257] [cursor=pointer]:
+                - button "Drag to reorder section" [ref=e258]:
+                  - img [ref=e259]
+                - generic [ref=e266]:
+                  - generic [ref=e267]: ⭐
+                  - generic [ref=e268]: Achievements
+                - checkbox "Toggle Achievements section" [ref=e269]
+            - status [ref=e270]
+            - paragraph [ref=e272]: 💡 Drag sections to reorder
+          - generic [ref=e275]:
+            - generic [ref=e276]:
+              - heading "Header & Contact Information" [level=2] [ref=e277]
+              - paragraph [ref=e278]: Add your basic information and contact details that will appear at the top of your resume.
+            - generic [ref=e279]:
+              - generic [ref=e280]:
+                - generic [ref=e281]: Full Name *
+                - textbox [ref=e283]:
+                  - /placeholder: John Doe
+              - generic [ref=e284]:
+                - generic [ref=e285]:
+                  - generic [ref=e286]: Email *
+                  - textbox [ref=e288]:
+                    - /placeholder: john.doe@example.com
+                - generic [ref=e289]:
+                  - generic [ref=e290]: Phone
+                  - textbox [ref=e292]:
+                    - /placeholder: +1 (555) 123-4567
+              - generic [ref=e293]:
+                - generic [ref=e294]: Location
+                - textbox [ref=e296]:
+                  - /placeholder: San Francisco, CA
+              - generic [ref=e297]:
+                - heading "Links (Optional)" [level=3] [ref=e298]
+                - generic [ref=e299]:
+                  - generic [ref=e300]:
+                    - generic [ref=e301]: LinkedIn Profile
+                    - textbox [ref=e303]:
+                      - /placeholder: https://linkedin.com/in/johndoe
+                  - generic [ref=e304]:
+                    - generic [ref=e305]: GitHub Profile
+                    - textbox [ref=e307]:
+                      - /placeholder: https://github.com/johndoe
+                  - generic [ref=e308]:
+                    - generic [ref=e309]: Personal Website/Portfolio
+                    - textbox [ref=e311]:
+                      - /placeholder: https://johndoe.com
+            - generic [ref=e313]:
+              - generic [ref=e314]: 💡
+              - generic [ref=e315]:
+                - heading "Pro Tips:" [level=4] [ref=e316]
+                - list [ref=e317]:
+                  - listitem [ref=e318]: • Use a professional email address
+                  - listitem [ref=e319]: • Include your city and state (no full address needed)
+                  - listitem [ref=e320]: • Make sure your LinkedIn profile is complete and up-to-date
+                  - listitem [ref=e321]: • Only add links that showcase your professional work
+          - generic [ref=e323]:
+            - heading "Live Preview" [level=3] [ref=e325]:
+              - img [ref=e326]
+              - text: Live Preview
+            - generic [ref=e338]:
+              - heading "Your Name" [level=2] [ref=e339]
+              - paragraph [ref=e340]:
+                - img [ref=e341]
+                - text: email@example.com•
+                - img [ref=e343]
+                - text: 000-000-0000
+        - generic [ref=e347]: —
+  - alert [ref=e348]
+```

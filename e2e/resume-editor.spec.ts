@@ -2,7 +2,8 @@ import { test, expect } from '@playwright/test';
 
 // Detect Next.js port dynamically
 const FRONTEND_PORT = process.env.E2E_FRONTEND_PORT || '3000';
-const FRONTEND_BASE = `http://127.0.0.1:${FRONTEND_PORT}`;
+// Use localhost (not 127.0.0.1) to ensure HttpOnly cookies set by the app (domain=localhost) attach correctly
+const FRONTEND_BASE = `http://localhost:${FRONTEND_PORT}`;
 const BACKEND_BASE = 'http://127.0.0.1:8001';
 
 test.describe('Resume Editor - Advanced Features', () => {
@@ -30,25 +31,39 @@ test.describe('Resume Editor - Advanced Features', () => {
     expect(loginResponse.ok()).toBeTruthy();
 
     // Navigate to create resume (will auto-create on /resumes/new)
-    await page.goto(`${FRONTEND_BASE}/resumes/new`, { waitUntil: 'domcontentloaded' });
-    
-    // Wait for either redirect to editor or editor to load
-    await page.waitForURL(/\/resumes\/\d+/, { timeout: 15000 });
-    
+    await page.goto(`${FRONTEND_BASE}/resumes/new`, { waitUntil: 'load' });
+
+    // Some builds may stay on /resumes/new and create the resume in background.
+    // Wait for editor UI to appear instead of URL redirect.
+    await page.waitForSelector('[data-testid="input-title"], [data-testid="editor-live-preview"]', { timeout: 20000 });
+
+    // Derive resumeId from API if URL doesn't contain it
     const url = page.url();
     const match = url.match(/\/resumes\/(\d+)/);
-    resumeId = match ? match[1] : '';
-    
+    if (match) {
+      resumeId = match[1];
+    } else {
+      const listResp = await context.request.get(`${FRONTEND_BASE}/api/session/resumes`);
+      expect(listResp.ok()).toBeTruthy();
+      const data = await listResp.json();
+      // pick most recent resume id
+      const last = Array.isArray(data?.items) && data.items.length ? data.items[0] : (Array.isArray(data) ? data[0] : null);
+      resumeId = last?.id?.toString?.() || '';
+    }
+
     expect(resumeId).toBeTruthy();
   });
 
   test('should display ATS score badge and open breakdown modal', async ({ page }) => {
-    // Wait for ATS score to load
-    await page.waitForSelector('button:has-text("ATS Score")', { timeout: 15000 });
+    // Wait for ATS score to load using data-testid
+    await page.waitForSelector('[data-testid="ats-score-badge"]', { timeout: 15000 });
     
-    // Check if score is displayed
-    const scoreElement = page.locator('button:has-text("ATS Score")');
+    // Check if score badge is displayed
+    const scoreElement = page.locator('[data-testid="ats-score-badge"]');
     await expect(scoreElement).toBeVisible();
+    
+    // Verify percentage is shown
+    await expect(scoreElement).toContainText('%');
     
     // Click to open breakdown modal
     await scoreElement.click();

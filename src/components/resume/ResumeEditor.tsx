@@ -718,6 +718,7 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
               {/* ATS Score Badge */}
               {atsScore !== null && (
                 <button
+                  data-testid="ats-score-badge"
                   onClick={() => setShowATSBreakdown(true)}
                   className={`px-3 py-2 rounded-lg border backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer ${
                     atsScore >= 80 ? 'bg-gradient-to-br from-green-500/30 to-green-600/20 border-green-400/50 text-green-100 shadow-lg shadow-green-500/20 hover:shadow-green-500/40' :
