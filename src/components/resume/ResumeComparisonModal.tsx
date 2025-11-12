@@ -36,9 +36,11 @@ interface ResumeComparisonModalProps {
   resumeId: number;
   isOpen: boolean;
   onClose: () => void;
+  initialBaseVersionId?: number | null;
+  initialComparedVersionId?: number | null;
 }
 
-export default function ResumeComparisonModal({ resumeId, isOpen, onClose }: ResumeComparisonModalProps) {
+export default function ResumeComparisonModal({ resumeId, isOpen, onClose, initialBaseVersionId = null, initialComparedVersionId = null }: ResumeComparisonModalProps) {
   const [versions, setVersions] = useState<Version[]>([]);
   const [selectedBase, setSelectedBase] = useState<number | null>(null);
   const [selectedCompared, setSelectedCompared] = useState<number | null>(null);
@@ -52,9 +54,17 @@ export default function ResumeComparisonModal({ resumeId, isOpen, onClose }: Res
     }
   }, [isOpen, resumeId]);
 
+  // Apply initial preselected versions when provided
+  useEffect(() => {
+    if (isOpen) {
+      if (initialBaseVersionId) setSelectedBase(initialBaseVersionId);
+      if (initialComparedVersionId) setSelectedCompared(initialComparedVersionId);
+    }
+  }, [isOpen, initialBaseVersionId, initialComparedVersionId]);
+
   const fetchVersions = async () => {
     try {
-      const response = await fetch(`${API_BASE}/api/v1x/resume-comparison/versions/${resumeId}`, {
+      const response = await fetch(`/api/session/v1x/resume-comparison/versions/${resumeId}`, {
         credentials: 'include'
       });
       
@@ -63,10 +73,14 @@ export default function ResumeComparisonModal({ resumeId, isOpen, onClose }: Res
       const data = await response.json();
       setVersions(data);
       
-      // Auto-select latest two versions if available
-      if (data.length >= 2) {
-        setSelectedBase(data[1].id);
-        setSelectedCompared(data[0].id);
+      // Auto-select latest two versions if available and not preselected
+      if (!initialBaseVersionId && !initialComparedVersionId) {
+        if (data.length >= 2) {
+          setSelectedBase(data[1].id);
+          setSelectedCompared(data[0].id);
+        } else if (data.length === 1) {
+          setSelectedCompared(data[0].id);
+        }
       }
     } catch (err) {
       console.error('Error fetching versions:', err);
@@ -84,7 +98,7 @@ export default function ResumeComparisonModal({ resumeId, isOpen, onClose }: Res
     setError(null);
 
     try {
-      const response = await fetch(`${API_BASE}/api/v1x/resume-comparison/compare`, {
+      const response = await fetch(`/api/session/v1x/resume-comparison/compare`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

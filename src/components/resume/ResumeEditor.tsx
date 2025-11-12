@@ -28,6 +28,7 @@ import AIAssistantPanel from './AIAssistantPanel';
 import ATSBreakdownModal from './ATSBreakdownModal';
 import StylePanel from './StylePanel';
 import ResumeComparisonModal from './ResumeComparisonModal';
+import VersionHistoryModal from './VersionHistoryModal';
 import LinkedInImportModal from './LinkedInImportModal';
 import CoverLetterModal from './CoverLetterModal';
 import KeyboardShortcutsModal from './KeyboardShortcutsModal';
@@ -217,6 +218,8 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
   const [showStylePanel, setShowStylePanel] = useState(false);
   const [showATSBreakdown, setShowATSBreakdown] = useState(false);
   const [showComparisonModal, setShowComparisonModal] = useState(false);
+  const [preselectCompare, setPreselectCompare] = useState<{ base?: number | null; compared?: number | null }>({});
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [showLinkedInModal, setShowLinkedInModal] = useState(false);
   const [showCoverLetterModal, setShowCoverLetterModal] = useState(false);
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
@@ -487,7 +490,7 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
       const versionName = prompt('Enter a name for this version (e.g., "Final Draft", "Software Engineer v2"):');
       if (!versionName) return;
 
-      const response = await fetch(`${API_BASE}/api/v1x/resume-comparison/versions`, {
+      const response = await fetch(`/api/session/v1x/resume-comparison/versions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -841,12 +844,13 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
               <span>Cover Letter</span>
             </Button>
             <Button
-              onClick={saveVersion}
+              onClick={() => setShowVersionHistory(true)}
               variant="secondary"
               className="font-medium text-sm px-3 py-1.5 transition-all duration-200 hover:shadow-lg bg-blue-500/20 border-blue-400/50 hover:bg-blue-500/30"
+              data-testid="btn-versions"
             >
               <Save className="w-3.5 h-3.5 mr-1.5" />
-              <span>Version</span>
+              <span>Versions</span>
             </Button>
             <Button
               onClick={() => setShowComparisonModal(true)}
@@ -1093,6 +1097,27 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
           isOpen={showComparisonModal}
           onClose={() => setShowComparisonModal(false)}
           resumeId={resumeId}
+          initialBaseVersionId={preselectCompare.base ?? null}
+          initialComparedVersionId={preselectCompare.compared ?? null}
+        />
+      )}
+
+      {/* Version History Modal */}
+      {showVersionHistory && (
+        <VersionHistoryModal
+          isOpen={showVersionHistory}
+          onClose={() => setShowVersionHistory(false)}
+          resumeId={resumeId}
+          onRestored={() => {
+            setShowVersionHistory(false);
+            // Reload resume after restore
+            loadResume();
+          }}
+          onCompareClick={(base, compared) => {
+            setShowVersionHistory(false);
+            setPreselectCompare({ base: base ?? null, compared: compared ?? null });
+            setShowComparisonModal(true);
+          }}
         />
       )}
 
