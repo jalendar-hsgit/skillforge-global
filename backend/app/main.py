@@ -20,6 +20,8 @@ from app.modelsx.stripe_connect import MentorStripeAccount
 from app.modelsx.chat_file import MentorChatFile
 # import resume models
 from app.modelsx.resume import Resume, WorkExperience, Education, ResumeProject, ResumeSkill, ResumeCertificate, Achievement, ResumeTemplate, AIProjectTemplate, ResumeAnalytics, ATSReport
+# Ensure versioning/comparison tables are registered before create_all
+from app.modelsx.resume_comparison import ResumeVersion, ResumeComparison
 # import hiring models
 # import job application tracking
 from app.modelsx.job_application import JobApplication as JobApplicationTracker
