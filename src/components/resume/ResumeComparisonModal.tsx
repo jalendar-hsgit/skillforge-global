@@ -68,7 +68,20 @@ export default function ResumeComparisonModal({ resumeId, isOpen, onClose, initi
         credentials: 'include'
       });
       
-      if (!response.ok) throw new Error('Failed to fetch versions');
+      if (!response.ok) {
+        let detail = '';
+        try {
+          const ct = response.headers.get('content-type') || '';
+          if (ct.includes('application/json')) {
+            const j = await response.json();
+            detail = (j && (j.detail || j.message)) ? `: ${j.detail || j.message}` : '';
+          } else {
+            const t = await response.text();
+            detail = t ? `: ${t}` : '';
+          }
+        } catch (_) {}
+        throw new Error(`Failed to load versions (${response.status})${detail}`);
+      }
       
       const data = await response.json();
       setVersions(data);
@@ -82,9 +95,9 @@ export default function ResumeComparisonModal({ resumeId, isOpen, onClose, initi
           setSelectedCompared(data[0].id);
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching versions:', err);
-      setError('Failed to load versions');
+      setError(err?.message || 'Failed to load versions');
     }
   };
 
@@ -107,14 +120,26 @@ export default function ResumeComparisonModal({ resumeId, isOpen, onClose, initi
           compared_version_id: selectedCompared
         })
       });
-
-      if (!response.ok) throw new Error('Failed to compare versions');
+      if (!response.ok) {
+        let detail = '';
+        try {
+          const ct = response.headers.get('content-type') || '';
+          if (ct.includes('application/json')) {
+            const j = await response.json();
+            detail = (j && (j.detail || j.message)) ? `: ${j.detail || j.message}` : '';
+          } else {
+            const t = await response.text();
+            detail = t ? `: ${t}` : '';
+          }
+        } catch (_) {}
+        throw new Error(`Failed to compare versions (${response.status})${detail}`);
+      }
 
       const data = await response.json();
       setComparison(data);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error comparing versions:', err);
-      setError('Failed to compare versions');
+      setError(err?.message || 'Failed to compare versions');
     } finally {
       setLoading(false);
     }

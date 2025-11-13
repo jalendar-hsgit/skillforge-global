@@ -58,6 +58,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
+    // Dev-only trace to aid debugging route/404 issues
+    if (process.env.NODE_ENV !== "production") {
+      // eslint-disable-next-line no-console
+      console.log(`[v1x-proxy] ${req.method} -> ${target}`);
+    }
+
+    // Dev-only trace to aid debugging
+    if (process.env.NODE_ENV !== "production") {
+      // eslint-disable-next-line no-console
+      console.log(`[v1x-proxy] ${req.method} -> ${target}`);
+    }
+
     const r = await fetch(target, {
       method,
       headers: headers as any,

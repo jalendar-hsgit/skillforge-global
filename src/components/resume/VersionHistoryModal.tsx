@@ -44,8 +44,21 @@ export default function VersionHistoryModal({ resumeId, isOpen, onClose, onResto
     try {
       setLoading(true);
       setError(null);
-  const res = await fetch(`/api/session/v1x/resume-comparison/versions/${resumeId}`, { credentials: 'include' });
-      if (!res.ok) throw new Error(`Failed to load versions (${res.status})`);
+      const res = await fetch(`/api/session/v1x/resume-comparison/versions/${resumeId}`, { credentials: 'include' });
+      if (!res.ok) {
+        let detail = '';
+        const ct = res.headers.get('content-type') || '';
+        try {
+          if (ct.includes('application/json')) {
+            const j = await res.json();
+            detail = (j && (j.detail || j.message)) ? `: ${j.detail || j.message}` : '';
+          } else {
+            const t = await res.text();
+            detail = t ? `: ${t}` : '';
+          }
+        } catch (_) { /* ignore parse errors */ }
+        throw new Error(`Failed to load versions (${res.status})${detail}`);
+      }
       const data = await res.json();
       setVersions(data);
     } catch (e: any) {
@@ -69,7 +82,20 @@ export default function VersionHistoryModal({ resumeId, isOpen, onClose, onResto
           description: `Snapshot created on ${new Date().toLocaleString()}`,
         }),
       });
-      if (!res.ok) throw new Error('Failed to save version');
+      if (!res.ok) {
+        let detail = '';
+        try {
+          const ct = res.headers.get('content-type') || '';
+          if (ct.includes('application/json')) {
+            const j = await res.json();
+            detail = (j && (j.detail || j.message)) ? `: ${j.detail || j.message}` : '';
+          } else {
+            const t = await res.text();
+            detail = t ? `: ${t}` : '';
+          }
+        } catch (_) {}
+        throw new Error(`Failed to save version (${res.status})${detail}`);
+      }
       setNewName('');
       await fetchVersions();
     } catch (e: any) {
@@ -87,7 +113,20 @@ export default function VersionHistoryModal({ resumeId, isOpen, onClose, onResto
         method: 'POST',
         credentials: 'include',
       });
-      if (!res.ok) throw new Error('Failed to restore version');
+      if (!res.ok) {
+        let detail = '';
+        try {
+          const ct = res.headers.get('content-type') || '';
+          if (ct.includes('application/json')) {
+            const j = await res.json();
+            detail = (j && (j.detail || j.message)) ? `: ${j.detail || j.message}` : '';
+          } else {
+            const t = await res.text();
+            detail = t ? `: ${t}` : '';
+          }
+        } catch (_) {}
+        throw new Error(`Failed to restore version (${res.status})${detail}`);
+      }
       onRestored?.();
     } catch (e: any) {
       setError(e?.message || 'Failed to restore version');
