@@ -100,8 +100,15 @@ def update_resume(
     if not resume:
         raise HTTPException(status_code=404, detail="Resume not found")
     
-    for key, value in resume_data.dict(exclude_unset=True).items():
-        setattr(resume, key, value)
+    update_dict = resume_data.dict(exclude_unset=True)
+    
+    # Handle professional_summary alias
+    if 'professional_summary' in update_dict and update_dict['professional_summary'] is not None:
+        update_dict['summary'] = update_dict.pop('professional_summary')
+    
+    for key, value in update_dict.items():
+        if hasattr(resume, key):
+            setattr(resume, key, value)
     
     resume.version += 1
     resume.updated_at = datetime.utcnow()

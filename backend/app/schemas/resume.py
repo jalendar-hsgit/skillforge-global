@@ -177,6 +177,7 @@ class ResumeUpdate(BaseModel):
     portfolio_url: Optional[str] = None
     website_url: Optional[str] = None
     summary: Optional[str] = None
+    professional_summary: Optional[str] = None  # Alias for summary
     is_primary: Optional[bool] = None
     is_public: Optional[bool] = None
     # Customization fields (optional)
@@ -191,6 +192,10 @@ class ResumeUpdate(BaseModel):
     font_size: Optional[int] = None
     heading_size: Optional[int] = None
     show_icons: Optional[bool] = None
+    background_type: Optional[str] = None
+    section_divider: Optional[str] = None
+    header_shape: Optional[str] = None
+    icon_style: Optional[str] = None
 
 
 class ResumeOut(ResumeBase):
@@ -207,12 +212,32 @@ class ResumeOut(ResumeBase):
     created_at: datetime
     updated_at: datetime
     
+    # Customization fields
+    font_family: Optional[str] = None
+    color_theme: Optional[str] = None
+    picture_style: Optional[str] = None
+    layout: Optional[str] = None
+    accent_color: Optional[str] = None
+    text_color: Optional[str] = None
+    heading_color: Optional[str] = None
+    line_spacing: Optional[float] = None
+    font_size: Optional[int] = None
+    heading_size: Optional[int] = None
+    show_icons: Optional[bool] = None
+    background_type: Optional[str] = None
+    photo_url: Optional[str] = None
+    
     work_experiences: List[WorkExperienceOut] = []
     education: List[EducationOut] = []
     projects: List[ResumeProjectOut] = []
     skills: List[ResumeSkillOut] = []
     certificates: List[ResumeCertificateOut] = []
     achievements: List[AchievementOut] = []
+    
+    @property
+    def professional_summary(self) -> Optional[str]:
+        """Alias for summary field for frontend compatibility"""
+        return self.summary
     
     class Config:
         from_attributes = True

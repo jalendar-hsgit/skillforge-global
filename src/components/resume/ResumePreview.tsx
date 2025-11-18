@@ -1,38 +1,11 @@
-
-interface ResumePreviewProps {
-  resume: Resume;
-}
-type Resume = {
-  full_name?: string;
-  email?: string;
-  phone?: string;
-  location?: string;
-  linkedin?: string;
-  github?: string;
-  website?: string;
-  professional_summary?: string;
-  template?: string;
-  work_experiences?: any[];
-  education?: any[];
-  skills?: any[];
-  projects?: any[];
-  certificates?: any[];
-  achievements?: any[];
-  // Customization
-  font_family?: string;
-  color_theme?: string;
-  layout?: string;
-  accent_color?: string;
-  accent?: string;
-  picture_style?: string;
-  show_icons?: boolean;
-  background_type?: string;
-  section_divider?: string;
-  header_shape?: string;
-  icon_style?: string;
-  font_size?: number;
-  heading_size?: number;
-};
+import React from 'react';
+import { Resume } from './types';
+import ModernTemplate from './templates/ModernTemplate';
+import MinimalTemplate from './templates/MinimalTemplate';
+import ExecutiveTemplate from './templates/ExecutiveTemplate';
+import CreativeTemplate from './templates/CreativeTemplate';
+import TimelineTemplate from './templates/TimelineTemplate';
+import ElegantBlueTemplate from './templates/ElegantBlueTemplate';
 
 interface ResumePreviewProps {
   resume: Resume;
@@ -42,7 +15,28 @@ interface ResumePreviewProps {
 const ResumePreview = (props: ResumePreviewProps) => {
   const { resume } = props;
   const layout = resume.layout || '';
-  // ...existing code...
+  
+  // Use dedicated template components when layout matches
+  if (layout === 'modern' || layout.includes('modern')) {
+    return <ModernTemplate resume={resume} />;
+  }
+  if (layout === 'minimal' || layout.includes('minimal')) {
+    return <MinimalTemplate resume={resume} />;
+  }
+  if (layout === 'executive' || layout.includes('executive')) {
+    return <ExecutiveTemplate resume={resume} />;
+  }
+  if (layout === 'creative' || layout.includes('creative')) {
+    return <CreativeTemplate resume={resume} />;
+  }
+  if (layout === 'timeline' || layout.includes('timeline')) {
+    return <TimelineTemplate resume={resume} />;
+  }
+  if (layout === 'elegant-blue' || layout.includes('elegant')) {
+    return <ElegantBlueTemplate resume={resume} />;
+  }
+  
+  // Fallback to generic rendering for other layouts
   const accent = resume.accent_color || resume.accent || '#007bff';
   const sectionDivider = resume.section_divider || 'line';
   const headerShape = resume.header_shape || 'default';

@@ -157,24 +157,11 @@ export default function ResumePreviewPage() {
             id="resume-content"
             className="bg-white shadow-xl print:shadow-none rounded-lg print:rounded-none overflow-hidden"
           >
-            {/* If template is a numeric ID or not one of the built-ins, fallback to generic preview */}
-            {(/^[0-9]+$/.test(String(template)) || !['modern','classic','minimal','creative','executive','tech','academic'].includes(String(template))) ? (
-              <div className="p-8">
-                <div className="max-w-3xl mx-auto">
-                  <ResumePreview resume={resume as any} />
-                </div>
+            <div className="p-8">
+              <div className="max-w-3xl mx-auto">
+                <ResumePreview resume={resume as any} />
               </div>
-            ) : (
-              <>
-                {template === 'modern' && <ModernTemplate resume={resume} />}
-                {template === 'classic' && <ClassicTemplate resume={resume} />}
-                {template === 'minimal' && <MinimalTemplate resume={resume} />}
-                {template === 'creative' && <CreativeTemplate resume={resume} />}
-                {template === 'executive' && <ExecutiveTemplate resume={resume} />}
-                {template === 'tech' && <TechTemplate resume={resume} />}
-                {template === 'academic' && <AcademicTemplate resume={resume} />}
-              </>
-            )}
+            </div>
           </div>
         </div>
       </div>
