@@ -9,11 +9,16 @@ interface Template {
   category: string
   thumbnail_url: string | null
   config: {
-    layout: string
-    font: string
-    accent: string
-    picture: string
-    icons: boolean
+    layout?: string
+    font?: string
+    font_family?: string
+    accent?: string
+    accent_color?: string
+    picture?: string
+    picture_style?: string
+    icons?: boolean
+    show_icons?: boolean
+    color_theme?: string
   }
   is_ats_friendly: boolean
   popularity: number
@@ -34,6 +39,87 @@ export default function TemplateSelector({ currentTemplate, onSelect, onClose, r
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   
+  // Fallback curated templates (trending styles)
+  const FALLBACK_TEMPLATES: Template[] = [
+    {
+      id: 1001,
+      name: 'Modern ATS',
+      description: 'Clean, recruiter-friendly layout optimized for ATS parsing',
+      category: 'Modern',
+      thumbnail_url: null,
+      config: { layout: 'modern', font: 'Inter', accent: '#2563eb', icons: true, picture: 'none', color_theme: 'light' },
+      is_ats_friendly: true,
+      popularity: 96,
+      is_active: true,
+    },
+    {
+      id: 1002,
+      name: 'Minimal Swiss',
+      description: 'Elegant whitespace, tight typography, Swiss-inspired minimalism',
+      category: 'Minimal',
+      thumbnail_url: null,
+      config: { layout: 'minimal', font: 'Inter', accent: '#0ea5e9', icons: false, picture: 'none', color_theme: 'light' },
+      is_ats_friendly: true,
+      popularity: 92,
+      is_active: true,
+    },
+    {
+      id: 1003,
+      name: 'Executive Two-Column',
+      description: 'Polished two-column layout for senior and leadership roles',
+      category: 'Executive',
+      thumbnail_url: null,
+      config: { layout: 'executive-two', font: 'Georgia', accent: '#111827', icons: false, picture: 'none', color_theme: 'neutral' },
+      is_ats_friendly: true,
+      popularity: 89,
+      is_active: true,
+    },
+    {
+      id: 1004,
+      name: 'Creative Gradient',
+      description: 'Bold gradient header and expressive accent elements',
+      category: 'Creative',
+      thumbnail_url: null,
+      config: { layout: 'creative', font: 'Poppins', accent: '#8b5cf6', icons: true, picture: 'circle', color_theme: 'vibrant' },
+      is_ats_friendly: false,
+      popularity: 84,
+      is_active: true,
+    },
+    {
+      id: 1005,
+      name: 'Tech Neon',
+      description: 'Modern tech aesthetic with subtle neon accents',
+      category: 'Tech',
+      thumbnail_url: null,
+      config: { layout: 'tech-two', font: 'Inter', accent: '#22d3ee', icons: true, picture: 'rounded', color_theme: 'dark' },
+      is_ats_friendly: true,
+      popularity: 87,
+      is_active: true,
+    },
+    {
+      id: 1006,
+      name: 'Academic Serif',
+      description: 'Research-oriented structure with serif typography',
+      category: 'Academic',
+      thumbnail_url: null,
+      config: { layout: 'academic-two', font: 'Georgia', accent: '#334155', icons: false, picture: 'none', color_theme: 'classic' },
+      is_ats_friendly: true,
+      popularity: 81,
+      is_active: true,
+    },
+    {
+      id: 1007,
+      name: 'Elegant Classic',
+      description: 'Timeless single-column with accent underline headers',
+      category: 'Classic',
+      thumbnail_url: null,
+      config: { layout: 'classic', font: 'Georgia', accent: '#475569', icons: false, picture: 'none', color_theme: 'classic' },
+      is_ats_friendly: true,
+      popularity: 78,
+      is_active: true,
+    },
+  ]
+  
   // Filters
   const [selectedCategory, setSelectedCategory] = useState<string>('All')
   const [atsOnly, setAtsOnly] = useState(false)
@@ -48,13 +134,19 @@ export default function TemplateSelector({ currentTemplate, onSelect, onClose, r
       const response = await fetch('/api/session/v1x/resume-templates')
       
       if (!response.ok) throw new Error('Failed to fetch templates')
-      
       const data = await response.json()
-      setTemplates(data)
+      if (Array.isArray(data) && data.length > 0) {
+        setTemplates(data)
+      } else {
+        // Use curated fallback when API returns no templates
+        setTemplates(FALLBACK_TEMPLATES)
+      }
       setError(null)
     } catch (err) {
       console.error('Error fetching templates:', err)
-      setError('Failed to load templates')
+      // Provide graceful fallback templates when API unavailable
+      setTemplates(FALLBACK_TEMPLATES)
+      setError(null)
     } finally {
       setLoading(false)
     }
@@ -356,6 +448,10 @@ export default function TemplateSelector({ currentTemplate, onSelect, onClose, r
                         picture_style: (previewTemplate.config as any).picture_style || (previewTemplate.config as any).picture || resumeData.picture_style,
                         show_icons: (previewTemplate.config as any).show_icons !== undefined ? (previewTemplate.config as any).show_icons : ((previewTemplate.config as any).icons !== undefined ? (previewTemplate.config as any).icons : resumeData.show_icons),
                         color_theme: (previewTemplate.config as any).color_theme || resumeData.color_theme,
+                        background_type: (previewTemplate.config as any).background_type || resumeData.background_type,
+                        section_divider: (previewTemplate.config as any).section_divider || resumeData.section_divider,
+                        header_shape: (previewTemplate.config as any).header_shape || resumeData.header_shape,
+                        icon_style: (previewTemplate.config as any).icon_style || resumeData.icon_style,
                       }} />
                     </div>
                   ) : (

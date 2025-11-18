@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Layout from '@/components/Layout';
@@ -10,9 +10,11 @@ export default function NewResumePage() {
   const { me: user, loading: userLoading } = useMe();
   const [creatingResume, setCreatingResume] = useState(false);
   const [resumeId, setResumeId] = useState<number | null>(null);
+  const hasRedirected = useRef(false);
 
   useEffect(() => {
-    if (!userLoading && !user) {
+    if (!userLoading && !user && !hasRedirected.current) {
+      hasRedirected.current = true;
       router.push('/login?redirect=/resumes/new');
     }
   }, [user, userLoading, router]);
@@ -42,8 +44,9 @@ export default function NewResumePage() {
       if (response.ok) {
         const data = await response.json();
         setResumeId(data.id);
-      } else if (response.status === 401) {
+      } else if (response.status === 401 && !hasRedirected.current) {
         // Not authenticated: send to login with redirect
+        hasRedirected.current = true;
         router.push('/login?redirect=/resumes/new');
         return;
       } else {

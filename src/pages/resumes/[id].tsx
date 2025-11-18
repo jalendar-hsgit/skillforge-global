@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Layout from '@/components/Layout';
@@ -13,9 +13,11 @@ export default function ResumePage() {
   const router = useRouter();
   const { id } = router.query;
   const { me: user, loading: userLoading } = useMe();
+  const hasRedirected = useRef(false);
 
   useEffect(() => {
-    if (!userLoading && !user) {
+    if (!userLoading && !user && !hasRedirected.current) {
+      hasRedirected.current = true;
       router.push(`/login?redirect=/resumes/${id}`);
     }
   }, [user, userLoading, router, id]);

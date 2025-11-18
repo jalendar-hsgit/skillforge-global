@@ -28,11 +28,15 @@ export default function VersionHistoryModal({ resumeId, isOpen, onClose, onResto
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [newName, setNewName] = useState('');
+  const [restoringId, setRestoringId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [bestVersionId, setBestVersionId] = useState<number | null>(null);
 
   useEffect(() => {
     if (isOpen) {
       setNewName('');
       fetchVersions();
+      fetchBestVersion();
     }
   }, [isOpen, resumeId]);
 
@@ -65,6 +69,17 @@ export default function VersionHistoryModal({ resumeId, isOpen, onClose, onResto
       setError(e?.message || 'Failed to load versions');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchBestVersion = async () => {
+    try {
+      const res = await fetch(`/api/session/v1x/resume-comparison/best-version/${resumeId}?metric=ats_score`, { credentials: 'include' });
+      if (!res.ok) return; // optional enhancement; ignore errors silently
+      const data = await res.json();
+      if (data?.id) setBestVersionId(data.id as number);
+    } catch (_) {
+      // ignore best-version fetch errors
     }
   };
 
@@ -109,6 +124,7 @@ export default function VersionHistoryModal({ resumeId, isOpen, onClose, onResto
     try {
       const confirmRestore = window.confirm('Restore this version? This will replace current resume content.');
       if (!confirmRestore) return;
+      setRestoringId(versionId);
       const res = await fetch(`/api/session/v1x/resume-comparison/versions/${versionId}/restore`, {
         method: 'POST',
         credentials: 'include',
@@ -130,6 +146,40 @@ export default function VersionHistoryModal({ resumeId, isOpen, onClose, onResto
       onRestored?.();
     } catch (e: any) {
       setError(e?.message || 'Failed to restore version');
+    } finally {
+      setRestoringId(null);
+    }
+  };
+
+  const deleteVersion = async (versionId: number) => {
+    try {
+      const confirmDelete = window.confirm('Delete this version? This cannot be undone.');
+      if (!confirmDelete) return;
+      setDeletingId(versionId);
+      const res = await fetch(`/api/session/v1x/resume-comparison/versions/${versionId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        let detail = '';
+        try {
+          const ct = res.headers.get('content-type') || '';
+          if (ct.includes('application/json')) {
+            const j = await res.json();
+            detail = (j && (j.detail || j.message)) ? `: ${j.detail || j.message}` : '';
+          } else {
+            const t = await res.text();
+            detail = t ? `: ${t}` : '';
+          }
+        } catch (_) {}
+        throw new Error(`Failed to delete version (${res.status})${detail}`);
+      }
+      await fetchVersions();
+      await fetchBestVersion();
+    } catch (e: any) {
+      setError(e?.message || 'Failed to delete version');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -187,21 +237,39 @@ export default function VersionHistoryModal({ resumeId, isOpen, onClose, onResto
                     <div className="flex items-center gap-2">
                       <span className="text-white font-semibold">{v.version_name || `v${v.version_number}`}</span>
                       <span className="text-xs text-white/50">(v{v.version_number})</span>
+                      {bestVersionId === v.id && (
+                        <span className="ml-2 text-[10px] px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-200 border border-amber-400/40 uppercase tracking-wide">Best</span>
+                      )}
                     </div>
                     <div className="text-xs text-white/50 mt-0.5">
                       {new Date(v.created_at).toLocaleString()} • ATS: {typeof v.ats_score === 'number' ? v.ats_score.toFixed(0) : 'N/A'} • Words: {v.word_count ?? '—'} • Skills: {v.skill_count ?? '—'}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button onClick={() => restoreVersion(v.id)} variant="secondary" className="px-3 py-1.5 text-sm bg-emerald-500/20 border-emerald-400/50 hover:bg-emerald-500/30">
-                      <RotateCcw className="w-3.5 h-3.5 mr-1.5" /> Restore
+                    <Button
+                      onClick={() => restoreVersion(v.id)}
+                      variant="secondary"
+                      data-testid={`btn-restore-${v.id}`}
+                      disabled={restoringId === v.id || deletingId === v.id}
+                      className="px-3 py-1.5 text-sm bg-emerald-500/20 border-emerald-400/50 hover:bg-emerald-500/30 disabled:opacity-50"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5 mr-1.5" /> {restoringId === v.id ? 'Restoring…' : 'Restore'}
                     </Button>
                     <Button onClick={() => {
                       const idx = sortedVersions.findIndex(sv => sv.id === v.id);
                       const base = idx >= 0 && idx + 1 < sortedVersions.length ? sortedVersions[idx + 1].id : undefined;
                       onCompareClick?.(base, v.id);
-                    }} variant="secondary" className="px-3 py-1.5 text-sm">
+                    }} variant="secondary" data-testid={`btn-compare-${v.id}`} className="px-3 py-1.5 text-sm">
                       <GitCompare className="w-3.5 h-3.5 mr-1.5" /> Compare
+                    </Button>
+                    <Button
+                      onClick={() => deleteVersion(v.id)}
+                      variant="secondary"
+                      data-testid={`btn-delete-${v.id}`}
+                      disabled={deletingId === v.id || restoringId === v.id}
+                      className="px-3 py-1.5 text-sm bg-red-500/20 border-red-400/50 hover:bg-red-500/30 disabled:opacity-50"
+                    >
+                      {deletingId === v.id ? 'Deleting…' : 'Delete'}
                     </Button>
                   </div>
                 </li>

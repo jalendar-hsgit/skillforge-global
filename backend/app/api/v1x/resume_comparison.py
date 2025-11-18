@@ -206,13 +206,21 @@ def create_version(
 ):
     """Create a snapshot of current resume as a version"""
     # Get resume
+    print(f"[create_version] Looking for resume_id={request.resume_id}, user_id={current_user.id}")
     resume = db.query(Resume).filter(
         Resume.id == request.resume_id,
         Resume.user_id == current_user.id
     ).first()
     
     if not resume:
-        raise HTTPException(status_code=404, detail="Resume not found")
+        # Debug: check if resume exists at all
+        any_resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
+        if any_resume:
+            print(f"[create_version] Resume {request.resume_id} exists but belongs to user {any_resume.user_id}, not {current_user.id}")
+            raise HTTPException(status_code=404, detail=f"Resume not found or access denied")
+        else:
+            print(f"[create_version] Resume {request.resume_id} does not exist in database")
+            raise HTTPException(status_code=404, detail="Resume not found")
     
     # Get latest version number
     latest_version = db.query(ResumeVersion).filter(
@@ -300,13 +308,21 @@ def list_versions(
 ):
     """List all versions of a resume"""
     # Verify ownership
+    print(f"[list_versions] Looking for resume_id={resume_id}, user_id={current_user.id}")
     resume = db.query(Resume).filter(
         Resume.id == resume_id,
         Resume.user_id == current_user.id
     ).first()
     
     if not resume:
-        raise HTTPException(status_code=404, detail="Resume not found")
+        # Debug: check if resume exists at all
+        any_resume = db.query(Resume).filter(Resume.id == resume_id).first()
+        if any_resume:
+            print(f"[list_versions] Resume {resume_id} exists but belongs to user {any_resume.user_id}, not {current_user.id}")
+            raise HTTPException(status_code=404, detail=f"Resume not found or access denied")
+        else:
+            print(f"[list_versions] Resume {resume_id} does not exist in database")
+            raise HTTPException(status_code=404, detail="Resume not found")
     
     versions = db.query(ResumeVersion).filter(
         ResumeVersion.resume_id == resume_id

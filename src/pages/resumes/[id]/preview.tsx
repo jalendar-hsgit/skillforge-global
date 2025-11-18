@@ -47,7 +47,8 @@ export default function ResumePreviewPage() {
           setResume(data)
             // Track resume view event
             if (data?.id && data?.user_id) {
-              fetch(`${API_BASE}/api/v1x/resume-analytics/events/view/${data.id}?user_id=${data.user_id}`, { method: 'POST' });
+              fetch(`${API_BASE}/api/v1x/resume-analytics/events/view/${data.id}?user_id=${data.user_id}`, { method: 'POST' })
+                .catch(err => console.error('Analytics event failed:', err));
             }
         } else {
           console.error('Failed to load resume')
@@ -101,6 +102,26 @@ export default function ResumePreviewPage() {
               className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
             >
               ← Back to Editor
+            </button>
+            <button
+              onClick={() => {
+                setLoading(true);
+                // Re-fetch resume data
+                if (id) {
+                  fetch(`/api/session/resumes?id=${id}`, {
+                    credentials: 'include',
+                  })
+                    .then(res => res.ok ? res.json() : null)
+                    .then(data => {
+                      if (data) setResume(data);
+                    })
+                    .catch(e => console.error('Error refreshing resume:', e))
+                    .finally(() => setLoading(false));
+                }
+              }}
+              className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600"
+            >
+              🔄 Refresh
             </button>
             <button
               onClick={() => {

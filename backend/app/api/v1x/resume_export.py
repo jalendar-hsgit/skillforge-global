@@ -32,6 +32,8 @@ async def export_resume(
     - DOCX: Microsoft Word compatible
     - TXT: Plain text version
     """
+    print(f"[Resume Export] resume_id={resume_id}, user_id={user.id}, format={format}")
+    
     # Fetch resume with all relationships
     resume = db.query(Resume).options(
         joinedload(Resume.work_experiences),
@@ -46,7 +48,16 @@ async def export_resume(
     ).first()
     
     if not resume:
+        print(f"[Resume Export] Resume {resume_id} not found for user {user.id}")
+        # Check if resume exists but belongs to someone else
+        exists = db.query(Resume).filter(Resume.id == resume_id).first()
+        if exists:
+            print(f"[Resume Export] Resume {resume_id} exists but belongs to user {exists.user_id}")
+        else:
+            print(f"[Resume Export] Resume {resume_id} does not exist")
         raise HTTPException(status_code=404, detail="Resume not found")
+    
+    print(f"[Resume Export] Found resume '{resume.title}' for user {user.id}")
     
     # Track download
     resume.downloads += 1
@@ -78,10 +89,9 @@ def _map_font_to_reportlab(font_family: str) -> tuple[str, str]:
         "inter": ("Helvetica", "Helvetica-Bold"),
         "playfair display": ("Times-Roman", "Times-Bold"),
         "merriweather": ("Times-Roman", "Times-Bold"),
-        "georgia": ("Times-Roman", "Times-Bold"),
         "crimson text": ("Times-Roman", "Times-Bold"),
         "times new roman": ("Times-Roman", "Times-Bold"),
-    "century gothic": ("Helvetica", "Helvetica-Bold"),
+        "century gothic": ("Helvetica", "Helvetica-Bold"),
         "courier new": ("Courier", "Courier-Bold"),
         "source code pro": ("Courier", "Courier-Bold"),
         # generic fallbacks

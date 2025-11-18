@@ -32,6 +32,13 @@ interface ComparisonResult {
   better_version: string;
 }
 
+interface ScoreHistoryItem {
+  version_id: number;
+  version_name?: string;
+  ats_score?: number;
+  created_at: string;
+}
+
 interface ResumeComparisonModalProps {
   resumeId: number;
   isOpen: boolean;
@@ -47,10 +54,12 @@ export default function ResumeComparisonModal({ resumeId, isOpen, onClose, initi
   const [comparison, setComparison] = useState<ComparisonResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [scoreHistory, setScoreHistory] = useState<ScoreHistoryItem[]>([]);
 
   useEffect(() => {
     if (isOpen) {
       fetchVersions();
+      fetchScoreHistory();
     }
   }, [isOpen, resumeId]);
 
@@ -98,6 +107,17 @@ export default function ResumeComparisonModal({ resumeId, isOpen, onClose, initi
     } catch (err: any) {
       console.error('Error fetching versions:', err);
       setError(err?.message || 'Failed to load versions');
+    }
+  };
+
+  const fetchScoreHistory = async () => {
+    try {
+      const r = await fetch(`/api/session/v1x/resume-comparison/score-history/${resumeId}`, { credentials: 'include' });
+      if (!r.ok) return; // optional; do not block UI on this
+      const data = await r.json();
+      setScoreHistory(Array.isArray(data) ? data : []);
+    } catch (_) {
+      // ignore errors for optional chart
     }
   };
 
@@ -311,6 +331,42 @@ export default function ResumeComparisonModal({ resumeId, isOpen, onClose, initi
                   </div>
                 </div>
               </div>
+
+              {/* Score History (optional) */}
+              {scoreHistory.length > 0 && (
+                <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 animate-slide-up" style={{ animationDelay: '0.05s', animationFillMode: 'backwards' }}>
+                  <h3 className="text-lg font-bold text-gray-900 mb-3">ATS Score History</h3>
+                  <div className="h-32">
+                    {(() => {
+                      // Simple responsive sparkline
+                      const w = 600; const h = 120; const pad = 16;
+                      const points = scoreHistory.map((p) => ({
+                        x: new Date(p.created_at).getTime(),
+                        y: typeof p.ats_score === 'number' ? p.ats_score : null,
+                      })).filter(p => p.y !== null) as {x:number;y:number}[];
+                      if (points.length < 2) return <p className="text-sm text-gray-500">Not enough data</p>;
+                      const xs = points.map(p=>p.x); const ys = points.map(p=>p.y);
+                      const xMin = Math.min(...xs), xMax = Math.max(...xs);
+                      const yMin = Math.min(...ys), yMax = Math.max(...ys);
+                      const xScale = (x:number)=> pad + (w - 2*pad) * ((x - xMin) / Math.max(1, (xMax - xMin)));
+                      const yScale = (y:number)=> h - pad - (h - 2*pad) * ((y - yMin) / Math.max(1, (yMax - yMin)));
+                      const d = points.map((p,i)=> `${i===0?'M':'L'} ${xScale(p.x).toFixed(1)} ${yScale(p.y).toFixed(1)}`).join(' ');
+                      return (
+                        <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-full">
+                          <defs>
+                            <linearGradient id="gradLine" x1="0" x2="0" y1="0" y2="1">
+                              <stop offset="0%" stopColor="#4f46e5"/>
+                              <stop offset="100%" stopColor="#a855f7"/>
+                            </linearGradient>
+                          </defs>
+                          <rect x="0" y="0" width={w} height={h} fill="#fafafa"/>
+                          <path d={d} fill="none" stroke="url(#gradLine)" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />
+                        </svg>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
 
               {/* Differences */}
               <div className="animate-slide-up" style={{ animationDelay: '0.1s', animationFillMode: 'backwards' }}>

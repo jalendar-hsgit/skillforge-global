@@ -169,6 +169,11 @@ try:
 except Exception as e:
     print(f"Failed to import resume_templates: {e}")
 
+try:
+    from app.api.v1x.resume_analytics_events import router as resume_analytics_events
+except Exception as e:
+    print(f"Failed to import resume_analytics_events: {e}")
+
 # App
 app = FastAPI(title=getattr(settings, "APP_NAME", "SkillForge Global"))
 
@@ -241,7 +246,7 @@ def _mount_v1x_export(obj):
 
 
 # Mount all v1x exports (modules or routers)
-for _export in (courses_db, progress_db, quizzes_db, youtube_sync, coins_db, mentors, payments, chat_files, payouts, subscriptions, connect, recordings, resumes, resume_ai, cover_letter, resume_comparison, linkedin_import, hiring, resume_import, marketplace, job_applications, job_notifications, job_calendar, resume_export, resume_templates):
+for _export in (courses_db, progress_db, quizzes_db, youtube_sync, coins_db, mentors, payments, chat_files, payouts, subscriptions, connect, recordings, resumes, resume_ai, cover_letter, resume_comparison, linkedin_import, hiring, resume_import, marketplace, job_applications, job_notifications, job_calendar, resume_export, resume_templates, resume_analytics_events):
     _mount_v1x_export(_export)
 
 # Mount WebSocket server

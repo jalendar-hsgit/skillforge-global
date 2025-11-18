@@ -21,18 +21,21 @@ import SkillsSection from './SkillsSection';
 import ProjectsSection from './ProjectsSection';
 import CertificatesSection from './CertificatesSection';
 import AchievementsSection from './AchievementsSection';
-import ResumePreview from './ResumePreview';
+import dynamic from 'next/dynamic';
 import ATSScoreCard from './ATSScoreCard';
-import TemplateSelector from './TemplateSelector';
-import AIAssistantPanel from './AIAssistantPanel';
-import ATSBreakdownModal from './ATSBreakdownModal';
-import StylePanel from './StylePanel';
-import ResumeComparisonModal from './ResumeComparisonModal';
-import VersionHistoryModal from './VersionHistoryModal';
-import LinkedInImportModal from './LinkedInImportModal';
-import CoverLetterModal from './CoverLetterModal';
-import KeyboardShortcutsModal from './KeyboardShortcutsModal';
 import ExportOptionsModal from './ExportOptionsModal';
+
+// Performance: dynamically load heavy preview/panels/modals after initial render
+const ResumePreview = dynamic(() => import('./ResumePreview'), { ssr: false });
+const TemplateSelector = dynamic(() => import('./TemplateSelector'), { ssr: false });
+const AIAssistantPanel = dynamic(() => import('./AIAssistantPanel'), { ssr: false });
+const ATSBreakdownModal = dynamic(() => import('./ATSBreakdownModal'), { ssr: false });
+const StylePanel = dynamic(() => import('./StylePanel'), { ssr: false });
+const ResumeComparisonModal = dynamic(() => import('./ResumeComparisonModal'), { ssr: false });
+const VersionHistoryModal = dynamic(() => import('./VersionHistoryModal'), { ssr: false });
+const LinkedInImportModal = dynamic(() => import('./LinkedInImportModal'), { ssr: false });
+const CoverLetterModal = dynamic(() => import('./CoverLetterModal'), { ssr: false });
+const KeyboardShortcutsModal = dynamic(() => import('./KeyboardShortcutsModal'), { ssr: false });
 import { useUndoRedo, UndoRedoControls, AutoSaveIndicator } from '@/hooks/useUndoRedo';
 import { useWebSocket, PresenceIndicator, RemoteCursor } from '@/hooks/useWebSocket';
 import { API_BASE } from '@/lib/apiBase';
@@ -112,18 +115,18 @@ const SortableSection = memo<{
       ref={setNodeRef}
       style={style}
       onClick={(e) => {
-        const target = e.target as HTMLElement
-        console.log('🖱️ Section clicked:', section.id, 'Target:', target.tagName)
+        const target = e.target as HTMLElement;
         if (target.closest('.drag-handle')) {
-          console.log('❌ Blocked: drag handle')
-          return
+          return;
         }
         if (target.tagName.toLowerCase() === 'input') {
-          console.log('❌ Blocked: checkbox')
-          return
+          return;
         }
-        console.log('✅ Activating section:', section.id)
-        onSectionClick(section.id)
+        if (process.env.NODE_ENV !== 'production') {
+          // eslint-disable-next-line no-console
+          console.log('Activate section:', section.id);
+        }
+        onSectionClick(section.id);
       }}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -225,6 +228,7 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
   const [showExportOptions, setShowExportOptions] = useState(false);
   const [atsScore, setAtsScore] = useState<number | null>(null);
+  const atsScheduledRef = useRef(false);
   const [isSplitView, setIsSplitView] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('resume-editor-split-view')
@@ -293,6 +297,7 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
   // Load resume data
   useEffect(() => {
     loadResume();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resumeId]);
 
   // Keyboard shortcuts
@@ -362,8 +367,9 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
           github: data.github_url,
           website: data.website_url,
         };
-        setResumeWithHistory(normalized);
-        fetchATSScore();
+  setResumeWithHistory(normalized);
+  // Schedule ATS fetch during idle time to avoid blocking initial paint
+  scheduleATSFetch();
       } else if (response.status === 401) {
         router.push('/login?redirect=' + encodeURIComponent(`/resumes/${resumeId}`));
         return;
@@ -405,6 +411,22 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
       console.error('Error fetching ATS score:', error);
       setAtsScore(null);
     }
+  };
+
+  // Defer ATS fetch to browser idle time or a gentle timeout
+  const scheduleATSFetch = () => {
+    if (atsScheduledRef.current) return;
+    atsScheduledRef.current = true;
+    const idle = (cb: () => void) => {
+      if (typeof (window as any).requestIdleCallback === 'function') {
+        (window as any).requestIdleCallback(cb, { timeout: 2000 });
+      } else {
+        setTimeout(cb, 1500);
+      }
+    };
+    idle(() => {
+      fetchATSScore();
+    });
   };
 
   // Map UI keys to API payload keys accepted by ResumeUpdate
@@ -464,7 +486,8 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
         if (response.ok) {
           setLastSaved(new Date());
           setSaveStatus('saved');
-          fetchATSScore(); // Refresh ATS score after save
+          // Refresh ATS score after save (async, non-blocking)
+          setTimeout(() => fetchATSScore(), 500);
           setToast({ type: 'success', message: 'Changes saved' });
           setTimeout(() => setToast(null), 2200);
           // Reset to idle after showing "saved" for a moment
@@ -564,13 +587,21 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
 
   const handleTemplateChange = (template: { id: number; name: string; config: any }) => {
     // Update resume with template ID and apply full template config
+    const cfg = template.config || {};
     const configUpdates = template.config ? {
-      font_family: template.config.font_family || template.config.font || resume?.font_family,
-      layout: template.config.layout || resume?.layout,
-      accent_color: template.config.accent_color || template.config.accent || resume?.accent_color,
-      picture_style: template.config.picture_style || template.config.picture || resume?.picture_style,
-      show_icons: template.config.show_icons !== undefined ? template.config.show_icons : (template.config.icons !== undefined ? template.config.icons : resume?.show_icons),
-      color_theme: template.config.color_theme || resume?.color_theme,
+      font_family: cfg.font_family || cfg.font || resume?.font_family,
+      layout: cfg.layout || resume?.layout,
+      accent_color: cfg.accent_color || cfg.accent || resume?.accent_color,
+      picture_style: cfg.picture_style || cfg.picture || resume?.picture_style,
+      show_icons: cfg.show_icons !== undefined ? cfg.show_icons : (cfg.icons !== undefined ? cfg.icons : resume?.show_icons),
+      color_theme: cfg.color_theme || resume?.color_theme,
+      // Provide sensible layout defaults based on common template ids/names
+      ...(typeof template.name === 'string' && template.name.toLowerCase().includes('executive') ? { layout: 'executive-two' } : {}),
+      ...(typeof template.name === 'string' && template.name.toLowerCase().includes('minimal') ? { layout: 'minimal' } : {}),
+      ...(typeof template.name === 'string' && template.name.toLowerCase().includes('classic') ? { layout: 'classic' } : {}),
+      ...(typeof template.name === 'string' && template.name.toLowerCase().includes('creative') ? { layout: 'creative' } : {}),
+      ...(typeof template.name === 'string' && template.name.toLowerCase().includes('tech') ? { layout: 'tech-two' } : {}),
+      ...(typeof template.name === 'string' && template.name.toLowerCase().includes('academic') ? { layout: 'academic-two' } : {}),
     } : {};
 
     updateResume({ 
@@ -679,27 +710,11 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
             {/* Top Row - Status & Quick Actions */}
             <div className="flex items-center gap-3">
               {/* Collaboration Status & Presence */}
-              <div className="flex items-center gap-2">
-                {wsConnected ? (
-                  <div className="flex items-center gap-2 px-2.5 py-1.5 bg-green-500/20 border border-green-500/30 rounded-lg">
-                    <Wifi className="w-3.5 h-3.5 text-green-400" />
-                    <span className="text-xs text-green-300 font-medium">Live</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 px-2.5 py-1.5 bg-gray-500/20 border border-gray-500/30 rounded-lg">
-                    <WifiOff className="w-3.5 h-3.5 text-gray-400" />
-                    <span className="text-xs text-gray-300 font-medium">Offline</span>
-                  </div>
-                )}
-                
-                {wsConnected && activeUsers.length > 0 && (
-                  <PresenceIndicator users={activeUsers} maxVisible={3} />
-                )}
-              </div>
-              
+              <PresenceIndicator users={activeUsers} maxVisible={3} />
+
               {/* Auto-save Indicator */}
               <AutoSaveIndicator status={saveStatus} />
-              
+
               {/* Undo/Redo Controls */}
               <UndoRedoControls
                 onUndo={undo}
@@ -708,7 +723,7 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
                 canRedo={canRedo}
                 historyCount={history.length}
               />
-              
+
               {/* Keyboard Shortcuts Button */}
               <button
                 onClick={() => setShowKeyboardShortcuts(true)}
@@ -717,7 +732,7 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
               >
                 <span className="text-base group-hover:scale-110 transition-transform inline-block">⌨️</span>
               </button>
-              
+
               {/* ATS Score Badge */}
               {atsScore !== null && (
                 <button

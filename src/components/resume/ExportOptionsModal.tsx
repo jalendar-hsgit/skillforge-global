@@ -1,4 +1,4 @@
-import { Download, FileText, FileJson, FileCode } from 'lucide-react'
+import { Download, FileText, FileJson, FileCode, FileDown } from 'lucide-react'
 
 interface ExportOptionsModalProps {
   isOpen: boolean
@@ -10,6 +10,8 @@ interface ExportOptionsModalProps {
 export default function ExportOptionsModal({ isOpen, onClose, resume, resumeId }: ExportOptionsModalProps) {
   if (!isOpen) return null
 
+  const loaded = !!resume && !!resumeId
+
   const exportAsJSON = () => {
     const dataStr = JSON.stringify(resume, null, 2)
     const dataBlob = new Blob([dataStr], { type: 'application/json' })
@@ -19,6 +21,88 @@ export default function ExportOptionsModal({ isOpen, onClose, resume, resumeId }
     link.download = `${resume.title || 'resume'}.json`
     link.click()
     URL.revokeObjectURL(url)
+  }
+
+  const exportAsPDF = async () => {
+    try {
+       console.log(`[PDF Export] Attempting export for resume ${resumeId} (type: ${typeof resumeId})`)
+      // Preflight: verify the resume exists and belongs to the current user
+      try {
+        const check = await fetch(`/api/session/resumes?id=${resumeId}`, {
+          method: 'GET',
+          credentials: 'include',
+        })
+        if (check.status === 401) {
+          alert('You need to be logged in to export this resume.');
+          return;
+        }
+        if (check.status === 404) {
+          alert('This resume was not found or you do not have access. Open one of your resumes and try again.');
+          return;
+        }
+      } catch (e) {
+        // Non-fatal: continue to attempt export but log the preflight error
+        console.warn('[PDF Export] Preflight check failed:', e)
+      }
+      // Use dedicated export endpoint that's reliable for demo
+      const response = await fetch(`/api/session/export?resumeId=${resumeId}&format=pdf`, {
+        method: 'GET',
+        credentials: 'include',
+      })
+
+      console.log(`[PDF Export] Response status: ${response.status}`)
+      console.log(`[PDF Export] Response headers:`, {
+        'content-type': response.headers.get('content-type'),
+        'content-disposition': response.headers.get('content-disposition'),
+        'x-debug-target': response.headers.get('x-debug-target')
+      })
+      
+      // Log the actual error body for 404s
+      if (response.status === 404) {
+        const errorBody = await response.clone().text()
+        console.log(`[PDF Export] 404 Response body:`, errorBody)
+      }
+
+      if (response.ok) {
+        const blob = await response.blob()
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        // Let backend filename win if present
+        const disposition = response.headers.get('content-disposition') || ''
+        const match = disposition.match(/filename="?([^";]+)"?/i)
+        const filename = match?.[1] || `${resume.title || 'resume'}.pdf`
+        link.download = filename
+        link.click()
+        URL.revokeObjectURL(url)
+        console.log(`[PDF Export] Successfully exported as ${filename}`)
+      } else {
+        // Try to extract a helpful error message
+        let msg = ''
+        const ct = response.headers.get('content-type') || ''
+        try {
+          if (ct.includes('application/json')) {
+            const j = await response.json()
+            msg = j?.detail || JSON.stringify(j)
+          } else {
+            msg = await response.text()
+          }
+        } catch {}
+
+        // Map common cases to friendlier copy
+        if (response.status === 401) {
+          msg = msg || 'You need to be logged in to export this resume.'
+        } else if (response.status === 404) {
+          msg = msg || 'This resume was not found or you do not have access.'
+        }
+
+        console.error(`[PDF Export] Failed with ${response.status}: ${msg}`)
+        alert(`PDF export failed (${response.status})${msg ? `: ${msg}` : ''}`)
+      }
+    } catch (error) {
+      console.error('[PDF Export] Exception:', error)
+      alert('PDF export failed. Please try again later.')
+    }
   }
 
   const exportAsText = () => {
@@ -102,9 +186,35 @@ export default function ExportOptionsModal({ isOpen, onClose, resume, resumeId }
 
   const exportAsWord = async () => {
     try {
-      const response = await fetch(`/api/session/resumes/${resumeId}/export/docx`, {
+      // Preflight: verify the resume exists and belongs to the current user
+      try {
+        const check = await fetch(`/api/session/resumes?id=${resumeId}`, {
+          method: 'GET',
+          credentials: 'include',
+        })
+        if (check.status === 401) {
+          alert('You need to be logged in to export this resume.');
+          return;
+        }
+        if (check.status === 404) {
+          alert('This resume was not found or you do not have access. Open one of your resumes and try again.');
+          return;
+        }
+      } catch (e) {
+        console.warn('[DOCX Export] Preflight check failed:', e)
+      }
+       console.log(`[DOCX Export] Attempting export for resume ${resumeId} (type: ${typeof resumeId})`)
+      // Use dedicated export endpoint that's reliable for demo
+      const response = await fetch(`/api/session/export?resumeId=${resumeId}&format=docx`, {
         method: 'GET',
         credentials: 'include',
+      })
+      
+      console.log(`[DOCX Export] Response status: ${response.status}`)
+      console.log(`[DOCX Export] Response headers:`, {
+        'content-type': response.headers.get('content-type'),
+        'content-disposition': response.headers.get('content-disposition'),
+        'x-debug-target': response.headers.get('x-debug-target')
       })
       
       if (response.ok) {
@@ -112,11 +222,31 @@ export default function ExportOptionsModal({ isOpen, onClose, resume, resumeId }
         const url = URL.createObjectURL(blob)
         const link = document.createElement('a')
         link.href = url
-        link.download = `${resume.title || 'resume'}.docx`
+        // Prefer backend-provided filename when available
+        const disposition = response.headers.get('content-disposition') || ''
+        const match = disposition.match(/filename="?([^";]+)"?/i)
+        const filename = match?.[1] || `${resume.title || 'resume'}.docx`
+        link.download = filename
         link.click()
         URL.revokeObjectURL(url)
       } else {
-        alert('Word export not yet available. Please use PDF export.')
+        let msg = ''
+        const ct = response.headers.get('content-type') || ''
+        try {
+          if (ct.includes('application/json')) {
+            const j = await response.json()
+            msg = j?.detail || JSON.stringify(j)
+          } else {
+            msg = await response.text()
+          }
+        } catch {}
+        if (response.status === 401) {
+          msg = msg || 'You need to be logged in to export this resume.'
+        } else if (response.status === 404) {
+          msg = msg || 'This resume was not found or you do not have access.'
+        }
+        console.error(`[DOCX Export] Failed with ${response.status}: ${msg}`)
+        alert(`Word export failed (${response.status})${msg ? `: ${msg}` : ''}`)
       }
     } catch (error) {
       console.error('Word export failed:', error)
@@ -125,6 +255,13 @@ export default function ExportOptionsModal({ isOpen, onClose, resume, resumeId }
   }
 
   const exportFormats = [
+    {
+      name: 'PDF (.pdf)',
+      description: 'Print-ready professional PDF document',
+      icon: FileDown,
+      color: 'from-red-500 to-pink-600',
+      action: exportAsPDF,
+    },
     {
       name: 'JSON',
       description: 'Machine-readable format for data portability',
@@ -177,10 +314,15 @@ export default function ExportOptionsModal({ isOpen, onClose, resume, resumeId }
             <button
               key={format.name}
               onClick={() => {
+                if (!loaded) {
+                  alert('Resume data not loaded yet. Please wait a moment and try again.')
+                  return
+                }
                 format.action()
                 onClose()
               }}
               className="w-full flex items-center gap-4 p-4 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 hover:border-white/20 transition-all group"
+              disabled={!loaded}
             >
               <div className={`p-3 bg-gradient-to-br ${format.color} rounded-lg group-hover:scale-110 transition-transform`}>
                 <format.icon className="w-6 h-6 text-white" />
@@ -195,6 +337,9 @@ export default function ExportOptionsModal({ isOpen, onClose, resume, resumeId }
                   )}
                 </div>
                 <p className="text-xs text-white/60 mt-0.5">{format.description}</p>
+                {!loaded && (
+                  <p className="text-[10px] text-yellow-300/70 mt-1">Resume not loaded yet</p>
+                )}
               </div>
               <Download className="w-5 h-5 text-white/40 group-hover:text-white transition-colors" />
             </button>
@@ -203,9 +348,10 @@ export default function ExportOptionsModal({ isOpen, onClose, resume, resumeId }
 
         {/* Footer */}
         <div className="p-4 border-t border-white/10 bg-white/5 text-center">
-          <p className="text-xs text-white/50">
-            💡 <strong>Tip:</strong> Use PDF export for best compatibility with job applications
-          </p>
+          <div className="text-xs text-white/60 space-y-1">
+            <p>💡 <strong>Tip:</strong> Use PDF for job portals; DOCX if you plan to keep editing.</p>
+            <p className="opacity-70">Debug: resumeId={resumeId} loaded={String(loaded)}</p>
+          </div>
         </div>
       </div>
     </div>
