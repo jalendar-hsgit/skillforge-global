@@ -39,7 +39,7 @@ type MentorData = {
     user_id: number
     status: string
     bio: string
-    expertise: string
+    expertise: string[]
     hourly_rate: number
   }
   stats: MentorStats
@@ -59,36 +59,53 @@ export default function MentorDashboard() {
 
   async function loadDashboard() {
     setLoading(true)
+    setError('')
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/api/v1x/mentor-portal/dashboard/overview`, {
+      const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8001'}/api/v1x/mentor-portal/dashboard/overview`
+      console.log('Fetching mentor dashboard from:', apiUrl)
+      
+      const res = await fetch(apiUrl, {
         credentials: 'include'
       })
 
+      console.log('Response status:', res.status)
+
       if (res.status === 401) {
+        console.log('Unauthorized - redirecting to login')
         router.push('/login?redirect=/mentors/dashboard')
         return
       }
 
       if (res.status === 404) {
+        console.log('Not a mentor')
         setError('You are not registered as a mentor')
         return
       }
 
       if (res.status === 403) {
         const errorData = await res.json()
+        console.log('Forbidden:', errorData)
         setError(errorData.detail || 'Mentor account not approved')
         return
       }
 
       if (res.ok) {
         const dashboardData = await res.json()
+        console.log('Dashboard data received:', dashboardData)
+        
+        // Ensure status is a string
+        if (dashboardData.mentor && typeof dashboardData.mentor.status !== 'string') {
+          dashboardData.mentor.status = String(dashboardData.mentor.status)
+        }
         setData(dashboardData)
       } else {
-        setError('Failed to load dashboard')
+        const errorText = await res.text()
+        console.error('Dashboard error:', res.status, errorText)
+        setError(`Failed to load dashboard (${res.status})`)
       }
-    } catch (err) {
-      console.error(err)
-      setError('Failed to load dashboard')
+    } catch (err: any) {
+      console.error('Dashboard fetch error:', err)
+      setError(err?.message || 'Failed to load dashboard')
     } finally {
       setLoading(false)
     }
@@ -146,8 +163,8 @@ export default function MentorDashboard() {
           <h2 className="text-2xl font-bold text-white mb-2">Welcome, Mentor! 👨‍🏫</h2>
           <p className="text-techGray">
             Status: <span className={`font-semibold ${
-              mentor.status === 'approved' ? 'text-green-400' : 'text-yellow-400'
-            }`}>{mentor.status.toUpperCase()}</span>
+              (mentor?.status || '').toLowerCase() === 'approved' ? 'text-green-400' : 'text-yellow-400'
+            }`}>{(mentor?.status || 'unknown').toUpperCase()}</span>
           </p>
         </div>
 
@@ -301,7 +318,11 @@ export default function MentorDashboard() {
                 </div>
                 <div className="mb-4">
                   <div className="text-sm text-techGray mb-1">Expertise</div>
-                  <div className="text-white">{mentor.expertise || 'Not set'}</div>
+                  <div className="text-white">
+                    {Array.isArray(mentor.expertise) 
+                      ? mentor.expertise.join(', ') 
+                      : (mentor.expertise || 'Not set')}
+                  </div>
                 </div>
                 <Link
                   href="/mentors/dashboard/profile"
