@@ -18,12 +18,15 @@ type Session = {
   created_at: string
 }
 
+type SessionAction = 'confirm' | 'cancel' | 'complete'
+
 export default function MentorSessions() {
   const router = useRouter()
   const [sessions, setSessions] = useState<Session[]>([])
   const [total, setTotal] = useState(0)
   const [filter, setFilter] = useState('all')
   const [loading, setLoading] = useState(true)
+  const [actionLoading, setActionLoading] = useState<number | null>(null)
 
   useEffect(() => {
     loadSessions()
@@ -62,6 +65,46 @@ export default function MentorSessions() {
       case 'cancelled': return 'bg-red-500/20 text-red-400 border-red-500/30'
       case 'pending': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
       default: return 'bg-gray-500/20 text-gray-400 border-gray-500/30'
+    }
+  }
+
+  async function handleSessionAction(sessionId: number, action: SessionAction) {
+    if (actionLoading) return
+    
+    const statusMap: Record<SessionAction, string> = {
+      confirm: 'confirmed',
+      cancel: 'cancelled',
+      complete: 'completed'
+    }
+    
+    setActionLoading(sessionId)
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE}/api/v1x/mentors/sessions/${sessionId}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ status: statusMap[action] })
+        }
+      )
+
+      if (res.status === 401) {
+        router.push('/login?redirect=/mentors/dashboard/sessions')
+        return
+      }
+
+      if (!res.ok) {
+        const text = await res.text()
+        throw new Error(text || 'Failed to update session')
+      }
+
+      // Reload sessions
+      await loadSessions()
+    } catch (err: any) {
+      alert(err?.message || 'Failed to update session')
+    } finally {
+      setActionLoading(null)
     }
   }
 
@@ -171,6 +214,46 @@ export default function MentorSessions() {
                       <div className="text-sm text-white">{session.notes}</div>
                     </div>
                   )}
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-2 mt-4">
+                    {session.status === 'pending' && (
+                      <>
+                        <button
+                          onClick={() => handleSessionAction(session.id, 'confirm')}
+                          disabled={actionLoading === session.id}
+                          className="px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                        >
+                          {actionLoading === session.id ? 'Processing...' : '✓ Confirm'}
+                        </button>
+                        <button
+                          onClick={() => handleSessionAction(session.id, 'cancel')}
+                          disabled={actionLoading === session.id}
+                          className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                        >
+                          {actionLoading === session.id ? 'Processing...' : '✗ Cancel'}
+                        </button>
+                      </>
+                    )}
+                    {session.status === 'confirmed' && (
+                      <>
+                        <button
+                          onClick={() => handleSessionAction(session.id, 'complete')}
+                          disabled={actionLoading === session.id}
+                          className="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                        >
+                          {actionLoading === session.id ? 'Processing...' : '✓ Mark Complete'}
+                        </button>
+                        <button
+                          onClick={() => handleSessionAction(session.id, 'cancel')}
+                          disabled={actionLoading === session.id}
+                          className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                        >
+                          {actionLoading === session.id ? 'Processing...' : '✗ Cancel'}
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
