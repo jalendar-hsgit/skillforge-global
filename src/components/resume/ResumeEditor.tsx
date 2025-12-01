@@ -9,7 +9,7 @@ import { exportResumePDF, exportResumePDFFromPreview } from '@/lib/pdf';
 import { 
   Save, Download, Eye, Layout as LayoutIcon, GripVertical, 
   Wand2, FileText, Check, Sparkles, ChevronDown, ChevronUp, 
-  Linkedin, GitCompare, Palette, Wifi, WifiOff 
+  Linkedin, GitCompare, Palette, Wifi, WifiOff, Target 
 } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
@@ -36,6 +36,7 @@ const VersionHistoryModal = dynamic(() => import('./VersionHistoryModal'), { ssr
 const LinkedInImportModal = dynamic(() => import('./LinkedInImportModal'), { ssr: false });
 const CoverLetterModal = dynamic(() => import('./CoverLetterModal'), { ssr: false });
 const KeyboardShortcutsModal = dynamic(() => import('./KeyboardShortcutsModal'), { ssr: false });
+const ATSInsightsPanel = dynamic(() => import('./ATSInsightsPanel'), { ssr: false });
 import { useUndoRedo, UndoRedoControls, AutoSaveIndicator } from '@/hooks/useUndoRedo';
 import { useWebSocket, PresenceIndicator, RemoteCursor } from '@/hooks/useWebSocket';
 import { API_BASE } from '@/lib/apiBase';
@@ -220,9 +221,16 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
   const [showAIPanel, setShowAIPanel] = useState(false);
   const [showStylePanel, setShowStylePanel] = useState(false);
   const [showATSBreakdown, setShowATSBreakdown] = useState(false);
+  const [showATSInsights, setShowATSInsights] = useState(false);
   const [showComparisonModal, setShowComparisonModal] = useState(false);
   const [preselectCompare, setPreselectCompare] = useState<{ base?: number | null; compared?: number | null }>({});
   const [showVersionHistory, setShowVersionHistory] = useState(false);
+  const [autoSnapshot, setAutoSnapshot] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('resume-auto-snapshot') || 'false') === 'true';
+    }
+    return false;
+  });
   const [showLinkedInModal, setShowLinkedInModal] = useState(false);
   const [showCoverLetterModal, setShowCoverLetterModal] = useState(false);
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
@@ -362,17 +370,28 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
         const normalized: Resume = {
           ...data,
           template: data.template_id,
+          layout: data.layout || data.template_id || 'modern',
           professional_summary: data.summary,
           linkedin: data.linkedin_url,
           github: data.github_url,
           website: data.website_url,
+          accent: data.accent_color,
         };
   setResumeWithHistory(normalized);
   // Schedule ATS fetch during idle time to avoid blocking initial paint
   scheduleATSFetch();
       } else if (response.status === 401) {
-        router.push('/login?redirect=' + encodeURIComponent(`/resumes/${resumeId}`));
+        // Preserve the current resume ID in redirect so user returns to same resume after login
+        const currentPath = window.location.pathname;
+        router.push('/login?redirect=' + encodeURIComponent(currentPath));
         return;
+      } else if (response.status === 404) {
+        // Resume doesn't exist - but don't auto-redirect, let user choose
+        setToast({ 
+          type: 'error', 
+          message: 'Resume not found. It may have been deleted.' 
+        });
+        setResumeWithHistory(null);
       } else {
         const errorText = await response.text();
         console.error('Failed to load resume:', response.status, errorText);
@@ -443,8 +462,8 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
     if ((data as any).website !== undefined) out.website_url = (data as any).website;
     if ((data as any).professional_summary !== undefined) out.summary = (data as any).professional_summary;
     // Style & layout persistence
-    if ((data as any).font_family !== undefined) out.font_family = (data as any).font_family;
     if ((data as any).layout !== undefined) out.layout = (data as any).layout;
+    if ((data as any).font_family !== undefined) out.font_family = (data as any).font_family;
     if ((data as any).accent_color !== undefined) out.accent_color = (data as any).accent_color;
     if ((data as any).picture_style !== undefined) out.picture_style = (data as any).picture_style;
     if ((data as any).show_icons !== undefined) out.show_icons = (data as any).show_icons;
@@ -608,6 +627,27 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
       template: template.id.toString(),
       ...configUpdates
     });
+
+    // Immediately persist template/layout selections to backend so Preview & PDF reflect changes
+    try {
+      const immediatePayload: Record<string, any> = {
+        template_id: template.id.toString()
+      };
+      if (configUpdates.layout !== undefined) immediatePayload.layout = configUpdates.layout;
+      if (configUpdates.accent_color !== undefined) immediatePayload.accent_color = configUpdates.accent_color;
+      if (configUpdates.font_family !== undefined) immediatePayload.font_family = configUpdates.font_family;
+      if (configUpdates.picture_style !== undefined) immediatePayload.picture_style = configUpdates.picture_style;
+      if (configUpdates.show_icons !== undefined) immediatePayload.show_icons = configUpdates.show_icons;
+      if (configUpdates.color_theme !== undefined) immediatePayload.color_theme = configUpdates.color_theme;
+
+      // Fire-and-forget patch (no debounce) to avoid stale layout in /preview & PDF export
+      fetch(`/api/session/resumes?id=${resumeId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(immediatePayload)
+      }).catch(() => {});
+    } catch(_) {}
     
     setShowTemplateSelector(false);
     setToast({ type: 'success', message: `Applied template: ${template.name}` });
@@ -795,6 +835,21 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
                     fetchATSScore();
                     setToast({ type: 'success', message: 'Saved successfully' });
                     setTimeout(() => setToast(null), 2000);
+                    // Optional auto-snapshot after successful manual save
+                    if (autoSnapshot) {
+                      try {
+                        await fetch(`/api/session/v1x/resume-comparison/versions`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          credentials: 'include',
+                          body: JSON.stringify({
+                            resume_id: resumeId,
+                            version_name: `Auto – ${new Date().toLocaleString()}`,
+                            description: 'Auto snapshot created after manual save'
+                          })
+                        });
+                      } catch (_) { /* ignore snapshot errors */ }
+                    }
                   } else {
                     const txt = await response.text();
                     console.error('Save failed:', response.status, txt);
@@ -866,6 +921,33 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
             >
               <Save className="w-3.5 h-3.5 mr-1.5" />
               <span>Versions</span>
+            </Button>
+            <button
+              onClick={() => {
+                const next = !autoSnapshot;
+                setAutoSnapshot(next);
+                if (typeof window !== 'undefined') {
+                  localStorage.setItem('resume-auto-snapshot', next.toString());
+                }
+              }}
+              title="Auto-create a version after each manual save"
+              className={`px-2 py-1 rounded-lg border text-xs font-semibold transition-all ${autoSnapshot ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-100' : 'bg-white/10 border-white/20 text-white/70'}`}
+            >
+              {autoSnapshot ? 'Auto Snapshot: On' : 'Auto Snapshot: Off'}
+            </button>
+            <Button
+              onClick={() => {
+                setShowATSInsights(!showATSInsights);
+                if (!showATSInsights) {
+                  setShowAIPanel(false);
+                  setShowStylePanel(false);
+                }
+              }}
+              variant="secondary"
+              className={`font-medium text-sm px-3 py-1.5 transition-all duration-200 hover:shadow-lg ${showATSInsights ? 'bg-purple-500/30 border-purple-400' : 'bg-purple-500/20 border-purple-400/50'}`}
+            >
+              <Target className="w-3.5 h-3.5 mr-1.5" />
+              <span>ATS Insights</span>
             </Button>
             <Button
               onClick={() => setShowComparisonModal(true)}
@@ -1020,7 +1102,7 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
           </div>
         </div>
 
-        {/* Right Sidebar - AI Panel or Live Preview */}
+        {/* Right Sidebar - AI Panel or Style Panel or ATS Insights or Live Preview */}
         <div className="w-[32rem] bg-gradient-to-b from-deepTech via-deepTech/95 to-deepTech/90 border-l border-white/20 overflow-y-auto shadow-2xl">
           {showAIPanel ? (
             <div className="p-6 h-full flex flex-col">
@@ -1071,6 +1153,14 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
               <div className="overflow-y-auto flex-1">
                 <StylePanel resume={resume} onUpdate={(updates) => updateResume(updates)} />
               </div>
+            </div>
+          ) : showATSInsights ? (
+            <div className="p-6 h-full flex flex-col">
+              <ATSInsightsPanel
+                resumeId={String(resumeId)}
+                resumeContent={resume}
+                onClose={() => setShowATSInsights(false)}
+              />
             </div>
           ) : (
             <div className="p-6">

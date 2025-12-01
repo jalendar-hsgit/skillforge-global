@@ -23,5 +23,5 @@ class MentorChatFile(Base):
     uploaded_at = Column(DateTime, default=datetime.utcnow)
     
     # Relationships
-    session = relationship("MentorSession", back_populates="chat_files")
+    session = relationship("MentorSession")  # back_populates="chat_files" commented out in MentorSession
     sender = relationship("app.models.user.User")

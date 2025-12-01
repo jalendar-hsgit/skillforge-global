@@ -44,7 +44,19 @@ export default function ResumePreviewPage() {
 
         if (res.ok) {
           const data = await res.json()
-          setResume(data)
+          // Normalize template field for ResumePreview component
+          const normalized = {
+            ...data,
+            // Use backend-provided layout if present; let ResumePreview derive from template_id otherwise
+            layout: data.layout,
+            template: data.template_id || data.template || 'modern',
+            professional_summary: data.summary || data.professional_summary,
+            linkedin: data.linkedin_url || data.linkedin,
+            github: data.github_url || data.github,
+            website: data.website_url || data.website,
+            accent: data.accent_color || data.accent
+          }
+          setResume(normalized)
             // Track resume view event
             if (data?.id && data?.user_id) {
               fetch(`${API_BASE}/api/v1x/resume-analytics/events/view/${data.id}?user_id=${data.user_id}`, { method: 'POST' })
@@ -113,7 +125,19 @@ export default function ResumePreviewPage() {
                   })
                     .then(res => res.ok ? res.json() : null)
                     .then(data => {
-                      if (data) setResume(data);
+                      if (data) {
+                        const normalized = {
+                          ...data,
+                          layout: data.layout,
+                          template: data.template_id || data.template || 'modern',
+                          professional_summary: data.summary || data.professional_summary,
+                          linkedin: data.linkedin_url || data.linkedin,
+                          github: data.github_url || data.github,
+                          website: data.website_url || data.website,
+                          accent: data.accent_color || data.accent
+                        }
+                        setResume(normalized);
+                      }
                     })
                     .catch(e => console.error('Error refreshing resume:', e))
                     .finally(() => setLoading(false));
@@ -155,13 +179,9 @@ export default function ResumePreviewPage() {
           {/* Resume Container - Print optimized */}
           <div
             id="resume-content"
-            className="bg-white shadow-xl print:shadow-none rounded-lg print:rounded-none overflow-hidden"
+            className="bg-white shadow-xl print:shadow-none print:rounded-none overflow-hidden"
           >
-            <div className="p-8">
-              <div className="max-w-3xl mx-auto">
-                <ResumePreview resume={resume as any} />
-              </div>
-            </div>
+            <ResumePreview resume={resume as any} />
           </div>
         </div>
       </div>

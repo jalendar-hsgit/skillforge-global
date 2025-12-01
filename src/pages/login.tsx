@@ -13,6 +13,9 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  
+  // Check for signup success message
+  const showSignupSuccess = router.query.signup === 'success'
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -20,6 +23,8 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
+      console.log('🔐 Starting login process...')
+      
       const response = await fetch('/api/session/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -27,18 +32,61 @@ export default function LoginPage() {
         credentials: 'include'
       })
       
+      console.log('📨 Login response status:', response.status)
+      
       if (!response.ok) {
-        throw new Error('Login failed')
+        const errorData = await response.json().catch(() => ({}))
+        console.error('❌ Login failed:', errorData)
+        throw new Error(errorData.detail || 'Login failed')
       }
       
-      // Successfully logged in, redirect to original page or dashboard
-      const redirectTo = (router.query.redirect as string) || '/dashboard'
-      router.push(redirectTo)
+      // Wait for login response
+      const loginData = await response.json()
+      console.log('✅ Login successful:', loginData)
+      
+      // Small delay to ensure cookie is set
+      await new Promise(resolve => setTimeout(resolve, 200))
+      
+      // Check user role to determine redirect
+      console.log('👤 Fetching user info...')
+      const meResponse = await fetch('/api/session/me', { credentials: 'include' })
+      console.log('📨 Me response status:', meResponse.status)
+      
+      if (meResponse.ok) {
+        const user = await meResponse.json()
+        console.log('✅ User data:', user)
+        
+        // Determine redirect URL
+        let redirectUrl = '/dashboard'
+        
+        // If there's a redirect query param, use it
+        if (router.query.redirect && typeof router.query.redirect === 'string') {
+          redirectUrl = router.query.redirect
+          console.log('🔀 Using redirect param:', redirectUrl)
+        } 
+        // Redirect based on role
+        else if (user.role === 'ADMIN' || user.role === 'SUPERADMIN') {
+          redirectUrl = '/admin'
+          console.log('👑 Admin user, redirecting to:', redirectUrl)
+        } else {
+          console.log('👤 Regular user, redirecting to:', redirectUrl)
+        }
+        
+        console.log('🚀 Redirecting to:', redirectUrl)
+        
+        // Force a full page reload to ensure clean state
+        window.location.replace(redirectUrl)
+      } else {
+        console.log('⚠️ Me endpoint failed, redirecting to dashboard')
+        // Fallback to dashboard if can't get user info
+        window.location.replace('/dashboard')
+      }
     } catch (err) {
-      setError('Invalid email or password')
-    } finally {
+      console.error('❌ Login error:', err)
+      setError(err instanceof Error ? err.message : 'Invalid email or password')
       setLoading(false)
     }
+    // Don't set loading to false here - let the page redirect
   }
 
   return (
@@ -61,6 +109,16 @@ export default function LoginPage() {
 
           {/* Login Card */}
           <Card className="p-8 backdrop-blur-lg bg-white/5 border border-white/10">
+            {showSignupSuccess && (
+              <div className="bg-green-500/10 border border-green-500/20 text-green-400 p-4 rounded-lg mb-6 flex items-start gap-3">
+                <span className="text-xl">✅</span>
+                <div>
+                  <p className="font-semibold">Account created successfully!</p>
+                  <p className="text-sm text-green-300 mt-1">Please log in with your credentials to continue.</p>
+                </div>
+              </div>
+            )}
+            
             {error && (
               <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-lg mb-6 flex items-start gap-3">
                 <span className="text-xl">⚠️</span>

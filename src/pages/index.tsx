@@ -2,6 +2,7 @@ import Head from 'next/head'
 import Layout from '@/components/Layout'
 import { Hero } from '@/components/Hero'
 import CareerPathsGrid from '@/components/sections/CareerPathsGrid'
+import FeaturedCourses from '@/components/sections/FeaturedCourses'
 import SkillAIBridgeBand from '@/components/sections/SkillAIBridgeBand'
 import Pricing from '@/components/sections/Pricing'
 import FAQ from '@/components/sections/FAQ'
@@ -50,6 +51,7 @@ export default function HomePage() {
         </PageGrid>
       </PageSection>
       
+      <FeaturedCourses />
       <CareerPathsGrid />
       <SkillAIBridgeBand />
       <Pricing />

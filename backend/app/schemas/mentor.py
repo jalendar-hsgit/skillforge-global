@@ -47,17 +47,23 @@ class MentorProfileUpdate(BaseModel):
     hourly_rate: Optional[float] = Field(None, ge=0, le=500)
 
 
+class UserInfo(BaseModel):
+    """User info for mentor profile"""
+    full_name: Optional[str] = None
+    email: str
+
 class MentorProfileResponse(BaseModel):
     """Public mentor profile"""
     id: int
     user_id: int
-    email: str  # From user relationship
+    email: str  # From user relationship (deprecated, use user.email)
     bio: str
     expertise: str
     hourly_rate: float
     status: MentorStatusEnum
     total_sessions: int
     average_rating: float
+    user: Optional[UserInfo] = None  # Nested user object
     created_at: datetime
     
     class Config:
@@ -104,6 +110,8 @@ class SessionResponse(BaseModel):
     meeting_url: Optional[str]
     price: float
     payment_status: str
+    mentor_notes: Optional[str] = None
+    student_feedback: Optional[str] = None
     created_at: datetime
     
     class Config:

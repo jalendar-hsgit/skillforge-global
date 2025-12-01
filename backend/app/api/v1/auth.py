@@ -24,6 +24,8 @@ class SignupRequest(BaseModel):
     email: EmailStr
     password: str
     full_name: str | None = None  # Optional field from frontend
+    # Note: role is NOT allowed in public signup - users always start as 'user'
+    # Only superadmins can promote users via admin panel
 
 class LoginRequest(BaseModel):
     email: EmailStr
@@ -44,14 +46,25 @@ async def signup(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
-    # Rate limit signup by IP (5 signups per hour per IP)
+    # Check if new registrations are allowed
+    from app.services.settings_service import allow_new_registrations
+    if not allow_new_registrations():
+        raise HTTPException(
+            status_code=403,
+            detail="New user registrations are currently disabled. Please contact support."
+        )
+    
+    # Rate limit signup by IP (100 signups per hour per IP for development)
+    # In production, consider lowering this to 5-10
     client_ip = request.client.host if request.client else "unknown"
     ip_hash = int(hashlib.md5(client_ip.encode()).hexdigest()[:8], 16)
-    rate_limit(ip_hash, "auth:signup", limit=5, window_seconds=3600)
+    rate_limit(ip_hash, "auth:signup", limit=100, window_seconds=3600)
     
     if db.query(User).filter(User.email == data.email).first():
         raise HTTPException(status_code=400, detail="Email already exists")
     
+    # All public signups are regular users by default
+    # Only superadmins can promote users to admin/superadmin roles
     user = User(email=data.email, password_hash=get_password_hash(data.password))
     db.add(user)
     db.commit()
@@ -77,33 +90,58 @@ async def signup(
 
 @router.post("/login")
 def login(res: Response, request: Request, data: LoginRequest, db: Session = Depends(get_db)):
-    # Rate limit login attempts by IP (10 attempts per 5 minutes per IP)
-    client_ip = request.client.host if request.client else "unknown"
-    ip_hash = int(hashlib.md5(client_ip.encode()).hexdigest()[:8], 16)
-    rate_limit(ip_hash, "auth:login", limit=10, window_seconds=300)
-    
-    u = db.query(User).filter(User.email == data.email).first()
-    if not u or not verify_password(data.password, u.password_hash):
-        raise HTTPException(status_code=401, detail="Invalid login")
-    token = create_access_token(u.id)
-    # Cookie flags: HttpOnly + SameSite=Lax always; Secure only when frontend origin is https
+    """Login endpoint: validates credentials and sets auth cookie.
+    Added debug logs to diagnose 500s when proxying via Next.js.
+    """
     try:
-        from app.core.config import settings
-        parsed = urlparse(getattr(settings, "FRONTEND_ORIGIN", ""))
-        secure = parsed.scheme == "https"
-    except Exception:
-        secure = False
+        # Rate limit login attempts by IP (10 attempts per 5 minutes per IP)
+        client_ip = request.client.host if request.client else "unknown"
+        logger.debug(f"/auth/login from {client_ip}")
+        ip_hash = int(hashlib.md5(client_ip.encode()).hexdigest()[:8], 16)
+        rate_limit(ip_hash, "auth:login", limit=10, window_seconds=300)
 
-    res.set_cookie(
-        key="token",
-        value=token,
-        httponly=True,
-        samesite="lax",
-        path="/",
-        max_age=60 * 60 * 24 * 7,
-        secure=secure,
-    )
-    return {"logged": True}
+        # Lookup user
+        u = db.query(User).filter(User.email == data.email).first()
+        if not u:
+            logger.debug("Login failed: user not found")
+            raise HTTPException(status_code=401, detail="Invalid login")
+
+        # Verify password
+        if not verify_password(data.password, u.password_hash):
+            logger.debug("Login failed: bad password")
+            raise HTTPException(status_code=401, detail="Invalid login")
+
+        # Create token
+        token = create_access_token(u.id)
+        logger.debug("Login success: token created")
+
+        # Cookie flags: HttpOnly + SameSite=Lax always; Secure only when frontend origin is https
+        try:
+            from app.core.config import settings
+            parsed = urlparse(getattr(settings, "FRONTEND_ORIGIN", ""))
+            secure = parsed.scheme == "https"
+        except Exception as se:
+            logger.warning(f"Failed to parse FRONTEND_ORIGIN: {se}")
+            secure = False
+
+        res.set_cookie(
+            key="token",
+            value=token,
+            httponly=True,
+            samesite="lax",
+            path="/",
+            max_age=60 * 60 * 24 * 7,
+            secure=secure,
+        )
+        logger.debug("Auth cookie set on response")
+        return {"logged": True}
+    except HTTPException:
+        # Re-raise HTTP errors (401/429)
+        raise
+    except Exception as e:
+        # Log and surface as 500 for easier diagnosis in dev
+        logger.exception(f"Unexpected error in /auth/login: {e}")
+        raise HTTPException(status_code=500, detail="Login failed due to server error")
 
 @router.post("/logout")
 def logout(res: Response):
@@ -112,4 +150,5 @@ def logout(res: Response):
 
 @router.get("/me")
 def me(user=Depends(get_current_user)):
-    return {"id": user.id, "email": user.email}
+    # Include role so frontend SSR admin guard can authorize access
+    return {"id": user.id, "email": user.email, "role": user.role}

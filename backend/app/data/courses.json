@@ -166,5 +166,12 @@
     "title": "API Test Course",
     "youtubeId": "TESTID",
     "duration": null
+  },
+  {
+    "id": "apitest-1757c546",
+    "path": "python-ai",
+    "title": "API Test Course",
+    "youtubeId": "TESTID",
+    "duration": null
   }
 ]

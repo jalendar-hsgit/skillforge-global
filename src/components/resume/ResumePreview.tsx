@@ -14,7 +14,30 @@ interface ResumePreviewProps {
 // ResumePreview component
 const ResumePreview = (props: ResumePreviewProps) => {
   const { resume } = props;
-  const layout = resume.layout || '';
+  // Derive effective layout: prefer explicit layout, else map template/template_id
+  const templateValue = (resume as any).template_id || resume.template;
+  let layout = resume.layout || '';
+  // If layout is missing OR looks like a numeric id (e.g., "1001"), derive from template/template_id
+  if (!layout || /^\d+$/.test(layout.trim())) {
+    const tpl = typeof templateValue === 'number' ? String(templateValue) : (templateValue || '').toString();
+    const templateIdMap: Record<string,string> = {
+      '1001': 'modern',
+      '1002': 'minimal',
+      '1003': 'executive-two',
+      '1004': 'creative',
+      '1005': 'tech-two',
+      '1008': 'timeline',
+      '1009': 'elegant-blue'
+    };
+    if (templateIdMap[tpl]) layout = templateIdMap[tpl];
+    // Fallback: if template string contains known keyword
+    else if (/modern/i.test(tpl)) layout = 'modern';
+    else if (/minimal/i.test(tpl)) layout = 'minimal';
+    else if (/executive/i.test(tpl)) layout = 'executive-two';
+    else if (/creative/i.test(tpl)) layout = 'creative';
+    else if (/timeline/i.test(tpl)) layout = 'timeline';
+    else if (/elegant/i.test(tpl)) layout = 'elegant-blue';
+  }
   
   // Use dedicated template components when layout matches
   if (layout === 'modern' || layout.includes('modern')) {

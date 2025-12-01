@@ -31,6 +31,9 @@ export default function VersionHistoryModal({ resumeId, isOpen, onClose, onResto
   const [restoringId, setRestoringId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [bestVersionId, setBestVersionId] = useState<number | null>(null);
+  const [previewDiff, setPreviewDiff] = useState<any | null>(null);
+  const [previewingVersionId, setPreviewingVersionId] = useState<number | null>(null);
+  const [lastRestoredVersionId, setLastRestoredVersionId] = useState<number | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -120,10 +123,40 @@ export default function VersionHistoryModal({ resumeId, isOpen, onClose, onResto
     }
   };
 
+  const previewRestore = async (versionId: number) => {
+    try {
+      setPreviewingVersionId(versionId);
+      // Get current resume's latest version to compare against
+      const currentVersion = sortedVersions[0];
+      if (!currentVersion) {
+        setError('No current version to compare');
+        return;
+      }
+      
+      const res = await fetch(`/api/session/v1x/resume-comparison/compare`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          base_version_id: versionId,
+          compared_version_id: currentVersion.id
+        })
+      });
+      
+      if (!res.ok) throw new Error('Failed to preview changes');
+      const diff = await res.json();
+      setPreviewDiff(diff);
+    } catch (e: any) {
+      setError(e?.message || 'Failed to preview changes');
+      setPreviewingVersionId(null);
+    }
+  };
+
   const restoreVersion = async (versionId: number) => {
     try {
-      const confirmRestore = window.confirm('Restore this version? This will replace current resume content.');
-      if (!confirmRestore) return;
+      // Save current state for undo
+      const currentVersion = sortedVersions[0];
+      
       setRestoringId(versionId);
       const res = await fetch(`/api/session/v1x/resume-comparison/versions/${versionId}/restore`, {
         method: 'POST',
@@ -143,12 +176,29 @@ export default function VersionHistoryModal({ resumeId, isOpen, onClose, onResto
         } catch (_) {}
         throw new Error(`Failed to restore version (${res.status})${detail}`);
       }
+      setLastRestoredVersionId(versionId);
+      setPreviewDiff(null);
+      setPreviewingVersionId(null);
       onRestored?.();
     } catch (e: any) {
       setError(e?.message || 'Failed to restore version');
     } finally {
       setRestoringId(null);
     }
+  };
+
+  const undoRestore = async () => {
+    if (!lastRestoredVersionId) return;
+    
+    // Find the version that was active before the last restore
+    const previousVersion = sortedVersions.find(v => v.id !== lastRestoredVersionId);
+    if (!previousVersion) {
+      setError('Cannot undo: no previous version found');
+      return;
+    }
+    
+    await restoreVersion(previousVersion.id);
+    setLastRestoredVersionId(null);
   };
 
   const deleteVersion = async (versionId: number) => {
@@ -219,6 +269,66 @@ export default function VersionHistoryModal({ resumeId, isOpen, onClose, onResto
           </div>
         </div>
 
+        {/* Preview Diff Dialog */}
+        {previewDiff && previewingVersionId && (
+          <div className="px-6 py-4 bg-blue-500/10 border-y border-blue-400/30">
+            <div className="flex items-start justify-between mb-3">
+              <h4 className="text-sm font-bold text-blue-200">Preview Changes</h4>
+              <button onClick={() => { setPreviewDiff(null); setPreviewingVersionId(null); }} className="text-blue-200/70 hover:text-blue-100">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="space-y-2 text-xs max-h-48 overflow-y-auto">
+              {previewDiff.differences.added.length > 0 && (
+                <div className="text-green-200">
+                  <strong>Added:</strong> {previewDiff.differences.added.map((a: any) => a.section).join(', ')}
+                </div>
+              )}
+              {previewDiff.differences.removed.length > 0 && (
+                <div className="text-red-200">
+                  <strong>Removed:</strong> {previewDiff.differences.removed.map((r: any) => r.section).join(', ')}
+                </div>
+              )}
+              {previewDiff.differences.modified.length > 0 && (
+                <div className="text-blue-200">
+                  <strong>Modified:</strong> {previewDiff.differences.modified.map((m: any) => m.field).join(', ')}
+                </div>
+              )}
+              <div className="pt-2 border-t border-blue-400/20">
+                <div className="text-white/80">ATS Score Change: <span className={previewDiff.score_change > 0 ? 'text-green-300' : previewDiff.score_change < 0 ? 'text-red-300' : 'text-white/60'}>{previewDiff.score_change > 0 ? '+' : ''}{previewDiff.score_change.toFixed(1)}</span></div>
+              </div>
+            </div>
+            <div className="mt-3 flex gap-2">
+              <Button 
+                onClick={async () => {
+                  const confirm = window.confirm(`Restore this version?\n\nThis will replace your current resume with version ${sortedVersions.find(v => v.id === previewingVersionId)?.version_name || previewingVersionId}.`);
+                  if (confirm) {
+                    await restoreVersion(previewingVersionId);
+                  }
+                }}
+                className="flex-1 bg-emerald-500/20 border-emerald-400/50 hover:bg-emerald-500/30 text-sm py-1.5"
+              >
+                Confirm Restore
+              </Button>
+              <Button onClick={() => { setPreviewDiff(null); setPreviewingVersionId(null); }} variant="secondary" className="text-sm py-1.5">
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Undo Restore */}
+        {lastRestoredVersionId && (
+          <div className="px-6 py-3 bg-amber-500/10 border-y border-amber-400/30 flex items-center justify-between">
+            <div className="text-xs text-amber-200">
+              <strong>Last Action:</strong> Restored version {sortedVersions.find(v => v.id === lastRestoredVersionId)?.version_name || lastRestoredVersionId}
+            </div>
+            <Button onClick={undoRestore} variant="secondary" className="text-xs py-1 px-2 bg-amber-500/20 border-amber-400/50 hover:bg-amber-500/30">
+              <RotateCcw className="w-3 h-3 mr-1" /> Undo
+            </Button>
+          </div>
+        )}
+
         {/* Body */}
         <div className="max-h-[60vh] overflow-y-auto">
           {loading ? (
@@ -247,13 +357,13 @@ export default function VersionHistoryModal({ resumeId, isOpen, onClose, onResto
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
-                      onClick={() => restoreVersion(v.id)}
+                      onClick={() => previewRestore(v.id)}
                       variant="secondary"
                       data-testid={`btn-restore-${v.id}`}
-                      disabled={restoringId === v.id || deletingId === v.id}
+                      disabled={restoringId === v.id || deletingId === v.id || previewingVersionId === v.id}
                       className="px-3 py-1.5 text-sm bg-emerald-500/20 border-emerald-400/50 hover:bg-emerald-500/30 disabled:opacity-50"
                     >
-                      <RotateCcw className="w-3.5 h-3.5 mr-1.5" /> {restoringId === v.id ? 'Restoring…' : 'Restore'}
+                      <RotateCcw className="w-3.5 h-3.5 mr-1.5" /> {previewingVersionId === v.id ? 'Previewing…' : restoringId === v.id ? 'Restoring…' : 'Preview & Restore'}
                     </Button>
                     <Button onClick={() => {
                       const idx = sortedVersions.findIndex(sv => sv.id === v.id);

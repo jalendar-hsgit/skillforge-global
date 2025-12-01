@@ -11,6 +11,9 @@ from fastapi import HTTPException
 # key: (user_id, bucket) -> list of timestamps (seconds)
 _events: Dict[Tuple[int, str], list] = {}
 
+# Expose for testing/admin purposes
+rate_limit_cache = _events
+
 
 def rate_limit(user_id: int, bucket: str, limit: int, window_seconds: int) -> None:
     """

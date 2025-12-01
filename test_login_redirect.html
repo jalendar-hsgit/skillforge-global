@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Login Redirect</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: 500; }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #0070f3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover { background: #0051cc; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        .success {
+            background: #efe;
+            color: #3c3;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        .log {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .log-entry { margin: 5px 0; padding: 3px 0; }
+        .log-entry.error { color: #c33; }
+        .log-entry.success { color: #3c3; }
+        .log-entry.info { color: #36c; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Test Login Redirect</h1>
+        
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" value="admin@skillforge.test" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" value="Admin123!" required>
+            </div>
+            
+            <button type="submit" id="loginBtn">Login & Test Redirect</button>
+        </form>
+        
+        <div id="message"></div>
+        
+        <div class="log" id="log">
+            <strong>📋 Debug Log:</strong>
+            <div id="logEntries"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000';
+        const logEntries = document.getElementById('logEntries');
+        const message = document.getElementById('message');
+        const loginBtn = document.getElementById('loginBtn');
+
+        function log(msg, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `${new Date().toLocaleTimeString()} - ${msg}`;
+            logEntries.appendChild(entry);
+            logEntries.scrollTop = logEntries.scrollHeight;
+            console.log(msg);
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            message.innerHTML = '';
+            logEntries.innerHTML = '';
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Logging in...';
+            
+            try {
+                log('Starting login process...', 'info');
+                
+                // Step 1: Login
+                log(`POST ${API_BASE}/api/session/login`, 'info');
+                const loginResponse = await fetch(`${API_BASE}/api/session/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password }),
+                    credentials: 'include'
+                });
+                
+                log(`Login response: ${loginResponse.status} ${loginResponse.statusText}`, 
+                    loginResponse.ok ? 'success' : 'error');
+                
+                if (!loginResponse.ok) {
+                    const errorData = await loginResponse.json().catch(() => ({}));
+                    throw new Error(errorData.detail || 'Login failed');
+                }
+                
+                const loginData = await loginResponse.json();
+                log(`Login data: ${JSON.stringify(loginData)}`, 'success');
+                
+                // Step 2: Wait a bit for cookie to be set
+                log('Waiting 100ms for cookie to be set...', 'info');
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
+                // Step 3: Get user info
+                log(`GET ${API_BASE}/api/session/me`, 'info');
+                const meResponse = await fetch(`${API_BASE}/api/session/me`, {
+                    credentials: 'include'
+                });
+                
+                log(`Me response: ${meResponse.status} ${meResponse.statusText}`, 
+                    meResponse.ok ? 'success' : 'error');
+                
+                if (meResponse.ok) {
+                    const user = await meResponse.json();
+                    log(`User data: ${JSON.stringify(user)}`, 'success');
+                    
+                    // Determine redirect URL
+                    let redirectUrl = '/dashboard';
+                    if (user.role === 'ADMIN' || user.role === 'SUPERADMIN') {
+                        redirectUrl = '/admin';
+                    }
+                    
+                    log(`Redirect URL determined: ${redirectUrl}`, 'info');
+                    
+                    message.innerHTML = `<div class="success">✅ Login successful! Redirecting to ${redirectUrl}...</div>`;
+                    
+                    // Step 4: Redirect
+                    log(`Redirecting to: ${API_BASE}${redirectUrl}`, 'success');
+                    setTimeout(() => {
+                        window.location.href = `${API_BASE}${redirectUrl}`;
+                    }, 1000);
+                } else {
+                    log('Me endpoint failed, redirecting to dashboard', 'error');
+                    message.innerHTML = `<div class="success">✅ Login successful! Redirecting to /dashboard...</div>`;
+                    setTimeout(() => {
+                        window.location.href = `${API_BASE}/dashboard`;
+                    }, 1000);
+                }
+                
+            } catch (err) {
+                log(`Error: ${err.message}`, 'error');
+                message.innerHTML = `<div class="error">❌ ${err.message}</div>`;
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Login & Test Redirect';
+            }
+        });
+        
+        log('Test page loaded. Ready to test login redirect.', 'info');
+    </script>
+</body>
+</html>

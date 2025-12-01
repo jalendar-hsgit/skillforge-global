@@ -55,6 +55,39 @@ export default function ResumeComparisonModal({ resumeId, isOpen, onClose, initi
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [scoreHistory, setScoreHistory] = useState<ScoreHistoryItem[]>([]);
+  const [useInlineDiff, setUseInlineDiff] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('resume-compare-inline-diff') || 'true') === 'true';
+    }
+    return true;
+  });
+
+  // Helper: simple word-level diff for summary text
+  const renderTextDiff = (before: string, after: string) => {
+    const beforeWords = (before || '').split(/(\s+)/);
+    const afterWords = (after || '').split(/(\s+)/);
+    const maxLen = Math.max(beforeWords.length, afterWords.length);
+    const elems: JSX.Element[] = [];
+    for (let i = 0; i < maxLen; i++) {
+      const bw = beforeWords[i] ?? '';
+      const aw = afterWords[i] ?? '';
+      if (bw === aw) {
+        elems.push(<span key={`same-${i}`}>{aw}</span>);
+      } else if (!bw && aw) {
+        elems.push(<span key={`add-${i}`} className="bg-green-100 text-green-800 rounded px-0.5">{aw}</span>);
+      } else if (bw && !aw) {
+        elems.push(<span key={`rem-${i}`} className="bg-red-100 text-red-800 rounded px-0.5 line-through opacity-70">{bw}</span>);
+      } else {
+        elems.push(
+          <span key={`chg-${i}`} className="">
+            <span className="bg-red-100 text-red-800 rounded px-0.5 line-through opacity-70 mr-0.5">{bw}</span>
+            <span className="bg-green-100 text-green-800 rounded px-0.5">{aw}</span>
+          </span>
+        );
+      }
+    }
+    return <span className="leading-relaxed">{elems}</span>;
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -209,6 +242,21 @@ export default function ResumeComparisonModal({ resumeId, isOpen, onClose, initi
               <p className="font-semibold">{error}</p>
             </div>
           )}
+
+          {/* Diff View Toggle */}
+          <div className="flex items-center justify-end">
+            <button
+              onClick={() => {
+                const next = !useInlineDiff;
+                setUseInlineDiff(next);
+                if (typeof window !== 'undefined') localStorage.setItem('resume-compare-inline-diff', next.toString());
+              }}
+              className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${useInlineDiff ? 'bg-blue-600 text-white border-blue-500' : 'bg-gray-100 text-gray-800 border-gray-300'}`}
+              title="Toggle between inline and card-style diffs"
+            >
+              {useInlineDiff ? 'Inline Diff' : 'Cards View'}
+            </button>
+          </div>
 
           {/* Version Selection */}
           <div className="grid grid-cols-2 gap-6 mb-6">
@@ -374,6 +422,85 @@ export default function ResumeComparisonModal({ resumeId, isOpen, onClose, initi
                   Content Changes
                 </h3>
                 <div className="space-y-4">
+                                {/* Work experience bullets additions/removals */}
+                                {comparison.differences.added.filter(i => i.section === 'work_experience_bullets').map((item, idx) => (
+                                  <div key={`wb-added-${idx}`} className="flex items-start gap-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-green-500 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                                    <div className="flex-shrink-0 p-2 bg-green-100 rounded-lg">
+                                      <CheckCircle className="w-5 h-5 text-green-600" />
+                                    </div>
+                                    <div className="flex-1">
+                                      <p className="font-bold text-green-900 mb-2">Added Work Experience Bullet Points</p>
+                                      <ul className="mt-1 space-y-1 text-sm text-green-700">
+                                        {(item.items || []).map((i, ii) => (
+                                          <li key={ii} className="flex items-start gap-2">
+                                            <span className="text-green-500 mt-1">•</span>
+                                            <span className="leading-relaxed">{i}</span>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  </div>
+                                ))}
+
+                                {comparison.differences.removed.filter(i => i.section === 'work_experience_bullets').map((item, idx) => (
+                                  <div key={`wb-removed-${idx}`} className="flex items-start gap-4 p-4 bg-gradient-to-r from-red-50 to-rose-50 border-l-4 border-red-500 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                                    <div className="flex-shrink-0 p-2 bg-red-100 rounded-lg">
+                                      <XCircle className="w-5 h-5 text-red-600" />
+                                    </div>
+                                    <div className="flex-1">
+                                      <p className="font-bold text-red-900 mb-2">Removed Work Experience Bullet Points</p>
+                                      <ul className="mt-1 space-y-1 text-sm text-red-700">
+                                        {(item.items || []).map((i, ii) => (
+                                          <li key={ii} className="flex items-start gap-2 opacity-75">
+                                            <span className="text-red-500 mt-1">•</span>
+                                            <span className="leading-relaxed line-through">{i}</span>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  </div>
+                                ))}
+                  {/* Modified (with inline diff for summary) */}
+                  {comparison.differences.modified.map((item, idx) => (
+                    <div key={`modified-${idx}`} className="flex items-start gap-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex-shrink-0 p-2 bg-blue-100 rounded-lg">
+                        <AlertCircle className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-bold text-blue-900 mb-3">Modified {item.field}</p>
+                        {useInlineDiff && item.field === 'professional_summary' ? (
+                          <div className="space-y-2">
+                            <div className="p-3 bg-white rounded border border-blue-200">
+                              {renderTextDiff(item.old_value || '', item.new_value || '')}
+                            </div>
+                          </div>
+                        ) : useInlineDiff && item.field.startsWith('description') ? (
+                          <div className="space-y-2">
+                            <div className="p-3 bg-white rounded border border-blue-200">
+                              {renderTextDiff(item.old_value || '', item.new_value || '')}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+                              <span className="text-xs font-bold text-red-600 uppercase tracking-wide">Before:</span>
+                              <p className="text-sm text-red-700 mt-1 line-through opacity-75 leading-relaxed">
+                                {item.old_value.length > 150 ? item.old_value.substring(0, 150) + '...' : item.old_value}
+                              </p>
+                            </div>
+                            <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                              <span className="text-xs font-bold text-green-600 uppercase tracking-wide">After:</span>
+                              <p className="text-sm text-green-700 mt-1 font-medium leading-relaxed">
+                                {item.new_value.length > 150 ? item.new_value.substring(0, 150) + '...' : item.new_value}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Added */}
                   {comparison.differences.added.map((item, idx) => (
                     <div key={`added-${idx}`} className="flex items-start gap-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-green-500 rounded-xl shadow-sm hover:shadow-md transition-shadow">
                       <div className="flex-shrink-0 p-2 bg-green-100 rounded-lg">
@@ -396,6 +523,7 @@ export default function ResumeComparisonModal({ resumeId, isOpen, onClose, initi
                     </div>
                   ))}
 
+                  {/* Removed */}
                   {comparison.differences.removed.map((item, idx) => (
                     <div key={`removed-${idx}`} className="flex items-start gap-4 p-4 bg-gradient-to-r from-red-50 to-rose-50 border-l-4 border-red-500 rounded-xl shadow-sm hover:shadow-md transition-shadow">
                       <div className="flex-shrink-0 p-2 bg-red-100 rounded-lg">
@@ -418,30 +546,6 @@ export default function ResumeComparisonModal({ resumeId, isOpen, onClose, initi
                     </div>
                   ))}
 
-                  {comparison.differences.modified.map((item, idx) => (
-                    <div key={`modified-${idx}`} className="flex items-start gap-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-                      <div className="flex-shrink-0 p-2 bg-blue-100 rounded-lg">
-                        <AlertCircle className="w-5 h-5 text-blue-600" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-bold text-blue-900 mb-3">Modified {item.field}</p>
-                        <div className="space-y-2">
-                          <div className="p-3 bg-red-50 rounded-lg border border-red-200">
-                            <span className="text-xs font-bold text-red-600 uppercase tracking-wide">Before:</span>
-                            <p className="text-sm text-red-700 mt-1 line-through opacity-75 leading-relaxed">
-                              {item.old_value.length > 150 ? item.old_value.substring(0, 150) + '...' : item.old_value}
-                            </p>
-                          </div>
-                          <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-                            <span className="text-xs font-bold text-green-600 uppercase tracking-wide">After:</span>
-                            <p className="text-sm text-green-700 mt-1 font-medium leading-relaxed">
-                              {item.new_value.length > 150 ? item.new_value.substring(0, 150) + '...' : item.new_value}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
                 </div>
               </div>
 

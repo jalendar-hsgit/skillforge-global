@@ -127,9 +127,11 @@ def generate_diff(base_data: dict, compared_data: dict) -> dict:
             "new_value": compared_data.get("summary", "")
         })
     
-    # Compare work experiences
-    base_exp_count = len(base_data.get("work_experiences", []))
-    compared_exp_count = len(compared_data.get("work_experiences", []))
+    # Compare work experiences (count and basic content changes)
+    base_exp = base_data.get("work_experiences", []) or []
+    compared_exp = compared_data.get("work_experiences", []) or []
+    base_exp_count = len(base_exp)
+    compared_exp_count = len(compared_exp)
     
     if compared_exp_count > base_exp_count:
         differences["added"].append({
@@ -141,6 +143,44 @@ def generate_diff(base_data: dict, compared_data: dict) -> dict:
             "section": "work_experience",
             "count": base_exp_count - compared_exp_count
         })
+
+    # Try to align experiences by position + company for detailed changes
+    def exp_key(e: dict) -> str:
+        return "|".join([
+            (e.get("position") or "").strip(),
+            (e.get("company") or "").strip(),
+        ]).lower()
+
+    base_exp_map = {exp_key(e): e for e in base_exp}
+    compared_exp_map = {exp_key(e): e for e in compared_exp}
+    # Modified descriptions and bullet points
+    for k, b in base_exp_map.items():
+        c = compared_exp_map.get(k)
+        if not c:
+            continue
+        # Description changes
+        if (b.get("description") or "") != (c.get("description") or ""):
+            differences["modified"].append({
+                "section": "work_experience",
+                "field": f"description ({k.split('|')[0]} @ {k.split('|')[1]})",
+                "old_value": b.get("description") or "",
+                "new_value": c.get("description") or "",
+            })
+        # Bullet points: detect additions/removals by text
+        b_bul = set((b.get("bullet_points") or []))
+        c_bul = set((c.get("bullet_points") or []))
+        added_bul = list(c_bul - b_bul)
+        removed_bul = list(b_bul - c_bul)
+        if added_bul:
+            differences["added"].append({
+                "section": "work_experience_bullets",
+                "items": added_bul
+            })
+        if removed_bul:
+            differences["removed"].append({
+                "section": "work_experience_bullets",
+                "items": removed_bul
+            })
     
     # Compare skills
     base_skills = set([s.get("name", "") for s in base_data.get("skills", [])])
@@ -158,6 +198,79 @@ def generate_diff(base_data: dict, compared_data: dict) -> dict:
         differences["removed"].append({
             "section": "skills",
             "items": list(removed_skills)
+        })
+
+    # Compare education entries (by institution + degree + field_of_study)
+    def edu_key(e: dict) -> str:
+        return "|".join([
+            (e.get("institution") or "").strip(),
+            (e.get("degree") or "").strip(),
+            (e.get("field_of_study") or "").strip(),
+        ]).lower()
+
+    base_edu = set([edu_key(e) for e in base_data.get("education", []) or []])
+    compared_edu = set([edu_key(e) for e in compared_data.get("education", []) or []])
+    added_edu = compared_edu - base_edu
+    removed_edu = base_edu - compared_edu
+    if added_edu:
+        differences["added"].append({
+            "section": "education",
+            "items": [k.split("|")[0] for k in added_edu]  # list institutions added
+        })
+    if removed_edu:
+        differences["removed"].append({
+            "section": "education",
+            "items": [k.split("|")[0] for k in removed_edu]
+        })
+
+    # Compare projects (by name/title, include description changes)
+    def proj_key(p: dict) -> str:
+        return (p.get("name") or p.get("title") or "").strip().lower()
+
+    base_proj_list = base_data.get("projects", []) or []
+    compared_proj_list = compared_data.get("projects", []) or []
+    base_proj = set([proj_key(p) for p in base_proj_list])
+    compared_proj = set([proj_key(p) for p in compared_proj_list])
+    added_proj = compared_proj - base_proj
+    removed_proj = base_proj - compared_proj
+    if added_proj:
+        differences["added"].append({
+            "section": "projects",
+            "items": list(added_proj)
+        })
+    if removed_proj:
+        differences["removed"].append({
+            "section": "projects",
+            "items": list(removed_proj)
+        })
+
+    # Modified project descriptions
+    base_proj_map = {proj_key(p): p for p in base_proj_list}
+    compared_proj_map = {proj_key(p): p for p in compared_proj_list}
+    for k, bp in base_proj_map.items():
+        cp = compared_proj_map.get(k)
+        if not cp:
+            continue
+        if (bp.get("description") or "") != (cp.get("description") or ""):
+            differences["modified"].append({
+                "section": "projects",
+                "field": f"description ({k})",
+                "old_value": bp.get("description") or "",
+                "new_value": cp.get("description") or "",
+            })
+
+    # Optional: compare certificates count if available
+    base_cert_count = len(base_data.get("certificates", []) or [])
+    compared_cert_count = len(compared_data.get("certificates", []) or [])
+    if compared_cert_count > base_cert_count:
+        differences["added"].append({
+            "section": "certificates",
+            "count": compared_cert_count - base_cert_count
+        })
+    elif compared_cert_count < base_cert_count:
+        differences["removed"].append({
+            "section": "certificates",
+            "count": base_cert_count - compared_cert_count
         })
     
     return differences

@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '@/components/Layout';
+import { Avatar } from '@/components/Avatar';
+import { RatingStars } from '@/components/RatingStars';
+import { Chip } from '@/components/Chip';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { API_BASE } from '@/lib/apiBase';
@@ -74,7 +77,8 @@ export default function MentorProfilePage() {
       );
       if (reviewsResponse.ok) {
         const reviewsData = await reviewsResponse.json();
-        setReviews(reviewsData);
+        const reviews = reviewsData.reviews || reviewsData;
+        setReviews(Array.isArray(reviews) ? reviews : []);
       }
 
       // Fetch availability
@@ -84,7 +88,8 @@ export default function MentorProfilePage() {
       );
       if (availabilityResponse.ok) {
         const availabilityData = await availabilityResponse.json();
-        setAvailability(availabilityData);
+        const slots = availabilityData.slots || availabilityData;
+        setAvailability(Array.isArray(slots) ? slots : []);
       }
     } catch (err: any) {
       setError(err.message);
@@ -144,7 +149,7 @@ export default function MentorProfilePage() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white py-12">
+      <div className="min-h-screen bg-deepTech-950 bg-neural py-12 md:py-16">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Back Button */}
           <Button
@@ -156,40 +161,36 @@ export default function MentorProfilePage() {
           </Button>
 
           {/* Profile Header */}
-          <Card className="mb-8">
-            <div className="flex flex-col md:flex-row gap-8">
+          <Card className="mb-8 bg-glass backdrop-blur-xl border border-white/10 shadow-glass">
+            <div className="p-6 md:p-8">
+              <div className="flex flex-col md:flex-row gap-8 md:gap-10">
               {/* Avatar */}
               <div className="flex-shrink-0">
-                <div className="w-32 h-32 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-5xl font-bold">
-                  {mentor.user?.full_name?.charAt(0) || 'M'}
-                </div>
+                <Avatar name={mentor.user?.full_name} size="xl" />
               </div>
 
               {/* Info */}
               <div className="flex-grow">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                <h1 className="text-3xl md:text-4xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-forgePurple-400 via-neuralBlue-400 to-aiElectric-400 mb-4">
                   {mentor.user?.full_name || 'Anonymous Mentor'}
                 </h1>
                 
                 <div className="flex items-center gap-4 mb-4">
-                  {renderStars(mentor.average_rating)}
-                  <span className="text-gray-600">
-                    ({reviews.length} reviews)
-                  </span>
+                  <RatingStars rating={mentor.average_rating} label={`(${reviews.length} reviews)`} />
                 </div>
 
-                <div className="flex items-center gap-6 mb-6">
+                <div className="flex items-center gap-8 mb-6">
                   <div>
-                    <p className="text-3xl font-bold text-blue-600">
+                    <p className="text-4xl font-bold text-aiElectric-400">
                       ${mentor.hourly_rate}
                     </p>
-                    <p className="text-sm text-gray-600">per hour</p>
+                    <p className="text-sm text-techGray-400">per hour</p>
                   </div>
-                  <div className="border-l border-gray-300 pl-6">
-                    <p className="text-2xl font-bold text-gray-900">
+                  <div className="border-l border-white/20 pl-8">
+                    <p className="text-3xl font-bold text-neuralBlue-400">
                       {mentor.total_sessions}
                     </p>
-                    <p className="text-sm text-gray-600">sessions completed</p>
+                    <p className="text-sm text-techGray-400">sessions completed</p>
                   </div>
                 </div>
 
@@ -202,50 +203,59 @@ export default function MentorProfilePage() {
                 </Button>
               </div>
             </div>
+            </div>
           </Card>
 
           {/* About */}
-          <Card className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">About</h2>
-            <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-              {mentor.bio}
-            </p>
+          <Card className="mb-8 bg-glass backdrop-blur-xl border border-white/10 shadow-glass">
+            <div className="p-6 md:p-8">
+              <h2 className="text-2xl md:text-3xl font-bold text-white mb-6">About</h2>
+              <p className="text-techGray-300 leading-relaxed whitespace-pre-wrap text-lg">
+                {mentor.bio}
+              </p>
+            </div>
           </Card>
 
           {/* Expertise */}
-          <Card className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Expertise</h2>
-            <div className="flex flex-wrap gap-3">
-              {mentor.expertise.map((skill, index) => (
-                <span
-                  key={index}
-                  className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg text-base font-medium"
-                >
-                  {skill}
-                </span>
-              ))}
+          <Card className="mb-8 bg-glass backdrop-blur-xl border border-white/10 shadow-glass">
+            <div className="p-6 md:p-8">
+              <h2 className="text-2xl md:text-3xl font-bold text-white mb-6">Expertise</h2>
+              <div className="flex flex-wrap gap-3">
+              {(() => {
+                const skills = Array.isArray(mentor.expertise)
+                  ? mentor.expertise
+                  : String(mentor.expertise || '')
+                      .split(',')
+                      .map(s => s.trim())
+                      .filter(Boolean);
+                return skills.map((skill, index) => (
+                  <Chip key={index} className="text-base px-4 py-2 rounded-lg">{skill}</Chip>
+                ));
+              })()}
+            </div>
             </div>
           </Card>
 
           {/* Availability */}
           {availability.length > 0 && (
-            <Card className="mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                Available Time Slots
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card className="mb-8 bg-glass backdrop-blur-xl border border-white/10 shadow-glass">
+              <div className="p-6 md:p-8">
+                <h2 className="text-2xl md:text-3xl font-bold text-white mb-6">
+                  Available Time Slots
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {availability
                   .filter(slot => slot.is_available)
                   .slice(0, 6)
                   .map(slot => (
                     <div
                       key={slot.id}
-                      className="p-4 border border-gray-200 rounded-lg hover:border-blue-500 transition-colors"
+                      className="p-5 bg-deepTech-900/30 border border-white/10 rounded-lg hover:border-forgePurple-500/50 hover:shadow-glow-sm transition-all duration-300"
                     >
-                      <p className="font-medium text-gray-900">
+                      <p className="font-semibold text-white text-lg">
                         {formatDate(slot.start_time)}
                       </p>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-techGray-400 mt-1">
                         {new Date(slot.start_time).toLocaleTimeString('en-US', {
                           hour: 'numeric',
                           minute: '2-digit'
@@ -259,45 +269,51 @@ export default function MentorProfilePage() {
                     </div>
                   ))}
               </div>
+              </div>
             </Card>
           )}
 
           {/* Reviews */}
-          <Card>
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">
-              Student Reviews
-            </h2>
+          <Card className="bg-glass backdrop-blur-xl border border-white/10 shadow-glass">
+            <div className="p-6 md:p-8">
+              <h2 className="text-2xl md:text-3xl font-bold text-white mb-8">
+                Student Reviews
+              </h2>
             {reviews.length === 0 ? (
-              <p className="text-gray-600">No reviews yet</p>
+              <p className="text-techGray-400 text-lg">No reviews yet</p>
             ) : (
               <div className="space-y-6">
-                {reviews.map(review => (
-                  <div key={review.id} className="border-b border-gray-200 pb-6 last:border-0">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center text-white font-bold">
-                          {review.student.full_name.charAt(0)}
+                {reviews.map(review => {
+                  const studentName = review.student?.full_name || 'Student';
+                  return (
+                    <div key={review.id} className="border-b border-white/10 pb-6 last:border-0">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center text-white font-bold">
+                            {studentName.charAt(0)}
+                          </div>
+                          <div>
+                            <p className="font-semibold text-white">
+                              {studentName}
+                            </p>
+                            <p className="text-sm text-techGray-400">
+                              {formatDate(review.created_at)}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-semibold text-gray-900">
-                            {review.student.full_name}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            {formatDate(review.created_at)}
-                          </p>
+                        <div className="flex items-center gap-1">
+                          {renderStars(review.rating)}
                         </div>
                       </div>
-                      <div className="flex items-center gap-1">
-                        {renderStars(review.rating)}
-                      </div>
+                      <p className="text-techGray-300 ml-13 leading-relaxed">
+                        {review.comment}
+                      </p>
                     </div>
-                    <p className="text-gray-700 ml-13">
-                      {review.comment}
-                    </p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
+            </div>
           </Card>
         </div>
       </div>

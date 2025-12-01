@@ -8,11 +8,9 @@ import { API_BASE } from '@/lib/apiBase';
 
 interface EligibilityResponse {
   eligible: boolean;
-  requirements: {
-    completed_paths: number;
-    quiz_average: number;
-  };
-  reasons?: string[];
+  completed_paths: string[];
+  average_quiz_score: number;
+  reasons: string[];
 }
 
 export default function BecomeMentorPage() {
@@ -186,10 +184,10 @@ export default function BecomeMentorPage() {
                     </p>
                     <ul className="mt-2 space-y-1 text-sm text-yellow-800">
                       <li>
-                        ✓ Completed Paths: {eligibility.requirements.completed_paths}
+                        ✓ Completed Paths: {eligibility.completed_paths.length}
                       </li>
                       <li>
-                        ✓ Quiz Average: {eligibility.requirements.quiz_average.toFixed(1)}%
+                        ✓ Quiz Average: {eligibility.average_quiz_score.toFixed(1)}%
                       </li>
                     </ul>
                   </div>

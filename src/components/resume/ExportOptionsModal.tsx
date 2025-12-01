@@ -1,4 +1,6 @@
+import React from 'react'
 import { Download, FileText, FileJson, FileCode, FileDown } from 'lucide-react'
+import { exportResumePDFFromPreview } from '@/lib/pdf'
 
 interface ExportOptionsModalProps {
   isOpen: boolean
@@ -8,6 +10,9 @@ interface ExportOptionsModalProps {
 }
 
 export default function ExportOptionsModal({ isOpen, onClose, resume, resumeId }: ExportOptionsModalProps) {
+  const [dpi, setDpi] = React.useState<number>(300)
+  const [marginMM, setMarginMM] = React.useState<number>(10)
+
   if (!isOpen) return null
 
   const loaded = !!resume && !!resumeId
@@ -25,80 +30,15 @@ export default function ExportOptionsModal({ isOpen, onClose, resume, resumeId }
 
   const exportAsPDF = async () => {
     try {
-       console.log(`[PDF Export] Attempting export for resume ${resumeId} (type: ${typeof resumeId})`)
-      // Preflight: verify the resume exists and belongs to the current user
-      try {
-        const check = await fetch(`/api/session/resumes?id=${resumeId}`, {
-          method: 'GET',
-          credentials: 'include',
-        })
-        if (check.status === 401) {
-          alert('You need to be logged in to export this resume.');
-          return;
-        }
-        if (check.status === 404) {
-          alert('This resume was not found or you do not have access. Open one of your resumes and try again.');
-          return;
-        }
-      } catch (e) {
-        // Non-fatal: continue to attempt export but log the preflight error
-        console.warn('[PDF Export] Preflight check failed:', e)
-      }
-      // Use dedicated export endpoint that's reliable for demo
-      const response = await fetch(`/api/session/export?resumeId=${resumeId}&format=pdf`, {
-        method: 'GET',
-        credentials: 'include',
-      })
-
-      console.log(`[PDF Export] Response status: ${response.status}`)
-      console.log(`[PDF Export] Response headers:`, {
-        'content-type': response.headers.get('content-type'),
-        'content-disposition': response.headers.get('content-disposition'),
-        'x-debug-target': response.headers.get('x-debug-target')
-      })
+      console.log(`[PDF Export] Attempting export for resume ${resumeId} with DPI=${dpi}, margin=${marginMM}mm`)
       
-      // Log the actual error body for 404s
-      if (response.status === 404) {
-        const errorBody = await response.clone().text()
-        console.log(`[PDF Export] 404 Response body:`, errorBody)
-      }
-
-      if (response.ok) {
-        const blob = await response.blob()
-        const url = URL.createObjectURL(blob)
-        const link = document.createElement('a')
-        link.href = url
-        // Let backend filename win if present
-        const disposition = response.headers.get('content-disposition') || ''
-        const match = disposition.match(/filename="?([^";]+)"?/i)
-        const filename = match?.[1] || `${resume.title || 'resume'}.pdf`
-        link.download = filename
-        link.click()
-        URL.revokeObjectURL(url)
-        console.log(`[PDF Export] Successfully exported as ${filename}`)
-      } else {
-        // Try to extract a helpful error message
-        let msg = ''
-        const ct = response.headers.get('content-type') || ''
-        try {
-          if (ct.includes('application/json')) {
-            const j = await response.json()
-            msg = j?.detail || JSON.stringify(j)
-          } else {
-            msg = await response.text()
-          }
-        } catch {}
-
-        // Map common cases to friendlier copy
-        if (response.status === 401) {
-          msg = msg || 'You need to be logged in to export this resume.'
-        } else if (response.status === 404) {
-          msg = msg || 'This resume was not found or you do not have access.'
-        }
-
-        console.error(`[PDF Export] Failed with ${response.status}: ${msg}`)
-        alert(`PDF export failed (${response.status})${msg ? `: ${msg}` : ''}`)
-      }
+      // Use client-side export with custom DPI/margin settings
+      await exportResumePDFFromPreview(
+        resumeId, 
+        `${resume.title || 'resume'}.pdf`,
+        { dpi, marginMM }
+      )
+      console.log(`[PDF Export] Successfully exported with custom settings`)
     } catch (error) {
       console.error('[PDF Export] Exception:', error)
       alert('PDF export failed. Please try again later.')
@@ -304,6 +244,56 @@ export default function ExportOptionsModal({ isOpen, onClose, resume, resumeId }
             <div>
               <h3 className="text-xl font-black text-white">Export Resume</h3>
               <p className="text-xs text-white/60 mt-0.5">Choose your preferred export format</p>
+            </div>
+          </div>
+        </div>
+
+        {/* PDF Export Settings */}
+        <div className="p-6 pb-4 border-b border-white/10 space-y-4">
+          <h4 className="text-sm font-bold text-white/80 uppercase tracking-wide">PDF Export Settings</h4>
+          
+          {/* DPI Selection */}
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-white/70">Quality (DPI)</label>
+            <div className="flex gap-2">
+              {[150, 300, 600].map((dpiOption) => (
+                <button
+                  key={dpiOption}
+                  onClick={() => setDpi(dpiOption)}
+                  className={`flex-1 px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+                    dpi === dpiOption
+                      ? 'bg-gradient-to-r from-forgePurple to-neuralBlue text-white border-2 border-white/20'
+                      : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10'
+                  }`}
+                >
+                  {dpiOption} DPI
+                  {dpiOption === 150 && <div className="text-[9px] opacity-70">Fast</div>}
+                  {dpiOption === 300 && <div className="text-[9px] opacity-70">Recommended</div>}
+                  {dpiOption === 600 && <div className="text-[9px] opacity-70">High Quality</div>}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Margin Selection */}
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-white/70">Margins (mm)</label>
+            <div className="flex gap-2">
+              {[0, 5, 10, 15].map((margin) => (
+                <button
+                  key={margin}
+                  onClick={() => setMarginMM(margin)}
+                  className={`flex-1 px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+                    marginMM === margin
+                      ? 'bg-gradient-to-r from-forgePurple to-neuralBlue text-white border-2 border-white/20'
+                      : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10'
+                  }`}
+                >
+                  {margin}mm
+                  {margin === 0 && <div className="text-[9px] opacity-70">No margins</div>}
+                  {margin === 10 && <div className="text-[9px] opacity-70">Standard</div>}
+                </button>
+              ))}
             </div>
           </div>
         </div>

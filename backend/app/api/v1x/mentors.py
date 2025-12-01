@@ -8,8 +8,8 @@ from typing import List, Optional
 from datetime import datetime
 
 from app.core.db import get_db
-from app.core.security import get_current_user
-from app.models.user import User
+from app.core.security import get_current_user, get_current_admin
+from app.models.user import User, UserRole
 from app.modelsx.mentor import (
     Mentor, MentorSession, MentorAvailability, 
     MentorMessage, MentorReview, MentorStatus, SessionStatus
@@ -65,7 +65,10 @@ def apply_to_become_mentor(
     """
     Apply to become a mentor.
     User must be eligible (completed paths + good quiz scores).
+    Initial status depends on mentor_approval_required setting.
     """
+    from app.services.settings_service import require_mentor_approval
+    
     # Check if already a mentor
     existing = db.query(Mentor).filter(Mentor.user_id == current_user.id).first()
     if existing:
@@ -82,30 +85,37 @@ def apply_to_become_mentor(
             detail=f"Not eligible to become a mentor: {'; '.join(reasons)}"
         )
     
+    # Determine initial status based on setting
+    initial_status = MentorStatus.PENDING if require_mentor_approval() else MentorStatus.APPROVED
+    
     # Create mentor profile
     mentor = Mentor(
         user_id=current_user.id,
         bio=application.bio,
         expertise=application.expertise,
         hourly_rate=application.hourly_rate,
-        status=MentorStatus.PENDING
+        status=initial_status
     )
     
     db.add(mentor)
     db.commit()
     db.refresh(mentor)
     
-    # Build response with user email
+    # Build response with user email and name
+    email = current_user.email
+    full_name = email.split('@')[0].replace('.', ' ').title()
+    
     response = MentorProfileResponse(
         id=mentor.id,
         user_id=mentor.user_id,
-        email=current_user.email,
+        email=email,
         bio=mentor.bio,
         expertise=mentor.expertise,
         hourly_rate=mentor.hourly_rate,
         status=mentor.status,
         total_sessions=mentor.total_sessions,
         average_rating=mentor.average_rating,
+        user={"full_name": full_name, "email": email},
         created_at=mentor.created_at
     )
     
@@ -125,16 +135,20 @@ def get_my_mentor_profile(
             detail="You are not a mentor"
         )
     
+    email = current_user.email
+    full_name = email.split('@')[0].replace('.', ' ').title()
+    
     return MentorProfileResponse(
         id=mentor.id,
         user_id=mentor.user_id,
-        email=current_user.email,
+        email=email,
         bio=mentor.bio,
         expertise=mentor.expertise,
         hourly_rate=mentor.hourly_rate,
         status=mentor.status,
         total_sessions=mentor.total_sessions,
         average_rating=mentor.average_rating,
+        user={"full_name": full_name, "email": email},
         created_at=mentor.created_at
     )
 
@@ -165,16 +179,20 @@ def update_my_mentor_profile(
     db.commit()
     db.refresh(mentor)
     
+    email = current_user.email
+    full_name = email.split('@')[0].replace('.', ' ').title()
+    
     return MentorProfileResponse(
         id=mentor.id,
         user_id=mentor.user_id,
-        email=current_user.email,
+        email=email,
         bio=mentor.bio,
         expertise=mentor.expertise,
         hourly_rate=mentor.hourly_rate,
         status=mentor.status,
         total_sessions=mentor.total_sessions,
         average_rating=mentor.average_rating,
+        user={"full_name": full_name, "email": email},
         created_at=mentor.created_at
     )
 
@@ -200,16 +218,20 @@ def search_mentors(
     results = []
     for mentor in mentors:
         user = db.query(User).filter(User.id == mentor.user_id).first()
+        email = user.email if user else "unknown@example.com"
+        full_name = email.split('@')[0].replace('.', ' ').title() if user else "Unknown User"
+        
         results.append(MentorProfileResponse(
             id=mentor.id,
             user_id=mentor.user_id,
-            email=user.email if user else "unknown@example.com",
+            email=email,
             bio=mentor.bio,
             expertise=mentor.expertise,
             hourly_rate=mentor.hourly_rate,
             status=mentor.status,
             total_sessions=mentor.total_sessions,
             average_rating=mentor.average_rating,
+            user={"full_name": full_name, "email": email},
             created_at=mentor.created_at
         ))
     
@@ -228,16 +250,21 @@ def get_mentor_profile(mentor_id: int, db: Session = Depends(get_db)):
     
     user = db.query(User).filter(User.id == mentor.user_id).first()
     
+    # Extract name from email (before @) as fallback
+    email = user.email if user else "unknown@example.com"
+    full_name = email.split('@')[0].replace('.', ' ').title() if user else "Unknown User"
+    
     return MentorProfileResponse(
         id=mentor.id,
         user_id=mentor.user_id,
-        email=user.email if user else "unknown@example.com",
+        email=email,
         bio=mentor.bio,
         expertise=mentor.expertise,
         hourly_rate=mentor.hourly_rate,
         status=mentor.status,
         total_sessions=mentor.total_sessions,
         average_rating=mentor.average_rating,
+        user={"full_name": full_name, "email": email},
         created_at=mentor.created_at
     )
 
@@ -355,6 +382,8 @@ def get_my_sessions(
             meeting_url=s.meeting_url,
             price=s.price,
             payment_status=s.payment_status,
+            mentor_notes=s.mentor_notes,
+            student_feedback=s.student_feedback,
             created_at=s.created_at
         )
         for s in sessions
@@ -363,7 +392,7 @@ def get_my_sessions(
     return SessionListResponse(sessions=session_responses, total=len(session_responses))
 
 
-@router.patch("/sessions/{session_id}", response_model=SessionResponse)
+@router.patch("/sessions/{session_id}")
 def update_session(
     session_id: int,
     updates: SessionUpdateRequest,
@@ -382,8 +411,9 @@ def update_session(
     mentor = db.query(Mentor).filter(Mentor.id == session.mentor_id).first()
     is_mentor = mentor and mentor.user_id == current_user.id
     is_student = session.student_id == current_user.id
+    is_admin = current_user.role in [UserRole.ADMIN, UserRole.SUPERADMIN]
     
-    if not (is_mentor or is_student):
+    if not (is_mentor or is_student or is_admin):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have permission to update this session"
@@ -399,8 +429,15 @@ def update_session(
             status_changed = True
         session.status = updates.status
         if updates.status == SessionStatus.CONFIRMED and not session.meeting_url:
-            # Generate meeting URL when confirming
-            session.meeting_url = SessionManagementService.generate_meeting_url(session_id)
+            # Generate meeting URL when confirming. Provide required context parameters.
+            mentor_user = db.query(User).join(Mentor).filter(Mentor.id == session.mentor_id).first()
+            session.meeting_url = SessionManagementService.generate_meeting_url(
+                session_id=session.id,
+                topic=getattr(session, "topic", None) or f"Mentor Session #{session.id}",
+                start_time=session.scheduled_at,
+                duration_minutes=session.duration_minutes,
+                mentor_email=mentor_user.email if mentor_user and mentor_user.email else None
+            )
         if updates.status == SessionStatus.COMPLETED:
             session.completed_at = datetime.utcnow()
     
@@ -464,7 +501,7 @@ def update_session(
             # Log error but don't fail the update
             print(f"Failed to send email: {e}")
     
-    return SessionResponse(
+    session_payload = SessionResponse(
         id=session.id,
         mentor_id=session.mentor_id,
         student_id=session.student_id,
@@ -476,8 +513,11 @@ def update_session(
         meeting_url=session.meeting_url,
         price=session.price,
         payment_status=session.payment_status,
+        mentor_notes=session.mentor_notes,
+        student_feedback=session.student_feedback,
         created_at=session.created_at
     )
+    return {"message": "Session updated", "session": session_payload.model_dump()}
 
 
 # ============ Availability Management ============
@@ -530,20 +570,29 @@ def get_mentor_availability(mentor_id: int, db: Session = Depends(get_db)):
         MentorAvailability.is_available == True
     ).all()
     
-    slot_responses = [
-        AvailabilitySlotResponse(
+    # Normalize day_of_week to integer (0=Monday .. 6=Sunday)
+    weekday_map = {
+        'Monday': 0, 'Tuesday': 1, 'Wednesday': 2, 'Thursday': 3,
+        'Friday': 4, 'Saturday': 5, 'Sunday': 6
+    }
+    slot_responses = []
+    for s in slots:
+        dow = s.day_of_week
+        if isinstance(dow, str):
+            dow_int = weekday_map.get(dow, None)
+        else:
+            dow_int = dow
+        slot_responses.append(AvailabilitySlotResponse(
             id=s.id,
             mentor_id=s.mentor_id,
-            day_of_week=s.day_of_week,
+            day_of_week=dow_int,
             date=s.date,
             start_time=s.start_time,
             end_time=s.end_time,
             is_available=s.is_available,
             is_booked=s.is_booked,
             timezone=s.timezone
-        )
-        for s in slots
-    ]
+        ))
     
     return AvailabilityListResponse(slots=slot_responses)
 
@@ -646,3 +695,117 @@ def get_mentor_reviews(mentor_id: int, limit: int = Query(50, ge=1, le=100), db:
         total=len(review_responses),
         average_rating=mentor.average_rating if mentor else 0.0
     )
+
+
+# ============ Admin Endpoints ============
+
+@router.get("/admin/mentors/applications", response_model=dict)
+def get_mentor_applications(
+    status: Optional[str] = Query(None),
+    current_user: User = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    Get all mentor applications (admin only).
+    Filter by status: pending, approved, rejected, suspended
+    """
+    
+    query = db.query(Mentor)
+    
+    if status and status in ['pending', 'approved', 'rejected', 'suspended']:
+        query = query.filter(Mentor.status == status)
+    
+    mentors = query.order_by(Mentor.created_at.desc()).all()
+    
+    applications = []
+    for mentor in mentors:
+        user = db.query(User).filter(User.id == mentor.user_id).first()
+        email = user.email if user else "unknown@example.com"
+        full_name = email.split('@')[0].replace('.', ' ').title()
+        
+        applications.append({
+            "id": mentor.id,
+            "user_id": mentor.user_id,
+            "bio": mentor.bio,
+            "expertise": mentor.expertise,
+            "hourly_rate": mentor.hourly_rate,
+            "status": mentor.status,
+            "total_sessions": mentor.total_sessions,
+            "average_rating": mentor.average_rating,
+            "created_at": mentor.created_at,
+            "user": {"full_name": full_name, "email": email}
+        })
+    
+    return {"applications": applications}
+
+
+@router.patch("/admin/mentors/{mentor_id}/status", response_model=dict)
+def update_mentor_status(
+    mentor_id: int,
+    status_update: dict,
+    current_user: User = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    Update mentor status (admin only).
+    Allowed statuses: approved, rejected, suspended
+    """
+    
+    mentor = db.query(Mentor).filter(Mentor.id == mentor_id).first()
+    if not mentor:
+        raise HTTPException(status_code=404, detail="Mentor not found")
+    
+    new_status = status_update.get("status")
+    if new_status not in ['approved', 'rejected', 'suspended']:
+        raise HTTPException(status_code=400, detail="Invalid status")
+    
+    mentor.status = new_status
+    if new_status == 'approved' and not mentor.approved_at:
+        mentor.approved_at = datetime.utcnow()
+    
+    mentor.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(mentor)
+    
+    return {"message": f"Mentor status updated to {new_status}", "mentor_id": mentor_id}
+
+
+@router.get("/admin/sessions", response_model=dict)
+def get_all_sessions(
+    status: Optional[str] = Query(None),
+    current_user: User = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    Get all mentoring sessions (admin only).
+    Filter by status: scheduled, completed, cancelled, no_show
+    """
+    
+    query = db.query(MentorSession)
+    
+    if status and status in ['scheduled', 'completed', 'cancelled', 'no_show']:
+        query = query.filter(MentorSession.status == status)
+    
+    sessions = query.order_by(MentorSession.scheduled_at.desc()).all()
+    
+    session_list = [
+        SessionResponse(
+            id=s.id,
+            mentor_id=s.mentor_id,
+            student_id=s.student_id,
+            topic=s.topic,
+            description=s.description,
+            scheduled_at=s.scheduled_at,
+            duration_minutes=s.duration_minutes,
+            status=s.status,
+            meeting_url=s.meeting_url,
+            price=s.price,
+            payment_status=s.payment_status,
+            mentor_notes=s.mentor_notes,
+            student_feedback=s.student_feedback,
+            created_at=s.created_at
+        )
+        for s in sessions
+    ]
+    
+    return {"sessions": session_list}

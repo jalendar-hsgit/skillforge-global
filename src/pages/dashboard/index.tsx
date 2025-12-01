@@ -61,41 +61,85 @@ export default function Dashboard({ me }: { me: Me }) {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const paths = ['python-ai', 'fullstack', 'aws-devops', 'cybersec', 'flutter']
-        const pathProgress: PathProgress[] = []
-        let totalCompleted = 0
+        // Use new comprehensive student dashboard endpoint
+        const overviewRes = await fetch(`${process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8001'}/api/v1x/student/dashboard/overview`, {
+          credentials: 'include'
+        })
 
-        for (const path of paths) {
-          try {
-            // Fetch all videos for path
-            const videosRes = await fetch(`/api/v1x/courses-db/${path}/videos`)
-            if (!videosRes.ok) continue
-            const videos = await videosRes.json()
-            
-            // Fetch user progress for path
-            const progressRes = await fetch(`/api/progress/get?path=${path}`)
-            const progressData = progressRes.ok ? await progressRes.json() : { completed: [] }
-            
-            const completed = progressData.completed?.length || 0
-            const total = videos.length || 0
-            
-            if (completed > 0 || total > 0) {
-              pathProgress.push({
-                path,
-                title: pathTitles[path] || path,
-                totalVideos: total,
-                completedVideos: completed,
-                percentage: total > 0 ? Math.round((completed / total) * 100) : 0
-              })
-              totalCompleted += completed
-            }
-          } catch (err) {
-            console.error(`Failed to fetch progress for ${path}`, err)
+        if (overviewRes.ok) {
+          const overviewData = await overviewRes.json()
+          
+          // Fetch course progress
+          const coursesRes = await fetch(`${process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8001'}/api/v1x/student/dashboard/courses`, {
+            credentials: 'include'
+          })
+          
+          let pathProgress: PathProgress[] = []
+          if (coursesRes.ok) {
+            const coursesData = await coursesRes.json()
+            pathProgress = coursesData.courses.map((course: any) => ({
+              path: course.path,
+              title: course.title,
+              totalVideos: course.videos_count,
+              completedVideos: course.completed_count,
+              percentage: Math.round(course.avg_progress),
+              lastWatched: course.videos[0]?.last_watched
+            }))
           }
-        }
 
-        // Sort by progress percentage (most progress first)
-        pathProgress.sort((a, b) => b.percentage - a.percentage)
+          setStats({
+            totalVideosCompleted: overviewData.courses.videos_completed,
+            totalQuizzesTaken: overviewData.quizzes.total_attempts,
+            forgeCredits: 0, // Will fetch separately
+            streakDays: overviewData.activity.learning_streak,
+            pathsInProgress: pathProgress.sort((a, b) => b.percentage - a.percentage)
+          })
+        } else {
+          // Fallback to old method
+          const paths = ['python-ai', 'fullstack', 'aws-devops', 'cybersec', 'flutter']
+          const pathProgress: PathProgress[] = []
+          let totalCompleted = 0
+
+          for (const path of paths) {
+            try {
+              // Fetch all videos for path
+              const videosRes = await fetch(`/api/v1x/courses-db/${path}/videos`)
+              if (!videosRes.ok) continue
+              const videos = await videosRes.json()
+              
+              // Fetch user progress for path
+              const progressRes = await fetch(`/api/progress/get?path=${path}`)
+              const progressData = progressRes.ok ? await progressRes.json() : { completed: [] }
+              
+              const completed = progressData.completed?.length || 0
+              const total = videos.length || 0
+              
+              if (completed > 0 || total > 0) {
+                pathProgress.push({
+                  path,
+                  title: pathTitles[path] || path,
+                  totalVideos: total,
+                  completedVideos: completed,
+                  percentage: total > 0 ? Math.round((completed / total) * 100) : 0
+                })
+                totalCompleted += completed
+              }
+            } catch (err) {
+              console.error(`Failed to fetch progress for ${path}`, err)
+            }
+          }
+
+          // Sort by progress percentage (most progress first)
+          pathProgress.sort((a, b) => b.percentage - a.percentage)
+
+          setStats({
+            totalVideosCompleted: totalCompleted,
+            totalQuizzesTaken: 0,
+            forgeCredits: 0,
+            streakDays: 1,
+            pathsInProgress: pathProgress
+          })
+        }
 
         // Fetch coin balance
         let coinBalance = 0
@@ -111,13 +155,7 @@ export default function Dashboard({ me }: { me: Me }) {
           console.error('Failed to fetch coin balance', err)
         }
 
-        setStats({
-          totalVideosCompleted: totalCompleted,
-          totalQuizzesTaken: 0, // TODO: Fetch from quiz attempts
-          forgeCredits: coinBalance,
-          streakDays: 1,
-          pathsInProgress: pathProgress
-        })
+        setStats(prev => ({ ...prev, forgeCredits: coinBalance }))
       } catch (error) {
         console.error('Failed to fetch dashboard data', error)
       } finally {
@@ -274,7 +312,7 @@ export default function Dashboard({ me }: { me: Me }) {
 
       {/* Quick Actions */}
       <PageSection icon="⚡" title="Quick Actions">
-        <PageGrid cols={2} gap="md">
+        <PageGrid cols={3} gap="md">
           <ActionCard
             icon="🎯"
             title="Take a Quiz"
@@ -284,11 +322,41 @@ export default function Dashboard({ me }: { me: Me }) {
             variant="gradient"
           />
           <ActionCard
-            icon="🗺️"
-            title="Explore All Paths"
+            icon="🏆"
+            title="View Achievements"
+            description="Check your unlocked achievements and badges."
+            buttonText="View Achievements"
+            buttonHref="/dashboard/achievements"
+            variant="default"
+          />
+          <ActionCard
+            icon="📊"
+            title="Quiz Results"
+            description="Review your quiz performance and scores."
+            buttonText="View Results"
+            buttonHref="/dashboard/quiz-results"
+            variant="default"
+          />
+        </PageGrid>
+      </PageSection>
+
+      {/* Explore More Section */}
+      <PageSection icon="🗺️" title="Explore More">
+        <PageGrid cols={2} gap="md">
+          <ActionCard
+            icon="📚"
+            title="All Learning Paths"
             description="Discover new learning opportunities and expand your skills."
             buttonText="View All Paths"
             buttonHref="/paths"
+            variant="gradient"
+          />
+          <ActionCard
+            icon="👨‍🏫"
+            title="Find a Mentor"
+            description="Get personalized guidance from expert mentors."
+            buttonText="Browse Mentors"
+            buttonHref="/mentors"
             variant="default"
           />
         </PageGrid>

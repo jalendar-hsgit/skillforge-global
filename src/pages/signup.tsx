@@ -40,19 +40,8 @@ export default function SignupPage() {
         throw new Error(errorData.detail || 'Signup failed')
       }
       
-      // Auto-login after successful signup
-      const loginResponse = await fetch('/api/session/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-        credentials: 'include'
-      })
-
-      if (loginResponse.ok) {
-        router.push('/dashboard')
-      } else {
-        router.push('/login')
-      }
+      // Redirect to login page after successful signup
+      router.push('/login?signup=success')
     } catch (err: any) {
       setError(err?.message || 'Email already in use')
     } finally {
@@ -74,6 +63,9 @@ export default function SignupPage() {
             <p className="text-gray-400">
               Create your account and unlock your potential
             </p>
+            <div className="mt-3 text-xs text-gray-500">
+              New accounts start as regular users. Contact admin for role upgrades.
+            </div>
           </div>
 
           {/* Signup Card */}

@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.db import get_db
 from app.core.config import settings
-from app.models.user import User
+from app.models.user import User, UserRole
 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_DAYS = 7
@@ -92,3 +92,33 @@ def get_current_user_optional(
     except (JWTError, ValueError, HTTPException):
         pass
     return None
+
+
+def get_current_admin(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    """
+    Dependency to require admin or superadmin role.
+    Raises 403 if user is not an admin.
+    """
+    if current_user.role not in [UserRole.ADMIN, UserRole.SUPERADMIN]:
+        raise HTTPException(
+            status_code=403,
+            detail="Admin access required. Contact support if you need admin privileges."
+        )
+    return current_user
+
+
+def get_current_superadmin(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    """
+    Dependency to require superadmin role.
+    Raises 403 if user is not a superadmin.
+    """
+    if current_user.role != UserRole.SUPERADMIN:
+        raise HTTPException(
+            status_code=403,
+            detail="Superadmin access required. This action is restricted."
+        )
+    return current_user

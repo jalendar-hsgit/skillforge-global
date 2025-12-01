@@ -18,9 +18,10 @@ class Settings(BaseSettings):
     
     # LLM Provider for AI Quiz Generation
     AI_PROVIDER: str = "openai"  # Options: openai, anthropic, azure, ollama
-    OPENAI_API_KEY: str | None = None
+    # Test keys for development - REPLACE IN PRODUCTION
+    OPENAI_API_KEY: str = "sk-test-key-replace-in-production-with-real-openai-key"
     OPENAI_MODEL: str = "gpt-4o-mini"
-    ANTHROPIC_API_KEY: str | None = None
+    ANTHROPIC_API_KEY: str = "sk-ant-test-key-replace-in-production-with-real-anthropic-key"
     ANTHROPIC_MODEL: str = "claude-3-5-sonnet-20241022"
     AZURE_OPENAI_ENDPOINT: str | None = None
     AZURE_OPENAI_API_KEY: str | None = None

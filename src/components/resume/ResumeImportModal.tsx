@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Upload, FileText, Loader2, CheckCircle2, AlertCircle, X } from 'lucide-react'
 import ModalShell from './ModalShell'
+import { API_BASE } from '@/lib/apiBase'
 // Lazy import jsPDF only when needed
 let jsPDF: any = null
 
@@ -66,9 +67,17 @@ export default function ResumeImportModal({ isOpen, onClose, onImportSuccess }: 
   }, [uploading])
 
   const validateAndSetFile = (selectedFile: File) => {
-    // Validate file type
-    const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
-    if (!allowedTypes.includes(selectedFile.type)) {
+    // Validate file type - check both MIME type and file extension
+    const allowedTypes = [
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/msword', // .doc fallback
+    ]
+    const fileName = selectedFile.name.toLowerCase()
+    const hasValidExtension = fileName.endsWith('.pdf') || fileName.endsWith('.docx') || fileName.endsWith('.doc')
+    const hasValidMimeType = allowedTypes.includes(selectedFile.type)
+    
+    if (!hasValidMimeType && !hasValidExtension) {
       setError('Please upload a PDF or DOCX file')
       return
     }
@@ -124,26 +133,39 @@ export default function ResumeImportModal({ isOpen, onClose, onImportSuccess }: 
     try {
   const formData = new FormData()
   formData.append('file', file)
-  if (useAI) formData.append('ai', '1')
+  if (useAI) formData.append('ai', 'true')
 
-      const res = await fetch('/api/session/v1x/resume-import/parse-preview', {
+      console.log('[ResumeImport] Uploading file:', {
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        useAI
+      })
+
+      const res = await fetch(`${API_BASE}/api/v1x/resume-import/parse-preview`, {
         method: 'POST',
         body: formData,
         credentials: 'include',
       })
 
+      console.log('[ResumeImport] Response status:', res.status)
+
       if (!res.ok) {
         let detail = 'Failed to parse resume'
         try {
           const data = await res.json()
+          console.log('[ResumeImport] Error response:', data)
           if (typeof data?.detail === 'string') detail = data.detail
-        } catch {}
+        } catch (e) {
+          console.error('[ResumeImport] Failed to parse error JSON:', e)
+        }
         if (res.status === 401) detail = 'Please log in to import your resume.'
         if (res.status === 404) detail = 'Import service not found. Ensure backend is running on 8001.'
         throw new Error(detail)
       }
 
   const data = await res.json()
+  console.log('[ResumeImport] Parsed data:', data)
   setPreviewData(data.parsed_data)
   // seed editable inputs from parsed data
   setNameInput(data.parsed_data?.full_name || '')
@@ -153,6 +175,7 @@ export default function ResumeImportModal({ isOpen, onClose, onImportSuccess }: 
       setShowRaw(false)
       setStep('preview')
     } catch (e: any) {
+      console.error('[ResumeImport] Error:', e)
       setError(e.message || 'Failed to parse resume')
     } finally {
       setUploading(false)
@@ -174,24 +197,37 @@ export default function ResumeImportModal({ isOpen, onClose, onImportSuccess }: 
       if (phoneInput) formData.append('phone', phoneInput)
       if (summaryInput) formData.append('summary', summaryInput)
 
-      const res = await fetch('/api/session/v1x/resume-import/upload', {
+      console.log('[ResumeImport] Importing resume with overrides:', {
+        full_name: nameInput,
+        email: emailInput,
+        phone: phoneInput,
+        summary: summaryInput
+      })
+
+      const res = await fetch(`${API_BASE}/api/v1x/resume-import/upload`, {
         method: 'POST',
         body: formData,
         credentials: 'include',
       })
 
+      console.log('[ResumeImport] Import response status:', res.status)
+
       if (!res.ok) {
         let detail = 'Failed to import resume'
         try {
           const data = await res.json()
+          console.log('[ResumeImport] Import error response:', data)
           if (typeof data?.detail === 'string') detail = data.detail
-        } catch {}
+        } catch (e) {
+          console.error('[ResumeImport] Failed to parse import error JSON:', e)
+        }
         if (res.status === 401) detail = 'Please log in to import your resume.'
         if (res.status === 404) detail = 'Import service not found. Ensure backend is running on 8001.'
         throw new Error(detail)
       }
 
       const resume = await res.json()
+      console.log('[ResumeImport] Resume created:', resume)
       setToast({ type: 'success', message: 'Resume imported successfully' })
       setTimeout(() => {
         onImportSuccess(resume.id)

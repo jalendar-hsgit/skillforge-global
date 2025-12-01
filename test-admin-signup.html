@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Signup Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 500px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1a1a2e;
+            color: #eee;
+        }
+        h1 { color: #00d4ff; }
+        form {
+            background: #16213e;
+            padding: 30px;
+            border-radius: 10px;
+            border: 1px solid #0f3460;
+        }
+        label {
+            display: block;
+            margin: 15px 0 5px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #0f3460;
+            border-radius: 5px;
+            background: #0f3460;
+            color: #eee;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        button:hover { opacity: 0.9; }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .message {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        .error {
+            background: #ff4444;
+            color: white;
+        }
+        .success {
+            background: #00C851;
+            color: white;
+        }
+        .info {
+            background: #33b5e5;
+            color: white;
+        }
+        #log {
+            margin-top: 30px;
+            padding: 15px;
+            background: #0a0e27;
+            border: 1px solid #0f3460;
+            border-radius: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+        }
+        .log-success { color: #00C851; }
+        .log-error { color: #ff4444; }
+        .log-info { color: #33b5e5; }
+    </style>
+</head>
+<body>
+    <h1>🔐 Admin Signup Test</h1>
+    
+    <div id="messages"></div>
+    
+    <form id="signupForm">
+        <label for="email">Email:</label>
+        <input type="email" id="email" required placeholder="admin@example.com">
+        
+        <label for="password">Password:</label>
+        <input type="password" id="password" required placeholder="Min 8 characters">
+        
+        <label for="confirmPassword">Confirm Password:</label>
+        <input type="password" id="confirmPassword" required placeholder="Repeat password">
+        
+        <label for="role">Role:</label>
+        <select id="role" required>
+            <option value="admin">Admin</option>
+            <option value="superadmin">Superadmin</option>
+        </select>
+        
+        <button type="submit" id="submitBtn">Create Admin Account</button>
+    </form>
+
+    <h3 style="margin-top: 30px;">Console Log:</h3>
+    <div id="log"></div>
+
+    <script>
+        const API_BASE = 'http://localhost:8001';
+        const logDiv = document.getElementById('log');
+        const messagesDiv = document.getElementById('messages');
+        
+        function log(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.insertBefore(entry, logDiv.firstChild);
+            console.log(message);
+        }
+
+        function showMessage(message, type) {
+            messagesDiv.innerHTML = `<div class="message ${type}">${message}</div>`;
+        }
+
+        document.getElementById('signupForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const role = document.getElementById('role').value;
+            const submitBtn = document.getElementById('submitBtn');
+            
+            // Validation
+            if (password.length < 8) {
+                showMessage('Password must be at least 8 characters', 'error');
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                showMessage('Passwords do not match', 'error');
+                return;
+            }
+            
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Creating account...';
+            messagesDiv.innerHTML = '';
+            
+            log(`Starting signup for ${email} with role: ${role}`);
+            
+            try {
+                // Signup
+                log(`POST ${API_BASE}/api/v1/auth/signup`);
+                const signupResponse = await fetch(`${API_BASE}/api/v1/auth/signup`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password, role }),
+                    credentials: 'include'
+                });
+                
+                log(`Signup response status: ${signupResponse.status}`, 
+                    signupResponse.ok ? 'success' : 'error');
+                
+                if (!signupResponse.ok) {
+                    const errorData = await signupResponse.json();
+                    log(`Signup error: ${JSON.stringify(errorData)}`, 'error');
+                    throw new Error(errorData.detail || 'Signup failed');
+                }
+                
+                const signupData = await signupResponse.json();
+                log(`Signup success: ${JSON.stringify(signupData)}`, 'success');
+                showMessage('✓ Account created successfully!', 'success');
+                
+                // Auto-login
+                log('Attempting auto-login...');
+                const loginResponse = await fetch(`${API_BASE}/api/v1/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password }),
+                    credentials: 'include'
+                });
+                
+                log(`Login response status: ${loginResponse.status}`, 
+                    loginResponse.ok ? 'success' : 'error');
+                
+                if (loginResponse.ok) {
+                    const loginData = await loginResponse.json();
+                    log(`Login success: ${JSON.stringify(loginData)}`, 'success');
+                    
+                    // Check user details
+                    log('Fetching user details...');
+                    const meResponse = await fetch(`${API_BASE}/api/v1/auth/me`, {
+                        credentials: 'include'
+                    });
+                    
+                    if (meResponse.ok) {
+                        const userData = await meResponse.json();
+                        log(`User data: ${JSON.stringify(userData)}`, 'success');
+                        
+                        showMessage(
+                            `✓ Admin account created and logged in!<br>` +
+                            `Email: ${userData.email}<br>` +
+                            `Role: ${userData.role}<br>` +
+                            `ID: ${userData.id}`,
+                            'success'
+                        );
+                    }
+                } else {
+                    log('Login failed after signup', 'error');
+                    showMessage('Account created but auto-login failed. Try logging in manually.', 'info');
+                }
+                
+                // Reset form
+                document.getElementById('signupForm').reset();
+                
+            } catch (error) {
+                log(`Error: ${error.message}`, 'error');
+                showMessage(`Error: ${error.message}`, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Create Admin Account';
+            }
+        });
+
+        log('Admin signup test page loaded', 'info');
+        log(`API Base URL: ${API_BASE}`, 'info');
+    </script>
+</body>
+</html>

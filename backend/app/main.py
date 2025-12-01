@@ -15,6 +15,7 @@ from app.modelsx.quiz_template import GeneratedQuiz, QuizSession
 # import mentor models
 from app.modelsx.mentor import Mentor, MentorSession, MentorAvailability, MentorMessage, MentorReview
 from app.modelsx.payout import MentorPayout, MentorEarning
+from app.modelsx.admin_log import AdminLog
 from app.modelsx.subscription import Subscription, PlanFeature, SubscriptionEvent
 from app.modelsx.stripe_connect import MentorStripeAccount
 from app.modelsx.chat_file import MentorChatFile
@@ -27,6 +28,8 @@ from app.modelsx.resume_comparison import ResumeVersion, ResumeComparison
 from app.modelsx.job_application import JobApplication as JobApplicationTracker
 # import marketplace models
 from app.modelsx.order import Order, Coupon, CartItem
+# import platform settings
+from app.modelsx.platform_settings import PlatformSetting
 
 # v1 routers (existing)
 from app.api.v1 import auth, courses, progress, quizzes, chat, subscribe, quiz_status, paths, achievements, dashboard
@@ -38,6 +41,7 @@ quizzes_db = None
 youtube_sync = None
 coins_db = None
 mentors = None
+admin_mentors = None
 payments = None
 chat_files = None
 payouts = None
@@ -74,6 +78,14 @@ try:
 except Exception as e:
     print(f"Failed to import mentors: {e}")
 
+admin_mentors = None  # Deprecated router; replaced by unified app.api.v1x.admin
+
+try:
+    from app.api.v1x.admin import router as admin_router
+except Exception as e:
+    admin_router = None
+    print(f"Failed to import admin router: {e}")
+
 try:
     from app.api.v1x.payments import router as payments
 except Exception as e:
@@ -98,6 +110,12 @@ try:
     from app.api.v1x.connect import router as connect
 except Exception as e:
     print(f"Failed to import connect: {e}")
+
+try:
+    from app.api.v1x.student_dashboard import router as student_dashboard
+except Exception as e:
+    student_dashboard = None
+    print(f"Failed to import student_dashboard: {e}")
 
 try:
     from app.api.v1x.recordings import router as recordings
@@ -179,10 +197,14 @@ app = FastAPI(title=getattr(settings, "APP_NAME", "SkillForge Global"))
 
 # Configure error logging and exception handlers
 from app.core.logging_middleware import setup_logging
+from app.core.settings_middleware import MaintenanceModeMiddleware
 setup_logging(app)
 
 # Create tables
 Base.metadata.create_all(bind=engine)
+
+# Add maintenance mode middleware (before CORS)
+app.add_middleware(MaintenanceModeMiddleware)
 
 # CORS - Allow multiple frontend ports
 app.add_middleware(
@@ -246,7 +268,7 @@ def _mount_v1x_export(obj):
 
 
 # Mount all v1x exports (modules or routers)
-for _export in (courses_db, progress_db, quizzes_db, youtube_sync, coins_db, mentors, payments, chat_files, payouts, subscriptions, connect, recordings, resumes, resume_ai, cover_letter, resume_comparison, linkedin_import, hiring, resume_import, marketplace, job_applications, job_notifications, job_calendar, resume_export, resume_templates, resume_analytics_events):
+for _export in (courses_db, progress_db, quizzes_db, youtube_sync, coins_db, mentors, payments, chat_files, payouts, subscriptions, connect, student_dashboard, recordings, resumes, resume_ai, cover_letter, resume_comparison, linkedin_import, hiring, resume_import, marketplace, job_applications, job_notifications, job_calendar, resume_export, resume_templates, resume_analytics_events, admin_router):
     _mount_v1x_export(_export)
 
 # Mount WebSocket server

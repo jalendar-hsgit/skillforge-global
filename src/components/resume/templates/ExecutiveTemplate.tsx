@@ -36,8 +36,13 @@ export default function ExecutiveTemplate({ resume }: { resume: Resume }) {
         {resume.achievements?.length ? (
           <section className="mb-6">
             <h3 className="font-bold text-lg mb-2" style={{ color: resume.accent_color || '#111827' }}>Key Achievements</h3>
-            <ul className="list-disc pl-5 text-sm">
-              {resume.achievements.map((a, i) => <li key={i}>{a}</li>)}
+            <ul className="list-disc pl-5 text-sm space-y-1">
+              {resume.achievements.map((a: any, i: number) => (
+                <li key={i}>
+                  <span className="font-semibold">{a.title}</span>
+                  {a.description && <span className="text-gray-600 text-xs block mt-0.5">{a.description}</span>}
+                </li>
+              ))}
             </ul>
           </section>
         ) : null}

@@ -49,13 +49,87 @@ class LLMProvider(ABC):
         user_context: dict | None = None
     ) -> AsyncIterator[dict]:
         """Stream quiz questions one at a time. Yields question dicts."""
+
+
+        class MockLLMProvider(LLMProvider):
+            """Mock LLM provider for development/testing when API keys are not available."""
+    
+            async def generate(
+                self,
+                prompt: str,
+                temperature: float = 0.7,
+                max_tokens: int = 500,
+            ) -> str:
+                """Generate mock responses based on prompt content."""
+                logger.info("Using MockLLMProvider (test mode)")
+        
+                # Detect bullet point generation
+                if "bullet points" in prompt.lower() or "bullet point" in prompt.lower():
+                    return """
+        1. Led cross-functional teams in delivering high-impact projects, resulting in 30% increase in operational efficiency
+        2. Developed and implemented innovative solutions that reduced processing time by 45% and improved customer satisfaction scores
+        3. Optimized workflows and automated routine tasks, saving 200+ hours monthly and reducing operational costs by $50K annually
+        4. Collaborated with stakeholders across departments to drive strategic initiatives that generated $500K in new revenue
+        5. Managed end-to-end project lifecycles while mentoring junior team members and maintaining 98% on-time delivery rate
+                    """
+        
+                # Detect summary optimization
+                if "professional summary" in prompt.lower() or "summary" in prompt.lower() and "optimize" in prompt.lower():
+                    return """Results-driven professional with 5+ years of experience delivering innovative solutions and driving measurable business impact. Proven track record of leading cross-functional teams, optimizing processes, and implementing strategic initiatives that enhance efficiency and profitability. Adept at leveraging technology and data analytics to solve complex challenges and deliver exceptional results. Strong communicator with ability to build relationships across all organizational levels."""
+        
+                # Detect project suggestions
+                if "project" in prompt.lower() and "suggest" in prompt.lower():
+                    return """
+        1. E-Commerce Platform Redesign - Led complete redesign of online shopping platform, improving conversion rate by 25% and user engagement by 40%
+        2. Data Analytics Dashboard - Developed real-time analytics dashboard enabling stakeholders to make data-driven decisions 50% faster
+        3. Process Automation Initiative - Implemented automation framework reducing manual processing time by 60% and error rate by 85%
+        4. Mobile App Development - Spearheaded development of cross-platform mobile application reaching 100K+ downloads in first quarter
+        5. Customer Success Program - Designed and launched customer success initiative improving retention rate by 35% and NPS score by 20 points
+                    """
+        
+                # Default generic response
+                return "This is a mock AI response. Please configure a real LLM provider (OpenAI, Anthropic, or Ollama) for production use."
+    
+            async def generate_quiz_questions(
+                self,
+                topic: str,
+                difficulty: Literal["easy", "medium", "hard"],
+                num_questions: int,
+                options_per_question: int,
+                user_context: dict | None = None
+            ) -> list[dict]:
+                """Generate mock quiz questions."""
+                questions = []
+                for i in range(num_questions):
+                    questions.append({
+                        "id": f"q{i+1}",
+                        "type": "mcq",
+                        "text": f"Mock {difficulty} question {i+1} about {topic}?",
+                        "options": [f"Option {chr(65+j)}" for j in range(options_per_question)],
+                        "answerIndex": 0,
+                        "explanation": "This is a mock explanation. Configure a real LLM provider for actual quiz generation."
+                    })
+                return questions
+    
+            async def generate_quiz_questions_stream(
+                self,
+                topic: str,
+                difficulty: Literal["easy", "medium", "hard"],
+                num_questions: int,
+                options_per_question: int,
+                user_context: dict | None = None
+            ) -> AsyncIterator[dict]:
+                """Stream mock quiz questions."""
+                questions = await self.generate_quiz_questions(topic, difficulty, num_questions, options_per_question, user_context)
+                for q in questions:
+                    yield q
         pass
 
 
 class OpenAIProvider(LLMProvider):
     def __init__(self):
-        if not settings.OPENAI_API_KEY:
-            raise ValueError("OPENAI_API_KEY not configured")
+        if not settings.OPENAI_API_KEY or "test" in settings.OPENAI_API_KEY.lower():
+            raise ValueError("OPENAI_API_KEY not configured or is a test key")
         try:
             from openai import AsyncOpenAI
             self.client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
@@ -481,17 +555,30 @@ Return JSON array: [{{"id":"q1","type":"mcq","text":"Q?","options":["A","B"],"an
 
 def get_llm_provider() -> LLMProvider:
     """Factory function to get configured LLM provider."""
+    # Check if test/mock keys are being used
+    if settings.OPENAI_API_KEY and "test" in settings.OPENAI_API_KEY.lower():
+        logger.warning("Test API key detected - using MockLLMProvider for development")
+        return MockLLMProvider()
+    
+    if settings.ANTHROPIC_API_KEY and "test" in settings.ANTHROPIC_API_KEY.lower():
+        logger.warning("Test API key detected - using MockLLMProvider for development")
+        return MockLLMProvider()
+    
     provider = settings.AI_PROVIDER.lower()
     
-    if provider == "openai":
-        return OpenAIProvider()
-    elif provider == "anthropic":
-        return AnthropicProvider()
-    elif provider == "ollama":
-        return OllamaProvider()
-    else:
-        logger.warning(f"Unknown AI_PROVIDER '{provider}', falling back to OpenAI")
-        return OpenAIProvider()
+    try:
+        if provider == "openai":
+            return OpenAIProvider()
+        elif provider == "anthropic":
+            return AnthropicProvider()
+        elif provider == "ollama":
+            return OllamaProvider()
+        else:
+            logger.warning(f"Unknown AI_PROVIDER '{provider}', falling back to OpenAI")
+            return OpenAIProvider()
+    except (ValueError, ImportError) as e:
+        logger.warning(f"LLM provider initialization failed: {e}. Using MockLLMProvider for development.")
+        return MockLLMProvider()
 
 
 def get_provider() -> LLMProvider:

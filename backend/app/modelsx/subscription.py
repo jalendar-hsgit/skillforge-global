@@ -55,8 +55,9 @@ class Subscription(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
-    # Relationships (User qualified to avoid conflicts)
-    user = relationship("app.models.user.User", back_populates="subscription")
+    # Relationships
+    # Note: User model doesn't have back_populates to avoid circular dependency issues
+    user = relationship("app.models.user.User", foreign_keys=[user_id])
     
     def __repr__(self):
         return f"<Subscription(id={self.id}, user_id={self.user_id}, plan={self.plan}, status={self.status})>"

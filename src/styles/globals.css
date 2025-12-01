@@ -103,3 +103,126 @@ input:focus, textarea:focus, select:focus {
 button, a, input, textarea, select {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+/* ========================================
+   Multi-Page Resume Support
+   ======================================== */
+
+/* Page break utilities for resumes */
+.resume-page-break {
+  page-break-after: always;
+  break-after: page;
+}
+
+.resume-avoid-break {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+/* Print styles for multi-page resumes */
+@media print {
+  /* Ensure proper page size */
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+  
+  /* Remove screen-only elements */
+  .print\\:hidden {
+    display: none !important;
+  }
+  
+  /* Resume-specific print rules */
+  #resume-content,
+  .resume-preview {
+    width: 210mm !important;
+    max-width: 210mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    background: white !important;
+  }
+  
+  /* Prevent page breaks inside sections */
+  #resume-content section,
+  .resume-section {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  
+  /* Prevent page breaks after headings */
+  #resume-content h1,
+  #resume-content h2,
+  #resume-content h3,
+  .resume-heading {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+  
+  /* Prevent orphaned list items */
+  #resume-content ul,
+  #resume-content ol,
+  #resume-content li {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  
+  /* Force color printing */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+  
+  /* Preserve backgrounds and gradients */
+  #resume-content [class*="bg-"],
+  #resume-content [class*="gradient"],
+  #resume-content [style*="background"] {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+
+/* Screen-only page break indicator */
+.page-break-indicator {
+  display: block;
+  position: relative;
+  height: 40px;
+  margin: 20px 0;
+}
+
+@media print {
+  .page-break-indicator {
+    display: none;
+  }
+}
+
+.page-break-indicator::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    #d1d5db 20%,
+    #d1d5db 80%,
+    transparent
+  );
+}
+
+.page-break-indicator::after {
+  content: attr(data-page);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  padding: 4px 12px;
+  font-size: 11px;
+  color: #9ca3af;
+  font-weight: 500;
+  white-space: nowrap;
+}

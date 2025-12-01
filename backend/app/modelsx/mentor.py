@@ -45,8 +45,9 @@ class Mentor(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
-    # Relationships (User qualified to avoid conflicts)
-    user = relationship("app.models.user.User", back_populates="mentor_profile")
+    # Relationships
+    # Note: User model doesn't have back_populates to avoid circular dependency issues
+    user = relationship("app.models.user.User", foreign_keys=[user_id])
     sessions = relationship("MentorSession", back_populates="mentor", cascade="all, delete-orphan")
     availability = relationship("MentorAvailability", back_populates="mentor", cascade="all, delete-orphan")
     reviews = relationship("MentorReview", back_populates="mentor", cascade="all, delete-orphan")
@@ -92,7 +93,7 @@ class MentorSession(Base):
     # Notes
     mentor_notes = Column(Text, nullable=True)  # Mentor's private notes
     student_feedback = Column(Text, nullable=True)  # Student's feedback after session
-    
+
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     completed_at = Column(DateTime, nullable=True)
@@ -102,7 +103,11 @@ class MentorSession(Base):
     mentor = relationship("Mentor", back_populates="sessions")
     student = relationship("app.models.user.User", foreign_keys=[student_id])
     review = relationship("MentorReview", uselist=False, back_populates="session")
-    chat_files = relationship("MentorChatFile", back_populates="session")
+    # chat_files = relationship("MentorChatFile", back_populates="session")  # TODO: Define MentorChatFile model
+
+    @property
+    def rating(self):
+        return self.review.rating if self.review else None
     
     def __repr__(self):
         return f"<MentorSession(id={self.id}, mentor_id={self.mentor_id}, status={self.status})>"
