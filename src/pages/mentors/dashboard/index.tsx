@@ -29,7 +29,8 @@ type Review = {
   id: number
   student_id: number
   rating: number
-  comment: string
+  review_text?: string
+  comment?: string
   created_at: string
 }
 
@@ -359,8 +360,8 @@ export default function MentorDashboard() {
                           {new Date(review.created_at).toLocaleDateString()}
                         </span>
                       </div>
-                      {review.comment && (
-                        <p className="text-sm text-techGray italic">"{review.comment}"</p>
+                      {(review.review_text || review.comment) && (
+                        <p className="text-sm text-techGray italic">"{review.review_text || review.comment}"</p>
                       )}
                     </div>
                   ))}
