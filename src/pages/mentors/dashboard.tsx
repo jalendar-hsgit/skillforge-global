@@ -20,22 +20,13 @@ interface Session {
   id: number;
   mentor_id: number;
   student_id: number;
-  start_time: string;
-  end_time: string;
+  scheduled_at: string; // backend field
   duration_minutes: number;
   status: string;
   topic: string;
-  notes?: string;
   meeting_url?: string;
-  student?: {
-    full_name: string;
-    email: string;
-  };
-  mentor?: {
-    user: {
-      full_name: string;
-    };
-  };
+  mentor_notes?: string;
+  student_feedback?: string;
 }
 
 interface Availability {
@@ -92,7 +83,9 @@ export default function MentorDashboard() {
       );
       if (sessionsResponse.ok) {
         const sessionsData = await sessionsResponse.json();
-        setSessions(sessionsData);
+        // Backend returns { sessions: [...], total: n }
+        const list = Array.isArray(sessionsData) ? sessionsData : sessionsData.sessions;
+        setSessions(Array.isArray(list) ? list : []);
       }
 
       // Fetch availability (if mentor is approved)
@@ -137,15 +130,16 @@ export default function MentorDashboard() {
     };
   };
 
-  const upcomingSessions = sessions
-    .filter(s => new Date(s.start_time) > new Date() && s.status !== 'cancelled')
-    .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+  const safeSessions = Array.isArray(sessions) ? sessions : [];
+  const upcomingSessions = safeSessions
+    .filter(s => new Date(s.scheduled_at) > new Date() && s.status !== 'cancelled')
+    .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime());
 
-  const completedSessions = sessions
+  const completedSessions = safeSessions
     .filter(s => s.status === 'completed')
-    .sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime());
+    .sort((a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime());
 
-  const pendingSessions = sessions.filter(s => s.status === 'pending');
+  const pendingSessions = safeSessions.filter(s => s.status === 'pending');
 
   if (loading) {
     return (
@@ -279,7 +273,7 @@ export default function MentorDashboard() {
                   ) : (
                     <div className="space-y-4">
                       {upcomingSessions.slice(0, 5).map(session => {
-                        const { date, time } = formatDateTime(session.start_time);
+                        const { date, time } = formatDateTime(session.scheduled_at);
                         return (
                           <div 
                             key={session.id} 
