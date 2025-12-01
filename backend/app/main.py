@@ -118,6 +118,12 @@ except Exception as e:
     print(f"Failed to import student_dashboard: {e}")
 
 try:
+    from app.api.v1x.mentor_portal import router as mentor_portal
+except Exception as e:
+    mentor_portal = None
+    print(f"Failed to import mentor_portal: {e}")
+
+try:
     from app.api.v1x.recordings import router as recordings
 except Exception as e:
     print(f"Failed to import recordings: {e}")
@@ -268,7 +274,7 @@ def _mount_v1x_export(obj):
 
 
 # Mount all v1x exports (modules or routers)
-for _export in (courses_db, progress_db, quizzes_db, youtube_sync, coins_db, mentors, payments, chat_files, payouts, subscriptions, connect, student_dashboard, recordings, resumes, resume_ai, cover_letter, resume_comparison, linkedin_import, hiring, resume_import, marketplace, job_applications, job_notifications, job_calendar, resume_export, resume_templates, resume_analytics_events, admin_router):
+for _export in (courses_db, progress_db, quizzes_db, youtube_sync, coins_db, mentors, payments, chat_files, payouts, subscriptions, connect, student_dashboard, mentor_portal, recordings, resumes, resume_ai, cover_letter, resume_comparison, linkedin_import, hiring, resume_import, marketplace, job_applications, job_notifications, job_calendar, resume_export, resume_templates, resume_analytics_events, admin_router):
     _mount_v1x_export(_export)
 
 # Mount WebSocket server
