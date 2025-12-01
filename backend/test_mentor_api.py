@@ -10,8 +10,8 @@ from datetime import datetime, timedelta
 
 # Config
 API_BASE = "http://localhost:8001"
-TEST_USER_EMAIL = "test@example.com"  # Change to your test mentor email
-TEST_PASSWORD = "password123"  # Change to your test password
+TEST_USER_EMAIL = "mentor@test.com"  # Test mentor email
+TEST_PASSWORD = "password123"  # Test password
 
 class MentorPortalTester:
     def __init__(self):

@@ -68,7 +68,7 @@ def get_mentor_overview(
     ).scalar() or 0
     
     # Total earnings (completed sessions only)
-    total_earnings = db.query(func.sum(MentorSession.amount_paid)).filter(
+    total_earnings = db.query(func.sum(MentorSession.price)).filter(
         and_(
             MentorSession.mentor_id == mentor.id,
             MentorSession.status == SessionStatus.COMPLETED
@@ -76,7 +76,7 @@ def get_mentor_overview(
     ).scalar() or 0.0
     
     # This month's earnings
-    month_earnings = db.query(func.sum(MentorSession.amount_paid)).filter(
+    month_earnings = db.query(func.sum(MentorSession.price)).filter(
         and_(
             MentorSession.mentor_id == mentor.id,
             MentorSession.status == SessionStatus.COMPLETED,
@@ -149,7 +149,7 @@ def get_mentor_overview(
                 "id": r.id,
                 "student_id": r.student_id,
                 "rating": r.rating,
-                "comment": r.comment,
+                "review_text": r.review_text,
                 "created_at": r.created_at.isoformat()
             }
             for r in recent_reviews
@@ -189,8 +189,8 @@ def get_mentor_sessions(
                 "scheduled_at": s.scheduled_at.isoformat(),
                 "duration_minutes": s.duration_minutes,
                 "status": s.status,
-                "amount_paid": s.amount_paid,
-                "meeting_link": s.meeting_link,
+                "price": s.price,
+                "meeting_link": s.meeting_url,
                 "notes": s.notes,
                 "created_at": s.created_at.isoformat()
             }
@@ -229,14 +229,14 @@ def get_mentor_earnings(
         )
     ).all()
     
-    total_earnings = sum(s.amount_paid or 0 for s in sessions)
+    total_earnings = sum(s.price or 0 for s in sessions)
     total_hours = sum(s.duration_minutes or 0 for s in sessions) / 60
     
     # Earnings by month (for chart)
     monthly_earnings = db.execute(text("""
         SELECT 
             DATE_FORMAT(created_at, '%Y-%m') as month,
-            SUM(amount_paid) as earnings,
+                SUM(price) as earnings,
             COUNT(*) as session_count
         FROM mentor_sessions
         WHERE mentor_id = :mid
@@ -395,7 +395,7 @@ def get_mentor_reviews(
                 "student_id": r.student_id,
                 "session_id": r.session_id,
                 "rating": r.rating,
-                "comment": r.comment,
+                "review_text": r.review_text,
                 "created_at": r.created_at.isoformat()
             }
             for r in reviews
