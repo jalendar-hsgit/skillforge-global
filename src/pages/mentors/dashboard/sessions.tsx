@@ -1,6 +1,7 @@
 import Head from 'next/head'
 import Layout from '@/components/Layout'
 import AdminHeader from '@/components/AdminHeader'
+import DateRangePicker from '@/components/DateRangePicker'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 
@@ -27,17 +28,22 @@ export default function MentorSessions() {
   const [filter, setFilter] = useState('all')
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<number | null>(null)
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
 
   useEffect(() => {
     loadSessions()
-  }, [filter])
+  }, [filter, startDate, endDate])
 
   async function loadSessions() {
     setLoading(true)
     try {
-      const url = filter === 'all' 
-        ? `${process.env.NEXT_PUBLIC_API_BASE}/api/v1x/mentor-portal/dashboard/sessions`
-        : `${process.env.NEXT_PUBLIC_API_BASE}/api/v1x/mentor-portal/dashboard/sessions?status=${filter}`
+      const params = new URLSearchParams()
+      if (filter !== 'all') params.set('status', filter)
+      if (startDate) params.set('start_date', startDate)
+      if (endDate) params.set('end_date', endDate)
+      
+      const url = `${process.env.NEXT_PUBLIC_API_BASE}/api/v1x/mentor-portal/dashboard/sessions?${params.toString()}`
       
       const res = await fetch(url, { credentials: 'include' })
 
@@ -132,6 +138,17 @@ export default function MentorSessions() {
               {status.charAt(0).toUpperCase() + status.slice(1)}
             </button>
           ))}
+        </div>
+
+        {/* Date Range Filter */}
+        <div className="mb-6">
+          <DateRangePicker
+            startDate={startDate}
+            endDate={endDate}
+            onStartChange={setStartDate}
+            onEndChange={setEndDate}
+            onClear={() => { setStartDate(''); setEndDate('') }}
+          />
         </div>
 
         {/* Sessions List */}

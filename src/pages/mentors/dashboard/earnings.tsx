@@ -1,6 +1,7 @@
 import Head from 'next/head'
 import Layout from '@/components/Layout'
 import AdminHeader from '@/components/AdminHeader'
+import DateRangePicker from '@/components/DateRangePicker'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 
@@ -17,15 +18,21 @@ export default function MentorEarnings() {
   const router = useRouter()
   const [data, setData] = useState<EarningsData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
 
   useEffect(() => {
     loadEarnings()
-  }, [])
+  }, [startDate, endDate])
 
   async function loadEarnings() {
     try {
+      const params = new URLSearchParams()
+      if (startDate) params.set('start_date', startDate)
+      if (endDate) params.set('end_date', endDate)
+
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE}/api/v1x/mentor-portal/dashboard/earnings`,
+        `${process.env.NEXT_PUBLIC_API_BASE}/api/v1x/mentor-portal/dashboard/earnings?${params.toString()}`,
         { credentials: 'include' }
       )
 
@@ -73,6 +80,24 @@ export default function MentorEarnings() {
     ? ((data.this_month - data.last_month) / data.last_month) * 100
     : 0
 
+  const exportToCSV = () => {
+    if (!data) return
+    
+    const rows = [
+      ['Month', 'Amount'],
+      ...data.monthly_breakdown.map(item => [item.month, item.amount.toFixed(2)])
+    ]
+    
+    const csvContent = rows.map(row => row.join(',')).join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv' })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `mentor-earnings-${new Date().toISOString().split('T')[0]}.csv`
+    a.click()
+    window.URL.revokeObjectURL(url)
+  }
+
   return (
     <Layout>
       <Head>
@@ -82,6 +107,23 @@ export default function MentorEarnings() {
       <AdminHeader title="My Earnings" backUrl="/mentors/dashboard" />
 
       <div className="container mx-auto px-4 py-8 max-w-7xl">
+        {/* Date Range Filter */}
+        <div className="mb-6 flex items-center justify-between">
+          <DateRangePicker
+            startDate={startDate}
+            endDate={endDate}
+            onStartChange={setStartDate}
+            onEndChange={setEndDate}
+            onClear={() => { setStartDate(''); setEndDate('') }}
+          />
+          <button
+            onClick={exportToCSV}
+            className="px-4 py-2 bg-techBlue hover:bg-techBlue/80 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+          >
+            <span>📊</span> Export CSV
+          </button>
+        </div>
+
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div className="bg-gradient-to-br from-green-500/20 to-green-600/20 border border-green-500/30 rounded-xl p-6">
