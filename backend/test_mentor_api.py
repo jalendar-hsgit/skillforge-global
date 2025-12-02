@@ -5,6 +5,7 @@ Tests all 8 mentor-portal dashboard endpoints
 import sys
 sys.path.insert(0, 'D:\\python code\\sfg\\skillforge-global\\backend')
 
+import os
 import requests
 from datetime import datetime, timedelta
 
@@ -143,6 +144,114 @@ class MentorPortalTester:
         else:
             print(f"❌ Reviews failed: {res.status_code} - {res.text}")
             return False
+
+    def test_session_actions(self):
+        """Test PATCH /api/v1x/mentors/sessions/{id} to confirm/cancel/complete."""
+        print("\n🛠️  Testing Session Actions (confirm/cancel/complete)...")
+
+        # 1) Fetch sessions as mentor to find candidates
+        # Try to get a pending session first
+        res = self.session.get(
+            f"{API_BASE}/api/v1x/mentors/sessions/my",
+            params={"as_mentor": "true", "status_filter": "pending"}
+        )
+        if res.status_code != 200:
+            print(f"❌ Unable to fetch mentor sessions: {res.status_code} - {res.text}")
+            return False
+        data = res.json()
+        pending_list = data.get("sessions", [])
+
+        # If none pending, fetch confirmed to later complete/cancel
+        if not pending_list:
+            res2 = self.session.get(
+                f"{API_BASE}/api/v1x/mentors/sessions/my",
+                params={"as_mentor": "true", "status_filter": "confirmed"}
+            )
+            if res2.status_code != 200:
+                print(f"❌ Unable to fetch confirmed sessions: {res2.status_code} - {res2.text}")
+                return False
+            confirmed_list = res2.json().get("sessions", [])
+        else:
+            confirmed_list = []
+
+        # 2) If we have a pending session, confirm it
+        confirmed_session_id = None
+        if pending_list:
+            s = pending_list[0]
+            sid = s.get("id")
+            print(f"   ➜ Confirming pending session #{sid} ...")
+            pr = self.session.patch(
+                f"{API_BASE}/api/v1x/mentors/sessions/{sid}",
+                json={"status": "confirmed"}
+            )
+            if pr.status_code != 200:
+                print(f"❌ Confirm failed: {pr.status_code} - {pr.text}")
+                return False
+            payload = pr.json()
+            session_data = payload.get("session", {})
+            if session_data.get("status") != "confirmed":
+                print(f"❌ Confirm did not persist. Status: {session_data.get('status')}")
+                return False
+            if not session_data.get("meeting_url"):
+                print(f"⚠️  meeting_url not present after confirmation")
+            confirmed_session_id = sid
+
+        # 3) If we have a confirmed session (either from step 2 or pre-existing), complete it
+        target_confirmed = None
+        if confirmed_session_id is not None:
+            # Fetch the session again to ensure it is confirmed
+            target_confirmed = confirmed_session_id
+        elif confirmed_list:
+            target_confirmed = confirmed_list[0].get("id")
+
+        if target_confirmed is not None:
+            print(f"   ➜ Completing confirmed session #{target_confirmed} ...")
+            cr = self.session.patch(
+                f"{API_BASE}/api/v1x/mentors/sessions/{target_confirmed}",
+                json={"status": "completed"}
+            )
+            if cr.status_code != 200:
+                print(f"❌ Complete failed: {cr.status_code} - {cr.text}")
+                return False
+            cp = cr.json()
+            session_data = cp.get("session", {})
+            if session_data.get("status") != "completed":
+                print(f"❌ Complete did not persist. Status: {session_data.get('status')}")
+                return False
+
+        # 4) Cancel any remaining pending/confirmed session (not the one we completed if possible)
+        res3 = self.session.get(
+            f"{API_BASE}/api/v1x/mentors/sessions/my",
+            params={"as_mentor": "true"}
+        )
+        if res3.status_code == 200:
+            all_list = res3.json().get("sessions", [])
+            cancel_target = None
+            for s in all_list:
+                sid = s.get("id")
+                st = s.get("status")
+                if st in ("pending", "confirmed") and sid != (target_confirmed or confirmed_session_id):
+                    cancel_target = sid
+                    break
+            if cancel_target:
+                print(f"   ➜ Cancelling session #{cancel_target} ...")
+                rr = self.session.patch(
+                    f"{API_BASE}/api/v1x/mentors/sessions/{cancel_target}",
+                    json={"status": "cancelled", "mentor_notes": "Test cancellation"}
+                )
+                if rr.status_code != 200:
+                    print(f"❌ Cancel failed: {rr.status_code} - {rr.text}")
+                    return False
+                rj = rr.json()
+                session_data = rj.get("session", {})
+                if session_data.get("status") != "cancelled":
+                    print(f"❌ Cancel did not persist. Status: {session_data.get('status')}")
+                    return False
+        else:
+            print(f"⚠️  Could not fetch all sessions for cancel step: {res3.status_code}")
+
+        print("✅ Session actions covered (confirm/complete/cancel)")
+        return True
     
     def test_profile_update(self):
         """Test PATCH /api/v1x/mentor-portal/profile"""
@@ -187,7 +296,8 @@ class MentorPortalTester:
             "Students": self.test_students(),
             "Analytics": self.test_analytics(),
             "Reviews": self.test_reviews(),
-            "Profile Update": self.test_profile_update()
+            "Profile Update": self.test_profile_update(),
+            "Session Actions": self.test_session_actions(),
         }
         
         print("\n" + "="*60)
@@ -219,7 +329,9 @@ if __name__ == "__main__":
     print(f"   2. Test user exists and is an approved mentor")
     print(f"   3. Update TEST_USER_EMAIL and TEST_PASSWORD above")
     
-    input("\nPress Enter to start tests...")
+    # Allow non-interactive runs via AUTO_RUN=1 or when stdin is not a TTY
+    if os.environ.get("AUTO_RUN") != "1" and sys.stdin.isatty():
+        input("\nPress Enter to start tests...")
     
     tester = MentorPortalTester()
     tester.run_all_tests()

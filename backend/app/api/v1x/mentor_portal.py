@@ -118,7 +118,7 @@ def get_mentor_overview(
         "mentor": {
             "id": mentor.id,
             "user_id": mentor.user_id,
-            "status": mentor.status,
+            "status": mentor.status.value if hasattr(mentor.status, 'value') else str(mentor.status),
             "bio": mentor.bio,
             "expertise": mentor.expertise,
             "hourly_rate": mentor.hourly_rate
@@ -140,7 +140,7 @@ def get_mentor_overview(
                 "topic": s.topic,
                 "scheduled_at": s.scheduled_at.isoformat(),
                 "duration_minutes": s.duration_minutes,
-                "status": s.status
+                "status": s.status.value if hasattr(s.status, 'value') else str(s.status)
             }
             for s in upcoming
         ],
@@ -188,10 +188,10 @@ def get_mentor_sessions(
                 "description": s.description,
                 "scheduled_at": s.scheduled_at.isoformat(),
                 "duration_minutes": s.duration_minutes,
-                "status": s.status,
+                "status": s.status.value if hasattr(s.status, 'value') else str(s.status),
                 "price": s.price,
                 "meeting_link": s.meeting_url,
-                "notes": s.notes,
+                "mentor_notes": s.mentor_notes,
                 "created_at": s.created_at.isoformat()
             }
             for s in sessions
@@ -232,19 +232,33 @@ def get_mentor_earnings(
     total_earnings = sum(s.price or 0 for s in sessions)
     total_hours = sum(s.duration_minutes or 0 for s in sessions) / 60
     
-    # Earnings by month (for chart)
-    monthly_earnings = db.execute(text("""
-        SELECT 
-            DATE_FORMAT(created_at, '%Y-%m') as month,
-                SUM(price) as earnings,
-            COUNT(*) as session_count
-        FROM mentor_sessions
-        WHERE mentor_id = :mid
-        AND status = 'completed'
-        AND created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
-        GROUP BY DATE_FORMAT(created_at, '%Y-%m')
-        ORDER BY month DESC
-    """), {"mid": mentor.id}).mappings().all()
+    # Earnings by month (for chart) - use Python grouping instead of DB-specific functions
+    from collections import defaultdict
+    
+    six_months_ago = now - timedelta(days=180)
+    recent_completed = db.query(MentorSession).filter(
+        and_(
+            MentorSession.mentor_id == mentor.id,
+            MentorSession.status == SessionStatus.COMPLETED,
+            MentorSession.created_at >= six_months_ago
+        )
+    ).all()
+    
+    # Group by month in Python
+    monthly_dict = defaultdict(lambda: {"earnings": 0.0, "count": 0})
+    for s in recent_completed:
+        month_key = s.created_at.strftime("%Y-%m")
+        monthly_dict[month_key]["earnings"] += s.price or 0
+        monthly_dict[month_key]["count"] += 1
+    
+    monthly_breakdown = [
+        {
+            "month": month,
+            "earnings": round(data["earnings"], 2),
+            "sessions": data["count"]
+        }
+        for month, data in sorted(monthly_dict.items(), reverse=True)
+    ]
     
     return {
         "total_earnings": round(total_earnings, 2),
@@ -252,14 +266,7 @@ def get_mentor_earnings(
         "session_count": len(sessions),
         "average_per_session": round(total_earnings / len(sessions), 2) if sessions else 0,
         "hourly_rate": mentor.hourly_rate,
-        "monthly_breakdown": [
-            {
-                "month": row["month"],
-                "earnings": float(row["earnings"] or 0),
-                "sessions": row["session_count"]
-            }
-            for row in monthly_earnings
-        ]
+        "monthly_breakdown": monthly_breakdown
     }
 
 
@@ -273,32 +280,38 @@ def get_mentor_students(
     if not mentor:
         raise HTTPException(status_code=404, detail="Not a mentor")
     
-    # Get unique students with session counts
-    students_data = db.execute(text("""
-        SELECT 
-            u.id,
-            u.email,
-            COUNT(ms.id) as session_count,
-            SUM(CASE WHEN ms.status = 'completed' THEN 1 ELSE 0 END) as completed_count,
-            MAX(ms.scheduled_at) as last_session_date
-        FROM users u
-        INNER JOIN mentor_sessions ms ON u.id = ms.student_id
-        WHERE ms.mentor_id = :mid
-        GROUP BY u.id, u.email
-        ORDER BY last_session_date DESC
-    """), {"mid": mentor.id}).mappings().all()
+    # Get unique students with session counts using ORM
+    # Group sessions by student and aggregate
+    all_sessions = db.query(MentorSession).filter(
+        MentorSession.mentor_id == mentor.id
+    ).all()
+    
+    from collections import defaultdict
+    student_data = defaultdict(lambda: {"total": 0, "completed": 0, "last_date": None})
+    
+    for session in all_sessions:
+        sid = session.student_id
+        student_data[sid]["total"] += 1
+        if session.status == SessionStatus.COMPLETED:
+            student_data[sid]["completed"] += 1
+        if student_data[sid]["last_date"] is None or session.scheduled_at > student_data[sid]["last_date"]:
+            student_data[sid]["last_date"] = session.scheduled_at
+    
+    # Fetch user details for each student
+    students_list = []
+    for student_id, data in student_data.items():
+        student = db.query(User).filter(User.id == student_id).first()
+        if student:
+            students_list.append({
+                "id": student.id,
+                "email": student.email,
+                "total_sessions": data["total"],
+                "completed_sessions": data["completed"],
+                "last_session": data["last_date"].isoformat() if data["last_date"] else None
+            })
     
     return {
-        "students": [
-            {
-                "id": row["id"],
-                "email": row["email"],
-                "total_sessions": row["session_count"],
-                "completed_sessions": row["completed_count"],
-                "last_session": row["last_session_date"].isoformat() if row["last_session_date"] else None
-            }
-            for row in students_data
-        ]
+        "students": sorted(students_list, key=lambda x: x.get("last_session") or "", reverse=True)
     }
 
 
@@ -333,16 +346,21 @@ def get_mentor_analytics(
         ORDER BY rating DESC
     """), {"mid": mentor.id}).mappings().all()
     
-    # Sessions per day of week
-    sessions_by_day = db.execute(text("""
-        SELECT 
-            DAYNAME(scheduled_at) as day_name,
-            COUNT(*) as session_count
-        FROM mentor_sessions
-        WHERE mentor_id = :mid
-        GROUP BY DAYNAME(scheduled_at), DAYOFWEEK(scheduled_at)
-        ORDER BY DAYOFWEEK(scheduled_at)
-    """), {"mid": mentor.id}).mappings().all()
+    # Sessions per day of week - use Python grouping instead of DAYNAME
+    all_sessions = db.query(MentorSession).filter(MentorSession.mentor_id == mentor.id).all()
+    
+    from collections import defaultdict
+    day_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    day_counts = defaultdict(int)
+    
+    for s in all_sessions:
+        day_idx = s.scheduled_at.weekday()  # 0=Monday, 6=Sunday
+        day_counts[day_names[day_idx]] += 1
+    
+    sessions_by_day_list = [
+        {"day_name": day, "session_count": day_counts[day]}
+        for day in day_names
+    ]
     
     # Average session duration
     avg_duration = db.query(func.avg(MentorSession.duration_minutes)).filter(
@@ -359,8 +377,8 @@ def get_mentor_analytics(
             for row in rating_dist
         },
         "sessions_by_day": {
-            row["day_name"]: row["session_count"]
-            for row in sessions_by_day
+            item["day_name"]: item["session_count"]
+            for item in sessions_by_day_list
         },
         "average_session_duration": round(avg_duration, 1)
     }

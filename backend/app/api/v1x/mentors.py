@@ -517,7 +517,11 @@ def update_session(
         student_feedback=session.student_feedback,
         created_at=session.created_at
     )
-    return {"message": "Session updated", "session": session_payload.model_dump()}
+    payload_dict = session_payload.model_dump(mode='json')
+    # Ensure status is serialized as string for backward compatibility
+    if 'status' in payload_dict and hasattr(payload_dict['status'], 'value'):
+        payload_dict['status'] = payload_dict['status'].value
+    return {"message": "Session updated", "session": payload_dict}
 
 
 # ============ Availability Management ============
