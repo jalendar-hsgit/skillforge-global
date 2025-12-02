@@ -30,6 +30,9 @@ export default function MentorSessions() {
   const [actionLoading, setActionLoading] = useState<number | null>(null)
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
+  const [showCancelModal, setShowCancelModal] = useState(false)
+  const [cancelReason, setCancelReason] = useState('')
+  const [cancelingSession, setCancelingSession] = useState<Session | null>(null)
 
   useEffect(() => {
     loadSessions()
@@ -74,7 +77,7 @@ export default function MentorSessions() {
     }
   }
 
-  async function handleSessionAction(sessionId: number, action: SessionAction) {
+  async function handleSessionAction(sessionId: number, action: SessionAction, notes?: string) {
     if (actionLoading) return
     
     const statusMap: Record<SessionAction, string> = {
@@ -85,13 +88,18 @@ export default function MentorSessions() {
     
     setActionLoading(sessionId)
     try {
+      const payload: any = { status: statusMap[action] }
+      if (notes) {
+        payload.mentor_notes = notes
+      }
+      
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE}/api/v1x/mentors/sessions/${sessionId}`,
         {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({ status: statusMap[action] })
+          body: JSON.stringify(payload)
         }
       )
 
@@ -107,10 +115,26 @@ export default function MentorSessions() {
 
       // Reload sessions
       await loadSessions()
+      
+      // Close cancel modal if open
+      setShowCancelModal(false)
+      setCancelReason('')
+      setCancelingSession(null)
     } catch (err: any) {
       alert(err?.message || 'Failed to update session')
     } finally {
       setActionLoading(null)
+    }
+  }
+
+  function handleCancelClick(session: Session) {
+    setCancelingSession(session)
+    setShowCancelModal(true)
+  }
+
+  function handleCancelConfirm() {
+    if (cancelingSession) {
+      handleSessionAction(cancelingSession.id, 'cancel', cancelReason)
     }
   }
 
@@ -171,11 +195,13 @@ export default function MentorSessions() {
               {sessions.map((session) => (
                 <div
                   key={session.id}
+                  data-testid="session-row"
+                  data-status={session.status}
                   className="bg-white/5 border border-white/10 rounded-xl p-6 hover:border-techBlue/50 transition-colors"
                 >
                   <div className="flex items-start justify-between mb-4">
                     <div>
-                      <h3 className="text-xl font-bold text-white mb-2">{session.topic}</h3>
+                      <h3 data-testid="session-topic" className="text-xl font-bold text-white mb-2">{session.topic}</h3>
                       {session.description && (
                         <p className="text-techGray mb-3">{session.description}</p>
                       )}
@@ -244,7 +270,7 @@ export default function MentorSessions() {
                           {actionLoading === session.id ? 'Processing...' : '✓ Confirm'}
                         </button>
                         <button
-                          onClick={() => handleSessionAction(session.id, 'cancel')}
+                          onClick={() => handleCancelClick(session)}
                           disabled={actionLoading === session.id}
                           className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
                         >
@@ -262,7 +288,7 @@ export default function MentorSessions() {
                           {actionLoading === session.id ? 'Processing...' : '✓ Mark Complete'}
                         </button>
                         <button
-                          onClick={() => handleSessionAction(session.id, 'cancel')}
+                          onClick={() => handleCancelClick(session)}
                           disabled={actionLoading === session.id}
                           className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
                         >
@@ -277,6 +303,49 @@ export default function MentorSessions() {
           </>
         )}
       </div>
+
+      {/* Cancel Modal */}
+      {showCancelModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div
+            role="dialog"
+            className="bg-deepNavy border border-white/10 rounded-xl p-6 max-w-md w-full"
+          >
+            <h3 className="text-xl font-bold text-white mb-4">Cancel Session</h3>
+            <p className="text-techGray mb-4">
+              Please provide a reason for cancelling this session:
+            </p>
+            <textarea
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              placeholder="Reason for cancellation..."
+              aria-label="reason"
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-techGray focus:outline-none focus:border-techBlue resize-none"
+              rows={4}
+            />
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowCancelModal(false)
+                  setCancelReason('')
+                  setCancelingSession(null)
+                }}
+                disabled={actionLoading !== null}
+                className="flex-1 px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+              >
+                Nevermind
+              </button>
+              <button
+                onClick={handleCancelConfirm}
+                disabled={actionLoading !== null || !cancelReason.trim()}
+                className="flex-1 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg font-medium transition-colors disabled:opacity-50"
+              >
+                {actionLoading !== null ? 'Cancelling...' : 'Confirm Cancel'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   )
 }

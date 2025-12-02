@@ -113,14 +113,6 @@ export default function AdminUsers({ me }: AdminSSRProps) {
     window.URL.revokeObjectURL(url)
   }
 
-      alert('User role updated successfully')
-      loadUsers()
-    } catch (err) {
-      console.error(err)
-      alert('Error updating user role')
-    }
-  }
-
   async function deleteUser(userId: number, email: string) {
     if (!confirm(`⚠️ PERMANENT ACTION ⚠️\n\nAre you sure you want to delete user ${email}?\n\nThis cannot be undone.`)) {
       return
@@ -220,18 +212,6 @@ export default function AdminUsers({ me }: AdminSSRProps) {
             title="Export users to CSV"
           >
             📥 Export CSV
-          </button>
-        </div>
-            <option value="user">Users</option>
-            <option value="mentor">Mentors</option>
-            <option value="admin">Admins</option>
-            <option value="superadmin">Superadmins</option>
-          </select>
-          <button
-            onClick={loadUsers}
-            className="h-12 px-6 rounded-md bg-neuralBlue hover:bg-neuralBlue/80 font-semibold transition"
-          >
-            Search
           </button>
         </div>
 
