@@ -59,7 +59,8 @@ export default function ResumesPage({ me }: { me: any }) {
   }
 
   const handleImportSuccess = (resumeId: number) => {
-    router.push(`/resumes/${resumeId}`)
+    // After importing, open the resume editor so user can make edits immediately
+    router.push(`/resumes/${resumeId}/edit`)
   }
 
   const handleEdit = (resumeId: number) => {

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import text
+from sqlalchemy.exc import OperationalError
 from datetime import datetime, timedelta
 from typing import List, Optional
 from app.core.db import SessionLocal
@@ -36,16 +37,20 @@ def get_student_overview(user = Depends(get_current_user)):
             WHERE vp.user_id = :uid
         """), {"uid": user.id}).mappings().first()
 
-        # Get quiz statistics
-        quiz_stats = db.execute(text("""
-            SELECT 
-                COUNT(*) as total_attempts,
-                COUNT(CASE WHEN passed THEN 1 END) as passed_count,
-                AVG(score) as avg_score,
-                MAX(score) as best_score
-            FROM quiz_attempts
-            WHERE user_id = :uid
-        """), {"uid": user.id}).mappings().first()
+        # Get quiz statistics (be tolerant of missing 'passed' column in older DBs)
+        try:
+            quiz_stats = db.execute(text("""
+                SELECT 
+                    COUNT(*) as total_attempts,
+                    COUNT(CASE WHEN passed THEN 1 END) as passed_count,
+                    AVG(score) as avg_score,
+                    MAX(score) as best_score
+                FROM quiz_attempts
+                WHERE user_id = :uid
+            """), {"uid": user.id}).mappings().first()
+        except OperationalError:
+            # Fallback to safe defaults when DB schema doesn't include 'passed'
+            quiz_stats = {"total_attempts": 0, "passed_count": 0, "avg_score": 0, "best_score": 0}
 
         # Get learning streak (consecutive days with activity)
         recent_activity = db.execute(text("""
@@ -90,10 +95,10 @@ def get_student_overview(user = Depends(get_current_user)):
                 "avg_progress": round(course_stats['avg_progress'] or 0, 1)
             },
             "quizzes": {
-                "total_attempts": quiz_stats['total_attempts'] or 0,
-                "passed": quiz_stats['passed_count'] or 0,
-                "avg_score": round(quiz_stats['avg_score'] or 0, 1),
-                "best_score": round(quiz_stats['best_score'] or 0, 1)
+                "total_attempts": (quiz_stats.get('total_attempts') if isinstance(quiz_stats, dict) else (quiz_stats['total_attempts'] if quiz_stats else 0)) or 0,
+                "passed": (quiz_stats.get('passed_count') if isinstance(quiz_stats, dict) else (quiz_stats['passed_count'] if quiz_stats else 0)) or 0,
+                "avg_score": round((quiz_stats.get('avg_score') if isinstance(quiz_stats, dict) else (quiz_stats['avg_score'] if quiz_stats else 0)) or 0, 1),
+                "best_score": round((quiz_stats.get('best_score') if isinstance(quiz_stats, dict) else (quiz_stats['best_score'] if quiz_stats else 0)) or 0, 1)
             },
             "activity": {
                 "learning_streak": streak,
@@ -183,20 +188,23 @@ def get_recent_activity(user = Depends(get_current_user), limit: int = 10):
             LIMIT :lim
         """), {"uid": user.id, "lim": limit}).mappings().all()
 
-        # Recent quiz attempts
-        quiz_activity = db.execute(text("""
-            SELECT 
-                'quiz_attempt' as type,
-                qa.created_at as timestamp,
-                q.title as title,
-                qa.score,
-                qa.passed
-            FROM quiz_attempts qa
-            LEFT JOIN quizzes q ON q.id = qa.quiz_id
-            WHERE qa.user_id = :uid
-            ORDER BY qa.created_at DESC
-            LIMIT :lim
-        """), {"uid": user.id, "lim": limit}).mappings().all()
+        # Recent quiz attempts (tolerant of schema differences)
+        try:
+            quiz_activity = db.execute(text("""
+                SELECT 
+                    'quiz_attempt' as type,
+                    qa.created_at as timestamp,
+                    q.title as title,
+                    qa.score,
+                    qa.passed
+                FROM quiz_attempts qa
+                LEFT JOIN quizzes q ON q.id = qa.quiz_id
+                WHERE qa.user_id = :uid
+                ORDER BY qa.created_at DESC
+                LIMIT :lim
+            """), {"uid": user.id, "lim": limit}).mappings().all()
+        except OperationalError:
+            quiz_activity = []
 
         # Combine and sort
         for item in video_activity:
@@ -229,20 +237,23 @@ def get_quiz_results(user = Depends(get_current_user)):
     """Get all quiz attempts with results"""
     db = SessionLocal()
     try:
-        results = db.execute(text("""
-            SELECT 
-                qa.id,
-                qa.quiz_id,
-                q.title as quiz_title,
-                qa.score,
-                qa.passed,
-                qa.created_at,
-                qa.answers
-            FROM quiz_attempts qa
-            LEFT JOIN quizzes q ON q.id = qa.quiz_id
-            WHERE qa.user_id = :uid
-            ORDER BY qa.created_at DESC
-        """), {"uid": user.id}).mappings().all()
+        try:
+            results = db.execute(text("""
+                SELECT 
+                    qa.id,
+                    qa.quiz_id,
+                    q.title as quiz_title,
+                    qa.score,
+                    qa.passed,
+                    qa.created_at,
+                    qa.answers
+                FROM quiz_attempts qa
+                LEFT JOIN quizzes q ON q.id = qa.quiz_id
+                WHERE qa.user_id = :uid
+                ORDER BY qa.created_at DESC
+            """), {"uid": user.id}).mappings().all()
+        except OperationalError:
+            results = []
 
         return {
             "quiz_attempts": [
@@ -319,11 +330,14 @@ def get_achievements(user = Depends(get_current_user)):
             })
 
         # Quiz achievements
-        quiz_passed = db.execute(text("""
-            SELECT COUNT(*) as count
-            FROM quiz_attempts
-            WHERE user_id = :uid AND passed = 1
-        """), {"uid": user.id}).mappings().first()['count']
+        try:
+            quiz_passed = db.execute(text("""
+                SELECT COUNT(*) as count
+                FROM quiz_attempts
+                WHERE user_id = :uid AND passed = 1
+            """), {"uid": user.id}).mappings().first()['count']
+        except OperationalError:
+            quiz_passed = 0
 
         if quiz_passed >= 1:
             achievements.append({
@@ -343,11 +357,14 @@ def get_achievements(user = Depends(get_current_user)):
             })
 
         # Perfect score achievement
-        perfect_score = db.execute(text("""
-            SELECT COUNT(*) as count
-            FROM quiz_attempts
-            WHERE user_id = :uid AND score = 100
-        """), {"uid": user.id}).mappings().first()['count']
+        try:
+            perfect_score = db.execute(text("""
+                SELECT COUNT(*) as count
+                FROM quiz_attempts
+                WHERE user_id = :uid AND score = 100
+            """), {"uid": user.id}).mappings().first()['count']
+        except OperationalError:
+            perfect_score = 0
 
         if perfect_score >= 1:
             achievements.append({

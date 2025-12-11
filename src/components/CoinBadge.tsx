@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Award } from 'lucide-react'
+import { apiGet } from '@/lib/api'
 
 export default function CoinBadge() {
   const [coins, setCoins] = useState<number | null>(null)
@@ -8,14 +9,8 @@ export default function CoinBadge() {
   async function refresh() {
     setLoading(true)
     try {
-      // Try multiple endpoints
-      let r = await fetch('/api/coins/balance', { credentials: 'include' })
-      if (!r.ok) {
-        // Try alternative endpoint
-        r = await fetch('/api/v1x/coins_db/balance', { credentials: 'include' })
-      }
-      if (!r.ok) throw new Error('failed')
-      const j = await r.json()
+      // Prefer backend API via API_BASE
+      const j: any = await apiGet('/api/v1x/coins_db/balance')
       // support both `{ coins }` and `{ balance }`
       setCoins((j && (j.coins ?? j.balance)) ?? 10) // Default 10 credits
     } catch (e) {

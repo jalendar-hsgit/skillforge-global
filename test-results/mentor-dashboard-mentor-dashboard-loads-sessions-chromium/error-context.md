@@ -1,0 +1,103 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - navigation [ref=e5]:
+        - generic [ref=e6]:
+          - link "SkillForge Global SkillForge Global" [ref=e7] [cursor=pointer]:
+            - /url: /
+            - img "SkillForge Global" [ref=e10]
+            - generic [ref=e11]: SkillForge Global
+          - generic [ref=e12]:
+            - link "📚 Courses" [ref=e13] [cursor=pointer]:
+              - /url: /paths
+              - generic [ref=e14]: 📚
+              - generic [ref=e15]: Courses
+            - link "👥 Mentors" [ref=e16] [cursor=pointer]:
+              - /url: /mentors
+              - generic [ref=e17]: 👥
+              - generic [ref=e18]: Mentors
+            - link "🤖 AI Assistant" [ref=e19] [cursor=pointer]:
+              - /url: /ai
+              - generic [ref=e20]: 🤖
+              - generic [ref=e21]: AI Assistant
+            - link "📄 Create Resume" [ref=e22] [cursor=pointer]:
+              - /url: /resumes/new
+              - generic [ref=e23]: 📄
+              - generic [ref=e24]: Create Resume
+            - link "💳 Pricing" [ref=e25] [cursor=pointer]:
+              - /url: /pricing
+              - generic [ref=e26]: 💳
+              - generic [ref=e27]: Pricing
+          - generic [ref=e29]:
+            - link "Log in" [ref=e30] [cursor=pointer]:
+              - /url: /login
+            - link "Get Started →" [ref=e31] [cursor=pointer]:
+              - /url: /signup
+    - main [ref=e32]:
+      - generic [ref=e35]:
+        - generic [ref=e36]: Failed to fetch
+        - link "Back to Mentors" [ref=e37] [cursor=pointer]:
+          - /url: /mentors
+    - contentinfo [ref=e38]:
+      - generic [ref=e40]:
+        - generic [ref=e43]: Earn Forge AI Credits by completing modules and passing quizzes.
+        - link "View rewards →" [ref=e44] [cursor=pointer]:
+          - /url: /dashboard
+      - generic [ref=e45]:
+        - generic [ref=e46]:
+          - link "SkillForge Global SkillForge Global" [ref=e47] [cursor=pointer]:
+            - /url: /
+            - img "SkillForge Global" [ref=e48]
+            - generic [ref=e49]: SkillForge Global
+          - paragraph [ref=e50]: Project-first learning. Quizzes, progress, AI mentor, and real-world challenges.
+        - generic [ref=e51]:
+          - heading "Product" [level=4] [ref=e52]
+          - list [ref=e53]:
+            - listitem [ref=e54]:
+              - link "Career Paths" [ref=e55] [cursor=pointer]:
+                - /url: /paths
+            - listitem [ref=e56]:
+              - link "SkillAIBridge" [ref=e57] [cursor=pointer]:
+                - /url: /ai
+            - listitem [ref=e58]:
+              - link "Pricing" [ref=e59] [cursor=pointer]:
+                - /url: /pricing
+            - listitem [ref=e60]:
+              - link "Sample Quiz" [ref=e61] [cursor=pointer]:
+                - /url: /quiz/python-ai
+        - generic [ref=e62]:
+          - heading "Company" [level=4] [ref=e63]
+          - list [ref=e64]:
+            - listitem [ref=e65]:
+              - link "About" [ref=e66] [cursor=pointer]:
+                - /url: /company
+            - listitem [ref=e67]:
+              - link "Careers" [ref=e68] [cursor=pointer]:
+                - /url: /careers
+            - listitem [ref=e69]:
+              - link "Mentors" [ref=e70] [cursor=pointer]:
+                - /url: /mentors
+            - listitem [ref=e71]:
+              - link "Contact" [ref=e72] [cursor=pointer]:
+                - /url: /contact
+        - generic [ref=e73]:
+          - heading "Stay in the loop" [level=4] [ref=e74]
+          - generic [ref=e75]:
+            - textbox "email" [ref=e76]:
+              - /placeholder: your@email.com
+            - button "Subscribe" [ref=e77] [cursor=pointer]
+          - paragraph [ref=e78]: No spam. Unsubscribe anytime.
+      - generic [ref=e79]:
+        - generic [ref=e80]: © 2025 SkillForge Global. All rights reserved.
+        - generic [ref=e81]:
+          - link "Privacy" [ref=e82] [cursor=pointer]:
+            - /url: /privacy
+          - link "Terms" [ref=e83] [cursor=pointer]:
+            - /url: /terms
+          - link "Security" [ref=e84] [cursor=pointer]:
+            - /url: /security
+  - alert [ref=e85]
+```

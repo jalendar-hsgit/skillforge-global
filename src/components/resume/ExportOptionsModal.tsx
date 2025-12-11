@@ -12,6 +12,7 @@ interface ExportOptionsModalProps {
 export default function ExportOptionsModal({ isOpen, onClose, resume, resumeId }: ExportOptionsModalProps) {
   const [dpi, setDpi] = React.useState<number>(300)
   const [marginMM, setMarginMM] = React.useState<number>(10)
+  const [exportingPdf, setExportingPdf] = React.useState(false)
 
   if (!isOpen) return null
 
@@ -29,19 +30,23 @@ export default function ExportOptionsModal({ isOpen, onClose, resume, resumeId }
   }
 
   const exportAsPDF = async () => {
+    if (!resumeId) return alert('No resume selected')
+    setExportingPdf(true)
     try {
       console.log(`[PDF Export] Attempting export for resume ${resumeId} with DPI=${dpi}, margin=${marginMM}mm`)
-      
-      // Use client-side export with custom DPI/margin settings
       await exportResumePDFFromPreview(
-        resumeId, 
+        resumeId,
         `${resume.title || 'resume'}.pdf`,
         { dpi, marginMM }
       )
       console.log(`[PDF Export] Successfully exported with custom settings`)
     } catch (error) {
       console.error('[PDF Export] Exception:', error)
-      alert('PDF export failed. Please try again later.')
+      alert('PDF export failed. Falling back to server export options.')
+      setExportingPdf(false)
+      setShowExportOptions(true)
+    } finally {
+      setExportingPdf(false)
     }
   }
 
@@ -244,6 +249,14 @@ export default function ExportOptionsModal({ isOpen, onClose, resume, resumeId }
             <div>
               <h3 className="text-xl font-black text-white">Export Resume</h3>
               <p className="text-xs text-white/60 mt-0.5">Choose your preferred export format</p>
+            </div>
+            <div className="ml-auto">
+              <button
+                onClick={exportAsPDF}
+                disabled={exportingPdf || !resumeId}
+                className={`ml-3 inline-flex items-center gap-2 px-3 py-2 rounded-lg font-semibold text-sm text-white ${exportingPdf ? 'bg-gray-500' : 'bg-blue-600 hover:bg-blue-700'}`}>
+                {exportingPdf ? 'Exporting…' : 'Quick Export'}
+              </button>
             </div>
           </div>
         </div>

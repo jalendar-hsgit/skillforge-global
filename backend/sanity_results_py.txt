@@ -1,0 +1,68 @@
+Sanity check started
+LOGIN: OK
+LOGIN JSON: {"logged": true}
+
+CALL: http://127.0.0.1:8001/api/v1/auth/me
+  STATUS: 200 LEN:66
+  JSON keys: id, email, role
+
+CALL: http://127.0.0.1:8001/api/v1/courses
+  STATUS: 200 LEN:2711
+  JSON: array count=25
+
+CALL: http://127.0.0.1:8001/api/v1x/courses-db
+  STATUS: 200 LEN:654
+  JSON: array count=6
+
+CALL: http://127.0.0.1:8001/api/quizzes/list
+  ERROR: <HTTPError 404: 'Not Found'>
+
+CALL: http://127.0.0.1:8001/api/v1x/quizzes-db
+  ERROR: <HTTPError 404: 'Not Found'>
+
+CALL: http://127.0.0.1:8001/api/v1x/coins_db/balance
+  STATUS: 200 LEN:23
+  JSON keys: balance, coins
+
+CALL: http://127.0.0.1:8001/api/v1x/mentors/all
+  ERROR: <HTTPError 422: 'Unprocessable Content'>
+
+CALL: http://127.0.0.1:8001/api/v1x/mentor-portal/sessions
+  ERROR: <HTTPError 404: 'Not Found'>
+
+CALL: http://127.0.0.1:8001/api/v1x/subscriptions/plans
+  STATUS: 200 LEN:1005
+  JSON: array count=3
+
+CALL: http://127.0.0.1:8001/api/session/resumes
+  ERROR: <HTTPError 404: 'Not Found'>
+
+CALL: http://127.0.0.1:8001/api/v1x/job-applications
+  ERROR: <HTTPError 404: 'Not Found'>
+
+CALL: http://127.0.0.1:8001/api/v1x/cover-letters
+  ERROR: <HTTPError 404: 'Not Found'>
+
+CALL: http://127.0.0.1:8001/api/v1x/marketplace/courses
+  STATUS: 200 LEN:1272
+  JSON: array count=6
+
+CALL: http://127.0.0.1:8001/api/v1x/youtube-sync/status
+  ERROR: <HTTPError 404: 'Not Found'>
+
+CALL: http://127.0.0.1:8001/api/v1x/chat/files
+  ERROR: <HTTPError 404: 'Not Found'>
+
+CALL: http://127.0.0.1:8001/api/v1x/student-dashboard/stats
+  ERROR: <HTTPError 404: 'Not Found'>
+
+CALL: http://127.0.0.1:8001/api/v1x/admin/users
+  ERROR: <HTTPError 404: 'Not Found'>
+
+CALL: http://127.0.0.1:8001/api/v1x/admin/notifications/templates
+  ERROR: <HTTPError 404: 'Not Found'>
+
+CALL: http://127.0.0.1:8001/api/v1x/admin/analytics
+  ERROR: <HTTPError 404: 'Not Found'>
+
+Sanity check finished

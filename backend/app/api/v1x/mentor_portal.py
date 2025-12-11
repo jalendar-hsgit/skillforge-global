@@ -434,13 +434,37 @@ def update_mentor_profile(
     if not mentor:
         raise HTTPException(status_code=404, detail="Not a mentor")
     
+    # Validate inputs
     if bio is not None:
+        bio = bio.strip()
+        if len(bio) < 50:
+            raise HTTPException(status_code=400, detail="Bio must be at least 50 characters")
+        if len(bio) > 2000:
+            raise HTTPException(status_code=400, detail="Bio cannot exceed 2000 characters")
         mentor.bio = bio
+    
     if expertise is not None:
-        mentor.expertise = expertise
+        expertise = expertise.strip()
+        if not expertise:
+            raise HTTPException(status_code=400, detail="Expertise cannot be empty")
+        # Validate expertise format (comma-separated tags)
+        skills = [s.strip() for s in expertise.split(',')]
+        if len(skills) < 1:
+            raise HTTPException(status_code=400, detail="At least one skill required")
+        if len(skills) > 20:
+            raise HTTPException(status_code=400, detail="Maximum 20 skills allowed")
+        for skill in skills:
+            if len(skill) < 2 or len(skill) > 50:
+                raise HTTPException(status_code=400, detail=f"Invalid skill length: {skill}")
+        mentor.expertise = ','.join(skills)
+    
     if hourly_rate is not None:
         if hourly_rate < 0:
             raise HTTPException(status_code=400, detail="Hourly rate cannot be negative")
+        if hourly_rate > 1000:
+            raise HTTPException(status_code=400, detail="Hourly rate cannot exceed $1000")
+        if hourly_rate > 0 and hourly_rate < 10:
+            raise HTTPException(status_code=400, detail="Hourly rate must be at least $10")
         mentor.hourly_rate = hourly_rate
     
     mentor.updated_at = datetime.utcnow()

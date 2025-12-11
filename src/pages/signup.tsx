@@ -49,6 +49,25 @@ export default function SignupPage() {
     }
   }
 
+  function startOAuth(provider: 'google' | 'github') {
+    const clientId = (provider === 'google')
+      ? (process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || 'demo_google_client_id')
+      : (process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID || 'demo_github_client_id');
+    const redirect = `${window.location.origin}/oauth-callback?provider=${provider}`;
+    const state = Math.random().toString(36).slice(2);
+    sessionStorage.setItem('oauth_state', state);
+
+    if (provider === 'google') {
+      const scope = encodeURIComponent('openid email profile');
+      const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&response_type=code&scope=${scope}&redirect_uri=${encodeURIComponent(redirect)}` + `&state=${state}`;
+      window.location.href = url;
+    } else {
+      const scope = encodeURIComponent('read:user user:email');
+      const url = `https://github.com/login/oauth/authorize?client_id=${clientId}&scope=${scope}&redirect_uri=${encodeURIComponent(redirect)}` + `&state=${state}`;
+      window.location.href = url;
+    }
+  }
+
   return (
     <Layout maxWidth="md" showFooter={false}>
       <Head><title>Sign Up – SkillForge Global</title></Head>
@@ -158,6 +177,7 @@ export default function SignupPage() {
             <div className="grid grid-cols-2 gap-4">
               <button 
                 type="button"
+                onClick={() => startOAuth('google')}
                 className="flex items-center justify-center gap-2 px-4 py-2 border border-white/10 rounded-lg hover:bg-white/5 transition-colors"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
@@ -167,6 +187,7 @@ export default function SignupPage() {
               </button>
               <button 
                 type="button"
+                onClick={() => startOAuth('github')}
                 className="flex items-center justify-center gap-2 px-4 py-2 border border-white/10 rounded-lg hover:bg-white/5 transition-colors"
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">

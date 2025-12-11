@@ -1,0 +1,74 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - navigation [ref=e5]:
+        - generic [ref=e6]:
+          - link "SkillForge Global SkillForge Global" [ref=e7] [cursor=pointer]:
+            - /url: /
+            - img "SkillForge Global" [ref=e10]
+            - generic [ref=e11]: SkillForge Global
+          - generic [ref=e12]:
+            - link "📚 Courses" [ref=e13] [cursor=pointer]:
+              - /url: /paths
+              - generic [ref=e14]: 📚
+              - generic [ref=e15]: Courses
+            - link "👥 Mentors" [ref=e16] [cursor=pointer]:
+              - /url: /mentors
+              - generic [ref=e17]: 👥
+              - generic [ref=e18]: Mentors
+            - link "🤖 AI Assistant" [ref=e19] [cursor=pointer]:
+              - /url: /ai
+              - generic [ref=e20]: 🤖
+              - generic [ref=e21]: AI Assistant
+            - link "📄 Create Resume" [ref=e22] [cursor=pointer]:
+              - /url: /resumes/new
+              - generic [ref=e23]: 📄
+              - generic [ref=e24]: Create Resume
+            - link "💳 Pricing" [ref=e25] [cursor=pointer]:
+              - /url: /pricing
+              - generic [ref=e26]: 💳
+              - generic [ref=e27]: Pricing
+          - generic [ref=e29]:
+            - link "Log in" [ref=e30] [cursor=pointer]:
+              - /url: /login
+            - link "Get Started →" [ref=e31] [cursor=pointer]:
+              - /url: /signup
+    - main [ref=e32]:
+      - generic [ref=e35]:
+        - generic [ref=e36]:
+          - heading "Welcome Back" [level=1] [ref=e37]
+          - paragraph [ref=e38]: Log in to continue your learning journey
+        - generic [ref=e39]:
+          - generic [ref=e40]:
+            - generic [ref=e41]:
+              - generic [ref=e42]: Email Address
+              - textbox "Email Address" [ref=e43]:
+                - /placeholder: you@example.com
+            - generic [ref=e44]:
+              - generic [ref=e45]: Password
+              - textbox "Password" [ref=e46]:
+                - /placeholder: ••••••••
+            - generic [ref=e47]:
+              - generic [ref=e48] [cursor=pointer]:
+                - checkbox "Remember me" [ref=e49]
+                - text: Remember me
+              - link "Forgot password?" [ref=e50] [cursor=pointer]:
+                - /url: /forgot-password
+            - button "Log In" [ref=e51] [cursor=pointer]
+          - generic [ref=e56]: Or continue with
+          - generic [ref=e57]:
+            - button "Google" [ref=e58] [cursor=pointer]:
+              - img [ref=e59]
+              - generic [ref=e61]: Google
+            - button "GitHub" [ref=e62] [cursor=pointer]:
+              - img [ref=e63]
+              - generic [ref=e65]: GitHub
+        - paragraph [ref=e66]:
+          - text: Don't have an account?
+          - link "Sign up for free" [ref=e67] [cursor=pointer]:
+            - /url: /signup
+  - alert [ref=e68]
+```

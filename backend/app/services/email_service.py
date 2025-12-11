@@ -66,10 +66,15 @@ class EmailService:
             smtp_port = getattr(settings, "SMTP_PORT", 587)
             smtp_user = getattr(settings, "SMTP_USER", "")
             smtp_password = getattr(settings, "SMTP_PASSWORD", "")
-            
+            # In development, allow unauthenticated SMTP (Mailhog) on localhost:1025
+            allow_unauth_local = (str(smtp_host) in ("localhost", "127.0.0.1") and int(smtp_port) in (1025,))
+
             if not smtp_user or not smtp_password:
-                logger.warning("SMTP credentials not configured, skipping email")
-                return False
+                if not allow_unauth_local:
+                    logger.warning("SMTP credentials not configured, skipping email")
+                    return False
+                else:
+                    logger.debug("Using unauthenticated local SMTP (Mailhog) at %s:%s", smtp_host, smtp_port)
             
             # Create message
             msg = MIMEMultipart("alternative")
@@ -82,10 +87,17 @@ class EmailService:
                 msg.attach(MIMEText(text_content, "plain"))
             msg.attach(MIMEText(html_content, "html"))
             
-            # Send email
+            # Send email. If using local Mailhog (no auth), skip STARTTLS and login.
             with smtplib.SMTP(smtp_host, smtp_port) as server:
-                server.starttls()
-                server.login(smtp_user, smtp_password)
+                if not allow_unauth_local:
+                    try:
+                        server.starttls()
+                    except Exception:
+                        logger.debug("STARTTLS failed or unsupported; continuing without TLS")
+
+                    if smtp_user and smtp_password:
+                        server.login(smtp_user, smtp_password)
+
                 server.send_message(msg)
             
             logger.info(f"Email sent to {to_email} via SMTP")
@@ -572,6 +584,21 @@ class EmailService:
         """
         
         return await self.send_email(to_email, subject, html_content)
+    
+        async def send_login_notification(self, to_email: str, ip: Optional[str] = None, time: Optional[str] = None) -> None:
+            """Send a notification email after a successful login (useful for security alerts)."""
+            subject = f"New sign-in to {self.frontend_name}"
+            time_text = time or datetime.utcnow().isoformat() + "Z"
+            ip_text = ip or "Unknown"
+            html_body = (
+                f"<p>Hi,</p>"
+                f"<p>We noticed a sign-in to your {self.frontend_name} account.</p>"
+                f"<p><strong>Time:</strong> {time_text}<br>"
+                f"<strong>IP:</strong> {ip_text}</p>"
+                f"<p>If this was you, no action is needed. If you did not sign in, please reset your password immediately: "
+                f"<a href=\"{self.frontend_url}/reset-password\">Reset password</a></p>"
+            )
+            await self.send_email(to_email, subject, html_body)
     
     async def send_password_reset_email(
         self,

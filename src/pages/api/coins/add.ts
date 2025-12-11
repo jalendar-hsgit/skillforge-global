@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-const API_BASE = process.env.API_BASE || "http://127.0.0.1:8001";
+const API_BASE = process.env.API_BASE || process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8001";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") return res.status(405).end();

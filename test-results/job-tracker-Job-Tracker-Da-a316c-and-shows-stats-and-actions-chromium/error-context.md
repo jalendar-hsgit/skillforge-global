@@ -1,0 +1,140 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - navigation [ref=e5]:
+        - generic [ref=e6]:
+          - link "SkillForge Global SkillForge Global" [ref=e7] [cursor=pointer]:
+            - /url: /
+            - img "SkillForge Global" [ref=e10]
+            - generic [ref=e11]: SkillForge Global
+          - generic [ref=e12]:
+            - link "📚 Courses" [ref=e13] [cursor=pointer]:
+              - /url: /paths
+              - generic [ref=e14]: 📚
+              - generic [ref=e15]: Courses
+            - link "👥 Mentors" [ref=e16] [cursor=pointer]:
+              - /url: /mentors
+              - generic [ref=e17]: 👥
+              - generic [ref=e18]: Mentors
+            - link "🤖 AI Assistant" [ref=e19] [cursor=pointer]:
+              - /url: /ai
+              - generic [ref=e20]: 🤖
+              - generic [ref=e21]: AI Assistant
+            - link "📄 Create Resume" [ref=e22] [cursor=pointer]:
+              - /url: /resumes/new
+              - generic [ref=e23]: 📄
+              - generic [ref=e24]: Create Resume
+            - link "💳 Pricing" [ref=e25] [cursor=pointer]:
+              - /url: /pricing
+              - generic [ref=e26]: 💳
+              - generic [ref=e27]: Pricing
+          - generic [ref=e29]:
+            - link "Log in" [ref=e30] [cursor=pointer]:
+              - /url: /login
+            - link "Get Started →" [ref=e31] [cursor=pointer]:
+              - /url: /signup
+    - main [ref=e32]:
+      - generic [ref=e34]:
+        - generic [ref=e35]:
+          - generic [ref=e36]:
+            - heading "Job Application Tracker" [level=1] [ref=e37]:
+              - img [ref=e38]
+              - text: Job Application Tracker
+            - paragraph [ref=e41]: Track, manage, and optimize your job search
+          - generic [ref=e42]:
+            - button "Settings" [ref=e43] [cursor=pointer]:
+              - img [ref=e44]
+              - text: Settings
+            - button "Add Application" [ref=e46] [cursor=pointer]:
+              - img [ref=e47]
+              - text: Add Application
+        - generic [ref=e49]:
+          - img [ref=e50]
+          - textbox "Search company or position..." [ref=e52]
+          - combobox [ref=e53]:
+            - option "All Statuses" [selected]
+            - option "Wishlist"
+            - option "Applied"
+            - option "Screening"
+            - option "Interview"
+            - option "Assessment"
+            - option "Offer"
+            - option "Accepted"
+            - option "Rejected"
+          - combobox [ref=e54]:
+            - option "All Priorities" [selected]
+            - option "Priority 5 (Critical)"
+            - option "Priority 4 (High)"
+            - option "Priority 3 (Medium)"
+            - option "Priority 2 (Low)"
+            - option "Priority 1 (Very Low)"
+          - generic [ref=e55]:
+            - button "List" [ref=e56] [cursor=pointer]
+            - button "Kanban" [ref=e57] [cursor=pointer]
+        - generic [ref=e59]:
+          - img [ref=e60]
+          - paragraph [ref=e63]: No applications found
+          - button "Add your first application" [ref=e64] [cursor=pointer]
+    - contentinfo [ref=e65]:
+      - generic [ref=e67]:
+        - generic [ref=e70]: Earn Forge AI Credits by completing modules and passing quizzes.
+        - link "View rewards →" [ref=e71] [cursor=pointer]:
+          - /url: /dashboard
+      - generic [ref=e72]:
+        - generic [ref=e73]:
+          - link "SkillForge Global SkillForge Global" [ref=e74] [cursor=pointer]:
+            - /url: /
+            - img "SkillForge Global" [ref=e75]
+            - generic [ref=e76]: SkillForge Global
+          - paragraph [ref=e77]: Project-first learning. Quizzes, progress, AI mentor, and real-world challenges.
+        - generic [ref=e78]:
+          - heading "Product" [level=4] [ref=e79]
+          - list [ref=e80]:
+            - listitem [ref=e81]:
+              - link "Career Paths" [ref=e82] [cursor=pointer]:
+                - /url: /paths
+            - listitem [ref=e83]:
+              - link "SkillAIBridge" [ref=e84] [cursor=pointer]:
+                - /url: /ai
+            - listitem [ref=e85]:
+              - link "Pricing" [ref=e86] [cursor=pointer]:
+                - /url: /pricing
+            - listitem [ref=e87]:
+              - link "Sample Quiz" [ref=e88] [cursor=pointer]:
+                - /url: /quiz/python-ai
+        - generic [ref=e89]:
+          - heading "Company" [level=4] [ref=e90]
+          - list [ref=e91]:
+            - listitem [ref=e92]:
+              - link "About" [ref=e93] [cursor=pointer]:
+                - /url: /company
+            - listitem [ref=e94]:
+              - link "Careers" [ref=e95] [cursor=pointer]:
+                - /url: /careers
+            - listitem [ref=e96]:
+              - link "Mentors" [ref=e97] [cursor=pointer]:
+                - /url: /mentors
+            - listitem [ref=e98]:
+              - link "Contact" [ref=e99] [cursor=pointer]:
+                - /url: /contact
+        - generic [ref=e100]:
+          - heading "Stay in the loop" [level=4] [ref=e101]
+          - generic [ref=e102]:
+            - textbox "email" [ref=e103]:
+              - /placeholder: your@email.com
+            - button "Subscribe" [ref=e104] [cursor=pointer]
+          - paragraph [ref=e105]: No spam. Unsubscribe anytime.
+      - generic [ref=e106]:
+        - generic [ref=e107]: © 2025 SkillForge Global. All rights reserved.
+        - generic [ref=e108]:
+          - link "Privacy" [ref=e109] [cursor=pointer]:
+            - /url: /privacy
+          - link "Terms" [ref=e110] [cursor=pointer]:
+            - /url: /terms
+          - link "Security" [ref=e111] [cursor=pointer]:
+            - /url: /security
+  - alert [ref=e112]
+```

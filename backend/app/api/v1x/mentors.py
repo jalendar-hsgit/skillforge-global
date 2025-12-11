@@ -423,11 +423,38 @@ def update_session(
     old_status = session.status
     status_changed = False
     
-    # Update fields
+    # Validate status transitions
     if updates.status and is_mentor:
+        # Prevent invalid state transitions
+        invalid_transitions = {
+            SessionStatus.COMPLETED: [SessionStatus.PENDING, SessionStatus.CONFIRMED],  # Can't uncomplete
+            SessionStatus.CANCELLED: [SessionStatus.CONFIRMED, SessionStatus.COMPLETED]  # Can't uncancel completed
+        }
+        
+        if old_status in invalid_transitions and updates.status in invalid_transitions[old_status]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid status transition from {old_status.value} to {updates.status.value}"
+            )
+        
+        # Validate completion requirements
+        if updates.status == SessionStatus.COMPLETED:
+            if old_status not in [SessionStatus.CONFIRMED]:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Only confirmed sessions can be marked as completed"
+                )
+            # Check if session time has passed (optional grace period)
+            if session.scheduled_at and session.scheduled_at > datetime.utcnow():
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Cannot complete a session that hasn't started yet"
+                )
+        
         if session.status != updates.status:
             status_changed = True
         session.status = updates.status
+        
         if updates.status == SessionStatus.CONFIRMED and not session.meeting_url:
             # Generate meeting URL when confirming. Provide required context parameters.
             mentor_user = db.query(User).join(Mentor).filter(Mentor.id == session.mentor_id).first()

@@ -1,0 +1,57 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - heading "Import your resume" [level=1] [ref=e5]
+      - paragraph [ref=e6]: "Upload a PDF or DOCX, we\x19ll parse and create a new editable resume."
+    - dialog [ref=e9]:
+      - generic [ref=e11]:
+        - generic [ref=e12]:
+          - img [ref=e14]
+          - heading "Import Resume" [level=2] [ref=e17]
+        - button "Close" [ref=e18] [cursor=pointer]:
+          - img [ref=e19]
+      - generic [ref=e24]:
+        - paragraph [ref=e25]: Upload your existing resume (PDF or DOCX) and we'll automatically extract your information to create a new resume.
+        - generic [ref=e26]:
+          - button "Click to upload or drag and drop PDF or DOCX (MAX. 10MB) We'll extract your info automatically" [ref=e27]
+          - generic [ref=e30] [cursor=pointer]:
+            - img [ref=e32]
+            - paragraph [ref=e36]: Click to upload or drag and drop
+            - paragraph [ref=e37]: PDF or DOCX (MAX. 10MB)
+            - paragraph [ref=e38]: We'll extract your info automatically
+        - generic [ref=e39]:
+          - img [ref=e41]
+          - generic [ref=e44]:
+            - paragraph [ref=e45]: sample-resume.pdf
+            - generic [ref=e46]:
+              - generic [ref=e47]: PDF
+              - generic [ref=e48]: 1.4 KB
+              - generic [ref=e49]: •
+              - generic [ref=e50]:
+                - img [ref=e51]
+                - text: Ready to parse
+          - button "Remove file" [ref=e54] [cursor=pointer]:
+            - img [ref=e55]
+        - generic [ref=e58]:
+          - img [ref=e60]
+          - generic [ref=e62]:
+            - paragraph [ref=e63]: Upload Error
+            - paragraph [ref=e64]: Failed to fetch
+          - button "Dismiss error" [ref=e65] [cursor=pointer]:
+            - img [ref=e66]
+      - generic [ref=e69]:
+        - generic [ref=e70]:
+          - generic [ref=e71]:
+            - checkbox "Use AI assist" [ref=e72]
+            - text: Use AI assist
+          - button "Try sample resume" [ref=e73] [cursor=pointer]
+        - generic [ref=e74]:
+          - button "Cancel" [ref=e75] [cursor=pointer]
+          - button "Parse Resume" [ref=e76] [cursor=pointer]:
+            - img [ref=e78]
+            - generic [ref=e81]: Parse Resume
+  - alert [ref=e82]
+```

@@ -5,6 +5,7 @@ import { useRouter } from 'next/router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ROUTES } from '@/lib/routes'
 import { addCredits } from '@/lib/credits'
+import { apiGet, apiPost } from '@/lib/api'
 
 type Q = { id:string; type:'mcq'; text:string; options:string[]; answerIndex:number; explanation?:string }
 type Quiz = { id:string; title:string; questions:Q[] }
@@ -28,33 +29,41 @@ export default function QuizPage() {
 
   useEffect(() => {
     if (!slug) return
-    setErr(null); setResult(null); setEarned(0); setPassedBefore(null)
-    // load quiz data
-    fetch(`/api/quizzes/list?slug=${slug}`)
-      .then(async r => {
-        if (r.ok) return r.json()
-        // fallback to AI-generated quiz
-        const gen = await fetch('/api/quizzes/generate', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ topic: slug, difficulty: 'medium', num_questions: 6, options_per_question: 4 })
-        })
-        if (gen.ok) return gen.json()
-        throw new Error(await r.text().catch(()=> 'load failed'))
-      })
-      .then((q: Quiz) => {
-        setQuiz(q)
-        // initialize a simple time limit: 30s per question, min 60s, max 15min
+    setErr(null); setResult(null); setEarned(0)
+    if (typeof setPassedBefore === 'function') {
+      setPassedBefore(null)
+    } else {
+      // defensive: avoid crash if setter is unexpectedly not a function
+      // (shouldn't happen; log to help debugging)
+      // eslint-disable-next-line no-console
+      console.warn('setPassedBefore is not a function on quiz page')
+    }
+    // load quiz data (try v1 backend first, fallback to AI generator)
+    (async () => {
+      try {
+        const q = await apiGet(`/api/v1/quizzes?path=${slug}`)
+        setQuiz(q as Quiz)
         const perQ = 30
         const total = Math.min(Math.max((q?.questions?.length || 0) * perQ, 60), 15 * 60)
         setSecondsLeft(total)
-      })
-      .catch(()=>setErr('Quiz not found'))
-    // check previous status (optional, best-effort)
-    fetch(`/api/quizzes/status?path=${slug}`, { credentials: 'include' as any })
-      .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
-      .then(d => setPassedBefore(!!d?.passed))
-      .catch(() => {})
+      } catch (err) {
+        try {
+          const gen = await apiPost('/api/quizzes/generate', { topic: slug, difficulty: 'medium', num_questions: 6, options_per_question: 4 })
+          setQuiz(gen as Quiz)
+          const perQ = 30
+          const total = Math.min(Math.max((gen?.questions?.length || 0) * perQ, 60), 15 * 60)
+          setSecondsLeft(total)
+        } catch (e) {
+          setErr('Quiz not found')
+        }
+      }
+
+      // check previous status (optional, best-effort)
+      try {
+        const d = await apiGet(`/api/v1/quizzes/status?path=${slug}`)
+        if (typeof setPassedBefore === 'function') setPassedBefore(!!d?.passed)
+      } catch {}
+    })()
   }, [slug])
 
   // Start countdown when quiz is loaded and not yet submitted
@@ -96,18 +105,10 @@ export default function QuizPage() {
     }
     // If this quiz was AI-generated (no static entry), submit via AI endpoint
     const isAi = quiz && quiz.id && String(quiz.id).startsWith('ai-')
-    const r = await fetch(isAi ? '/api/quizzes/submit-ai' : '/api/v1/quizzes/submit', {
-      method: 'POST',
-      headers: { 'Content-Type':'application/json' },
-      credentials: 'include',
-      body: JSON.stringify(isAi ? { path: slug, questions: quiz?.questions, answers: payload.answers } : payload)
-    })
-    if (!r.ok) { 
-      const errData = await r.json().catch(() => ({}))
-      setErr(typeof errData.detail === 'string' ? errData.detail : 'Submit failed')
-      return 
-    }
-    const d: SubmitOut = await r.json()
+    try {
+      const d: SubmitOut = await (isAi
+        ? apiPost('/api/quizzes/submit-ai', { path: slug, questions: quiz?.questions, answers: payload.answers })
+        : apiPost('/api/v1/quizzes/submit', payload))
     setResult(d)
 
     // If passed, grant +10 Forge AI Credits
@@ -123,33 +124,28 @@ export default function QuizPage() {
 
       // Unlock achievements: generic pass + perfect score
       try {
-        await fetch('/api/achievements/unlock', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({
-            key: `quiz:${slug}:passed`,
-            title: `Passed ${quiz?.title || slug} Quiz`,
-            description: `You passed the ${quiz?.title || slug} quiz!`,
-            points: 5,
-          }),
+        await apiPost('/api/achievements/unlock', {
+          key: `quiz:${slug}:passed`,
+          title: `Passed ${quiz?.title || slug} Quiz`,
+          description: `You passed the ${quiz?.title || slug} quiz!`,
+          points: 5,
         })
         if (d.score === d.total) {
-          await fetch('/api/achievements/unlock', {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({
-              key: `quiz:${slug}:perfect`,
-              title: `Perfect Score – ${quiz?.title || slug}`,
-              description: `You aced the ${quiz?.title || slug} quiz with a perfect score.`,
-              points: 10,
-            }),
+          await apiPost('/api/achievements/unlock', {
+            key: `quiz:${slug}:perfect`,
+            title: `Perfect Score – ${quiz?.title || slug}`,
+            description: `You aced the ${quiz?.title || slug} quiz with a perfect score.`,
+            points: 10,
           })
         }
       } catch {}
     }
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+      } catch (e:any) {
+        const msg = (e && (e.message || (typeof e === 'string' ? e : undefined))) || 'Submit failed'
+        setErr(msg)
+        return
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   return (

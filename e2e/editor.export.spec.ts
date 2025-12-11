@@ -20,7 +20,10 @@ test('PDF export triggers exporting state then returns', async ({ page, request:
   await page.waitForResponse(r => r.url().includes('/api/session/resumes') && r.request().method() === 'POST' && r.ok(), { timeout: 20000 })
 
   const exportBtn = page.getByTestId('btn-export-pdf')
-  await expect(exportBtn).toBeVisible()
+  await expect(exportBtn).toBeVisible({ timeout: 15000 })
+
+  // Some builds render button after preview paints; wait for preview marker
+  await page.waitForSelector('[data-testid="editor-live-preview"]', { timeout: 20000 })
 
   // The code toggles exporting state; assert text change
   await exportBtn.click()

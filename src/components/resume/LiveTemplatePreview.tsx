@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { Eye, EyeOff, Maximize2, Minimize2, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react'
 import ResumePreview from './ResumePreview'
+import useResizeObserver from '@/hooks/useResizeObserver'
+import useAutoScale from '@/hooks/useAutoScale'
 
 interface LiveTemplatePreviewProps {
   resume: any
@@ -23,9 +25,16 @@ export default function LiveTemplatePreview({
     }
     return 0.72
   })
+  // detect whether user explicitly set a zoom
+  const [hasManualZoom] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return !!localStorage.getItem('resume-preview-zoom')
+  })
   const [isAnimating, setIsAnimating] = useState(false)
   const previewRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const containerWidth = useResizeObserver(containerRef)
+  const autoScale = useAutoScale(containerWidth, { targetWidth: 794, min: 0.45, max: 1 })
 
   // Trigger subtle animation when resume data changes
   useEffect(() => {
@@ -129,6 +138,9 @@ export default function LiveTemplatePreview({
     )
   }
 
+  // Choose display scale: if user manually set zoom, respect it; otherwise use autoScale when not expanded
+  const displayScale = isExpanded ? scale : (hasManualZoom ? scale : autoScale)
+
   return (
     <div 
       ref={containerRef}
@@ -205,10 +217,10 @@ export default function LiveTemplatePreview({
               isAnimating ? 'ring-2 ring-blue-400/50' : ''
             }`}
             style={{ 
-              transform: `scale(${scale})`, 
-              transformOrigin: isExpanded ? 'top center' : 'top left',
-              width: isExpanded ? '100%' : `${100 / scale}%`,
-              margin: isExpanded ? '0 auto' : '0'
+              transform: `scale(${displayScale})`, 
+              transformOrigin: isExpanded ? 'top center' : 'top center',
+              width: isExpanded ? '100%' : '100%',
+              margin: '0 auto'
             }}
           >
             <ResumePreview resume={resume} />

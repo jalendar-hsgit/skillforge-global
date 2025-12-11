@@ -1,42 +1,127 @@
 # Page snapshot
 
 ```yaml
-- generic [active]:
-  - alert [ref=e1]
-  - dialog [ref=e4]:
-    - generic [ref=e5]:
-      - generic [ref=e6]:
-        - heading "Build Error" [level=1] [ref=e7]
-        - paragraph [ref=e8]: Failed to compile
-        - generic [ref=e9]:
-          - text: Next.js (14.2.33) is outdated
-          - link "(learn more)" [ref=e11] [cursor=pointer]:
-            - /url: https://nextjs.org/docs/messages/version-staleness
-      - generic [ref=e12]:
-        - generic [ref=e13]:
-          - link "./src/pages/mentors/dashboard.tsx" [ref=e14] [cursor=pointer]:
-            - text: ./src/pages/mentors/dashboard.tsx
-            - img [ref=e15]
-          - generic [ref=e19]:
-            - generic [ref=e20]: "Error:"
-            - text: ×
-            - generic [ref=e21]: "'import', and 'export' cannot be used outside of module code ╭─["
-            - generic [ref=e22]: D:\python code\sfg\skillforge-global\src\pages\mentors\dashboard.tsx
-            - generic [ref=e23]: :108:1]
-            - text: "108"
-            - generic [ref=e24]: "│ time: date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })"
-            - text: "109"
-            - generic [ref=e25]: "│ };"
-            - text: "110"
-            - generic [ref=e26]: "│ };"
-            - text: "111"
-            - generic [ref=e27]: "│ export { default } from './dashboard/index' ·"
-            - text: ────── 112
-            - generic [ref=e28]: │ </div>
-            - text: "113"
-            - generic [ref=e29]: │ </Layout>
-            - text: "113"
-            - generic [ref=e30]: "│ ); ╰──── Caused by: Syntax Error"
-        - contentinfo [ref=e31]:
-          - paragraph [ref=e32]: This error occurred during the build process and can only be dismissed by fixing the error.
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - navigation [ref=e5]:
+        - generic [ref=e6]:
+          - link "SkillForge Global SkillForge Global" [ref=e7] [cursor=pointer]:
+            - /url: /
+            - img "SkillForge Global" [ref=e10]
+            - generic [ref=e11]: SkillForge Global
+          - generic [ref=e12]:
+            - link "📚 Courses" [ref=e13] [cursor=pointer]:
+              - /url: /paths
+              - generic [ref=e14]: 📚
+              - generic [ref=e15]: Courses
+            - link "👥 Mentors" [ref=e16] [cursor=pointer]:
+              - /url: /mentors
+              - generic [ref=e17]: 👥
+              - generic [ref=e18]: Mentors
+            - link "🤖 AI Assistant" [ref=e19] [cursor=pointer]:
+              - /url: /ai
+              - generic [ref=e20]: 🤖
+              - generic [ref=e21]: AI Assistant
+            - link "📄 Create Resume" [ref=e22] [cursor=pointer]:
+              - /url: /resumes/new
+              - generic [ref=e23]: 📄
+              - generic [ref=e24]: Create Resume
+            - link "💳 Pricing" [ref=e25] [cursor=pointer]:
+              - /url: /pricing
+              - generic [ref=e26]: 💳
+              - generic [ref=e27]: Pricing
+          - generic [ref=e29]:
+            - link "Log in" [ref=e30] [cursor=pointer]:
+              - /url: /login
+            - link "Get Started →" [ref=e31] [cursor=pointer]:
+              - /url: /signup
+    - main [ref=e32]:
+      - generic [ref=e33]:
+        - generic [ref=e37]:
+          - button "Back" [ref=e38] [cursor=pointer]:
+            - img [ref=e39]
+            - generic [ref=e41]: Back
+          - generic [ref=e42]:
+            - link "Admin" [ref=e43] [cursor=pointer]:
+              - /url: /admin
+            - generic [ref=e44]: /
+            - heading "My Sessions" [level=1] [ref=e45]
+        - generic [ref=e46]:
+          - generic [ref=e47]:
+            - button "All" [ref=e48] [cursor=pointer]
+            - button "Pending" [active] [ref=e49] [cursor=pointer]
+            - button "Confirmed" [ref=e50] [cursor=pointer]
+            - button "Completed" [ref=e51] [cursor=pointer]
+            - button "Cancelled" [ref=e52] [cursor=pointer]
+          - generic [ref=e54]:
+            - generic [ref=e55]:
+              - generic [ref=e56]: "From:"
+              - textbox [ref=e57]
+            - generic [ref=e58]:
+              - generic [ref=e59]: "To:"
+              - textbox [ref=e60]
+          - generic [ref=e61]:
+            - generic [ref=e62]: 📅
+            - heading "No sessions found" [level=3] [ref=e63]
+            - paragraph [ref=e64]: No pending sessions
+    - contentinfo [ref=e65]:
+      - generic [ref=e67]:
+        - generic [ref=e70]: Earn Forge AI Credits by completing modules and passing quizzes.
+        - link "View rewards →" [ref=e71] [cursor=pointer]:
+          - /url: /dashboard
+      - generic [ref=e72]:
+        - generic [ref=e73]:
+          - link "SkillForge Global SkillForge Global" [ref=e74] [cursor=pointer]:
+            - /url: /
+            - img "SkillForge Global" [ref=e75]
+            - generic [ref=e76]: SkillForge Global
+          - paragraph [ref=e77]: Project-first learning. Quizzes, progress, AI mentor, and real-world challenges.
+        - generic [ref=e78]:
+          - heading "Product" [level=4] [ref=e79]
+          - list [ref=e80]:
+            - listitem [ref=e81]:
+              - link "Career Paths" [ref=e82] [cursor=pointer]:
+                - /url: /paths
+            - listitem [ref=e83]:
+              - link "SkillAIBridge" [ref=e84] [cursor=pointer]:
+                - /url: /ai
+            - listitem [ref=e85]:
+              - link "Pricing" [ref=e86] [cursor=pointer]:
+                - /url: /pricing
+            - listitem [ref=e87]:
+              - link "Sample Quiz" [ref=e88] [cursor=pointer]:
+                - /url: /quiz/python-ai
+        - generic [ref=e89]:
+          - heading "Company" [level=4] [ref=e90]
+          - list [ref=e91]:
+            - listitem [ref=e92]:
+              - link "About" [ref=e93] [cursor=pointer]:
+                - /url: /company
+            - listitem [ref=e94]:
+              - link "Careers" [ref=e95] [cursor=pointer]:
+                - /url: /careers
+            - listitem [ref=e96]:
+              - link "Mentors" [ref=e97] [cursor=pointer]:
+                - /url: /mentors
+            - listitem [ref=e98]:
+              - link "Contact" [ref=e99] [cursor=pointer]:
+                - /url: /contact
+        - generic [ref=e100]:
+          - heading "Stay in the loop" [level=4] [ref=e101]
+          - generic [ref=e102]:
+            - textbox "email" [ref=e103]:
+              - /placeholder: your@email.com
+            - button "Subscribe" [ref=e104] [cursor=pointer]
+          - paragraph [ref=e105]: No spam. Unsubscribe anytime.
+      - generic [ref=e106]:
+        - generic [ref=e107]: © 2025 SkillForge Global. All rights reserved.
+        - generic [ref=e108]:
+          - link "Privacy" [ref=e109] [cursor=pointer]:
+            - /url: /privacy
+          - link "Terms" [ref=e110] [cursor=pointer]:
+            - /url: /terms
+          - link "Security" [ref=e111] [cursor=pointer]:
+            - /url: /security
+  - alert [ref=e112]
 ```

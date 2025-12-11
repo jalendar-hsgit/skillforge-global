@@ -15,6 +15,8 @@ from app.modelsx.resume import (
     ResumeSkill, ResumeCertificate, Achievement,
     Language, Publication, Patent, VolunteerWork, Reference
 )
+from app.modelsx.resume import ResumeTemplate
+from sqlalchemy import or_
 
 router = APIRouter(prefix="/resumes", tags=["Resume Export"])
 
@@ -129,8 +131,37 @@ async def export_pdf(resume: Resume, db: Session):
                 return
             super().showPage()
     
+    # Attempt to load a template and merge config values so exports follow the selected template
+    try:
+        template = db.query(ResumeTemplate).filter(
+            or_(ResumeTemplate.name == (resume.template_id or ''), ResumeTemplate.id == resume.template_id)
+        ).first()
+    except Exception:
+        template = None
+
+    # Resolve effective values by preferring template config then resume-specific overrides
+    effective_font = resume.font_family or "Roboto"
+    effective_accent = resume.accent_color or "#2563eb"
+    effective_text = resume.text_color or "#000000"
+    effective_heading = resume.heading_color or "#1f2937"
+    effective_layout = resume.layout or "single-column"
+    effective_line_spacing = resume.line_spacing or 1.2
+    effective_font_size = resume.font_size or 11
+    effective_heading_size = resume.heading_size or 14
+
+    if template and template.config and isinstance(template.config, dict):
+        cfg = template.config
+        effective_font = cfg.get('font_family', effective_font)
+        effective_accent = cfg.get('accent_color', effective_accent)
+        effective_text = cfg.get('text_color', effective_text)
+        effective_heading = cfg.get('heading_color', effective_heading)
+        effective_layout = cfg.get('layout', effective_layout)
+        effective_line_spacing = cfg.get('line_spacing', effective_line_spacing)
+        effective_font_size = cfg.get('font_size', effective_font_size)
+        effective_heading_size = cfg.get('heading_size', effective_heading_size)
+
     # Map font to ReportLab built-in
-    base_font, bold_font = _map_font_to_reportlab(resume.font_family or "Roboto")
+    base_font, bold_font = _map_font_to_reportlab(effective_font)
     
     # Create PDF buffer
     buffer = io.BytesIO()
@@ -157,7 +188,7 @@ async def export_pdf(resume: Resume, db: Session):
     styles = getSampleStyleSheet()
     
     # Determine alignment from layout: center for beginner/center layouts, left otherwise
-    layout_lower = (resume.layout or "").lower()
+    layout_lower = (effective_layout or "").lower()
     is_centered = "beginner" in layout_lower or "center" in layout_lower
     default_alignment = TA_CENTER if is_centered else TA_LEFT
     
@@ -172,8 +203,8 @@ async def export_pdf(resume: Resume, db: Session):
             default_alignment = TA_RIGHT
     
     # Use dynamic heading sizes
-    base_font_size = resume.font_size or 11
-    heading_font_size = resume.heading_size or 14
+    base_font_size = effective_font_size
+    heading_font_size = effective_heading_size
     title_font_size = heading_font_size + 4  # Title slightly larger than headings
     
     title_style = ParagraphStyle(
@@ -204,10 +235,10 @@ async def export_pdf(resume: Resume, db: Session):
         'CustomBody',
         parent=styles['Normal'],
         fontSize=base_font_size,
-        textColor=text_color,
+        textColor=effective_text,
         fontName=base_font,
         alignment=default_alignment,
-        leading=resume.line_spacing * base_font_size if resume.line_spacing else 14
+        leading=effective_line_spacing * base_font_size if effective_line_spacing else 14
     )
     
     # Build PDF content
@@ -380,6 +411,34 @@ async def export_docx(resume: Resume, db: Session):
     except ImportError:
         raise HTTPException(status_code=500, detail="DOCX generation not available. Install python-docx.")
     
+    # Attempt to load template config and compute effective styling
+    try:
+        template = db.query(ResumeTemplate).filter(
+            or_(ResumeTemplate.name == (resume.template_id or ''), ResumeTemplate.id == resume.template_id)
+        ).first()
+    except Exception:
+        template = None
+
+    effective_font = resume.font_family or "Roboto"
+    effective_accent = resume.accent_color or "#2563eb"
+    effective_text = resume.text_color or "#000000"
+    effective_heading = resume.heading_color or "#1f2937"
+    effective_layout = resume.layout or "single-column"
+    effective_line_spacing = resume.line_spacing or 1.2
+    effective_font_size = resume.font_size or 11
+    effective_heading_size = resume.heading_size or 14
+
+    if template and template.config and isinstance(template.config, dict):
+        cfg = template.config
+        effective_font = cfg.get('font_family', effective_font)
+        effective_accent = cfg.get('accent_color', effective_accent)
+        effective_text = cfg.get('text_color', effective_text)
+        effective_heading = cfg.get('heading_color', effective_heading)
+        effective_layout = cfg.get('layout', effective_layout)
+        effective_line_spacing = cfg.get('line_spacing', effective_line_spacing)
+        effective_font_size = cfg.get('font_size', effective_font_size)
+        effective_heading_size = cfg.get('heading_size', effective_heading_size)
+
     doc = Document()
     
     # Set margins
@@ -393,7 +452,12 @@ async def export_docx(resume: Resume, db: Session):
     # Title - Name (use full_name if available, otherwise title, fallback to "Resume")
     display_name = resume.full_name or resume.title or "Resume"
     title = doc.add_heading(display_name, level=1)
-    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    # Align title according to layout (centered for 'center' or 'beginner'-style templates)
+    layout_lower = (effective_layout or "").lower()
+    if "beginner" in layout_lower or "center" in layout_lower:
+        title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    else:
+        title.alignment = WD_ALIGN_PARAGRAPH.LEFT
     
     # Contact Info
     contact_parts = []

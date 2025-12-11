@@ -11,6 +11,8 @@ from datetime import datetime, timedelta
 import json
 import os
 
+from pydantic import BaseModel
+
 from app.core.db import get_db
 from app.core.security import get_current_admin, get_current_superadmin
 from app.models.user import User, UserRole

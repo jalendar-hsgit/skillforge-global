@@ -3,6 +3,10 @@ from sqlalchemy.orm import relationship
 from app.core.db import Base
 from datetime import datetime
 import enum
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.models.user import User
 
 
 class MentorStatus(str, enum.Enum):
@@ -46,8 +50,8 @@ class Mentor(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
     # Relationships
-    # Note: User model doesn't have back_populates to avoid circular dependency issues
-    user = relationship("app.models.user.User", foreign_keys=[user_id])
+    # Note: User relationship commented to avoid circular import at mapper initialization
+    # user = relationship("User", foreign_keys=[user_id], viewonly=True)
     sessions = relationship("MentorSession", back_populates="mentor", cascade="all, delete-orphan")
     availability = relationship("MentorAvailability", back_populates="mentor", cascade="all, delete-orphan")
     reviews = relationship("MentorReview", back_populates="mentor", cascade="all, delete-orphan")
@@ -101,7 +105,7 @@ class MentorSession(Base):
     
     # Relationships
     mentor = relationship("Mentor", back_populates="sessions")
-    student = relationship("app.models.user.User", foreign_keys=[student_id])
+    # student = relationship("app.models.user.User", foreign_keys=[student_id])
     review = relationship("MentorReview", uselist=False, back_populates="session")
     # chat_files = relationship("MentorChatFile", back_populates="session")  # TODO: Define MentorChatFile model
 
@@ -168,7 +172,7 @@ class MentorMessage(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
     
     # Relationships
-    session = relationship("MentorSession")
+    # session = relationship("MentorSession")
     
     def __repr__(self):
         return f"<MentorMessage(id={self.id}, session_id={self.session_id}, sender_id={self.sender_id})>"
@@ -198,7 +202,7 @@ class MentorReview(Base):
     # Relationships
     mentor = relationship("Mentor", back_populates="reviews")
     session = relationship("MentorSession", back_populates="review")
-    student = relationship("app.models.user.User", foreign_keys=[student_id])
+    # student = relationship("app.models.user.User", foreign_keys=[student_id])
     
     def __repr__(self):
         return f"<MentorReview(id={self.id}, mentor_id={self.mentor_id}, rating={self.rating})>"

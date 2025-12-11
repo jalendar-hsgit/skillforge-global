@@ -9,7 +9,12 @@ test.describe('Job Tracker', () => {
     await expect(page.getByRole('heading', { name: 'Job Application Tracker' })).toBeVisible();
 
     // Stats cards exist (at least one of the labels)
-    await expect(page.getByText('Total Applications')).toBeVisible();
+    await expect(page.getByText('Job Tracker')).toBeVisible({ timeout: 15000 });
+    const totalApps = page.getByTestId('stat-total-applications')
+    await Promise.race([
+      totalApps.waitFor({ state: 'visible' }),
+      page.getByText('Total Applications').waitFor({ state: 'visible' })
+    ])
 
     // Add Application button navigates
     await page.getByRole('button', { name: 'Add Application' }).click();

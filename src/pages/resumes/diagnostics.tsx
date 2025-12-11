@@ -54,30 +54,6 @@ export default function ResumeDiagnosticsPage() {
       } catch (e: any) {
         testResults.getResume = { error: e.message };
       }
-
-      // Test 2b: Try export PDF for that resume
-      try {
-        const res = await fetch(`/api/session/v1x/resumes/${resumeId}/export?format=pdf`, {
-          method: 'GET',
-          credentials: 'include',
-        });
-        const contentType = res.headers.get('content-type') || '';
-        const debugTarget = res.headers.get('x-debug-target') || '';
-        let size = 0;
-        try {
-          const blob = await res.blob();
-          size = blob.size;
-        } catch {}
-        testResults.exportPdf = {
-          status: res.status,
-          ok: res.ok,
-          contentType,
-          debugTarget,
-          size,
-        };
-      } catch (e: any) {
-        testResults.exportPdf = { error: e.message };
-      }
     }
 
     // Test 3: Backend health
@@ -168,7 +144,6 @@ export default function ResumeDiagnosticsPage() {
           <ul className="space-y-1 text-sm">
             <li>• GET /api/session/resumes - List all resumes</li>
             <li>• GET /api/session/resumes?id=123 - Get resume by ID</li>
-              <li>• GET /api/session/v1x/resumes/123/export?format=pdf - Export PDF</li>
             <li>• POST /api/session/resumes - Create resume</li>
             <li>• PATCH /api/session/resumes?id=123 - Update resume</li>
             <li>• DELETE /api/session/resumes?id=123 - Delete resume</li>

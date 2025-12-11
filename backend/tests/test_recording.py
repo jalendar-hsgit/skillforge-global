@@ -2,47 +2,80 @@
 Tests for session recording functionality
 """
 import pytest
+from fastapi.testclient import TestClient
 from datetime import datetime
 from pathlib import Path
 import io
 
-from app.modelsx.mentor import MentorSession, Mentor, MentorStatus
+from app.main import app
+from app.core.db import SessionLocal, Base, engine
+from app.models.user import User
+from app.modelsx.mentor import MentorSession
+
+
+@pytest.fixture(scope="module")
+def client():
+    """Create test client"""
+    # Create tables
+    Base.metadata.create_all(bind=engine)
+    yield TestClient(app)
+    # Cleanup
+    Base.metadata.drop_all(bind=engine)
 
 
 @pytest.fixture
-def test_mentor(db_session, create_user):
-    """Create test mentor"""
-    user = create_user("mentor_rec@test.com", "testpass123")
+def db_session():
+    """Create database session"""
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+@pytest.fixture
+def test_users(db_session):
+    """Create test users (mentor and student)"""
+    # Create mentor
+    mentor = User(
+        email="mentor@test.com",
+        password_hash="hashed_password_123"
+    )
+    db_session.add(mentor)
     
-    # Check if mentor already exists
-    mentor = db_session.query(Mentor).filter(Mentor.user_id == user.id).first()
-    if not mentor:
-        mentor = Mentor(
-            user_id=user.id,
-            bio="Test mentor bio",
-            expertise="python-ai,fullstack",
-            hourly_rate=50.0,
-            status=MentorStatus.APPROVED
-        )
-        db_session.add(mentor)
-        db_session.commit()
-        db_session.refresh(mentor)
+    # Create student
+    student = User(
+        email="student@test.com",
+        password_hash="hashed_password_456"
+    )
+    db_session.add(student)
     
-    return mentor
+    db_session.commit()
+    db_session.refresh(mentor)
+    db_session.refresh(student)
+    
+    return {"mentor": mentor, "student": student}
 
 
 @pytest.fixture
-def test_student(create_user):
-    """Create test student"""
-    return create_user("student_rec@test.com", "testpass456")
-
-
-@pytest.fixture
-def test_session(db_session, test_mentor, test_student):
+def test_session(db_session, test_users):
     """Create test mentor session"""
+    # First create a Mentor record for the mentor user
+    from app.modelsx.mentor import Mentor
+    mentor = Mentor(
+        user_id=test_users["mentor"].id,
+        bio="Test mentor bio",
+        expertise="python-ai,fullstack",
+        hourly_rate=50.0
+    )
+    db_session.add(mentor)
+    db_session.commit()
+    db_session.refresh(mentor)
+    
+    # Now create the session
     session = MentorSession(
-        mentor_id=test_mentor.id,
-        student_id=test_student.id,
+        mentor_id=mentor.id,
+        student_id=test_users["student"].id,
         scheduled_at=datetime.now(),
         duration_minutes=60,
         status="confirmed",
@@ -55,22 +88,31 @@ def test_session(db_session, test_mentor, test_student):
 
 
 @pytest.fixture
-def auth_mentor(client, login):
-    """Login as mentor and return cookies"""
-    return login("mentor_rec@test.com", "testpass123")
+def auth_headers_mentor(client, test_users):
+    """Get authentication headers for mentor"""
+    response = client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": "mentor@test.com",
+            "password": "password123"
+        }
+    )
+    # For testing, we'll simulate authenticated user
+    return {"X-User-ID": str(test_users["mentor"].id)}
 
 
 @pytest.fixture
-def auth_student(client, login):
-    """Login as student and return cookies"""
-    return login("student_rec@test.com", "testpass456")
+def auth_headers_student(client, test_users):
+    """Get authentication headers for student"""
+    return {"X-User-ID": str(test_users["student"].id)}
 
 
-def test_start_recording(client, test_session, auth_mentor):
+def test_start_recording(client, test_session, auth_headers_mentor):
     """Test starting a recording"""
     response = client.post(
         "/api/v1x/recordings/start",
-        json={"session_id": test_session.id}
+        json={"session_id": test_session.id},
+        headers=auth_headers_mentor
     )
     
     assert response.status_code == 200
@@ -82,12 +124,7 @@ def test_start_recording(client, test_session, auth_mentor):
 
 def test_start_recording_unauthorized(client, test_session):
     """Test starting recording without authentication"""
-    # Create a new client without cookies
-    from fastapi.testclient import TestClient
-    from app.main import app
-    fresh_client = TestClient(app)
-    
-    response = fresh_client.post(
+    response = client.post(
         "/api/v1x/recordings/start",
         json={"session_id": test_session.id}
     )
@@ -95,14 +132,23 @@ def test_start_recording_unauthorized(client, test_session):
     assert response.status_code == 401
 
 
-def test_start_recording_not_participant(client, test_session, login):
+def test_start_recording_not_participant(client, test_session, db_session):
     """Test starting recording as non-participant"""
-    # Login as a different user
-    login("outsider_rec@test.com", "testpass999")
+    # Create another user who is not part of the session
+    other_user = User(
+        email="other@test.com",
+        password_hash="hashed_password_789"
+    )
+    db_session.add(other_user)
+    db_session.commit()
+    db_session.refresh(other_user)
+    
+    headers = {"X-User-ID": str(other_user.id)}
     
     response = client.post(
         "/api/v1x/recordings/start",
-        json={"session_id": test_session.id}
+        json={"session_id": test_session.id},
+        headers=headers
     )
     
     assert response.status_code == 403

@@ -6,6 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "start:prod": "next start -H 127.0.0.1 -p 3000",
+    "build:clean": "node -e \"try{require('fs').rmSync('.next',{recursive:true,force:true})}catch(e){}\" && next build",
     "lint": "eslint",
     "test": "jest",
     "test:watch": "jest --watch",

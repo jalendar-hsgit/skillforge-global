@@ -21,7 +21,12 @@ export async function apiGet(path: string) {
     }
     throw new Error(errorMsg);
   }
-  return res.json();
+  try {
+    return await res.json();
+  } catch (e) {
+    // Fallback to text for endpoints that return plain text
+    return await res.text();
+  }
 }
 
 export async function apiPost(path: string, data: any) {
@@ -44,5 +49,9 @@ export async function apiPost(path: string, data: any) {
     }
     throw new Error(errorMsg);
   }
-  return res.json();
+  try {
+    return await res.json();
+  } catch (e) {
+    return await res.text();
+  }
 }

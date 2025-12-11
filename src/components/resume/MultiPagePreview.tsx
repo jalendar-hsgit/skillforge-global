@@ -1,4 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
+import useResizeObserver from '@/hooks/useResizeObserver'
+import useAutoScale from '@/hooks/useAutoScale'
 
 interface MultiPagePreviewProps {
   resume: any
@@ -10,6 +12,8 @@ export default function MultiPagePreview({ resume, scale = 1, className = '' }: 
   const [pages, setPages] = useState<HTMLElement[]>([])
   const containerRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
+  const containerWidth = useResizeObserver(containerRef)
+  const autoScale = useAutoScale(containerWidth, { targetWidth: 794, min: 0.45, max: 1 })
 
   useEffect(() => {
     if (!contentRef.current) return
@@ -74,7 +78,7 @@ export default function MultiPagePreview({ resume, scale = 1, className = '' }: 
             width: `${794 * scale}px`, // A4 width at 96dpi
             minHeight: `${1122 * scale}px`, // A4 height
             padding: `${60 * scale}px`,
-            transform: `scale(${scale})`,
+            transform: `scale(${Math.min(scale, autoScale)})`,
             transformOrigin: 'top center',
           }}
         >

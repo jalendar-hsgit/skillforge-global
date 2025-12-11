@@ -228,9 +228,24 @@ export default function ResumeImportModal({ isOpen, onClose, onImportSuccess }: 
 
       const resume = await res.json()
       console.log('[ResumeImport] Resume created:', resume)
+      // Coerce possible id locations and types
+      const maybeId = resume?.id ?? resume?.resume_id ?? resume?.data?.id
+      const resumeId = typeof maybeId === 'string' ? parseInt(maybeId, 10) : maybeId
+      if (!resumeId) {
+        console.error('[ResumeImport] Could not determine resume id from response', resume)
+        setError('Import succeeded but could not find resume id. Please refresh your resumes list.')
+        setStep('preview')
+        return
+      }
       setToast({ type: 'success', message: 'Resume imported successfully' })
       setTimeout(() => {
-        onImportSuccess(resume.id)
+        try {
+          onImportSuccess(resumeId as number)
+        } catch (e) {
+          // defensive: ensure we don't crash if parent handler fails
+          // eslint-disable-next-line no-console
+          console.error('[ResumeImport] onImportSuccess handler threw', e)
+        }
         onClose()
       }, 800)
     } catch (e: any) {

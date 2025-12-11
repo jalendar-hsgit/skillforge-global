@@ -1,12 +1,28 @@
 import { test, expect } from '@playwright/test'
+import { loginOnce } from './helpers/auth'
 
-// Helper to login as mentor
-async function loginAsMentor(page: any) {
-  await page.goto('/login')
-  await page.fill('input[type="email"]', 'mentor@test.com')
-  await page.fill('input[type="password"]', 'password123')
-  await page.click('button[type="submit"]')
-  await page.waitForURL(/dashboard|mentors\/dashboard/)
+const BACKEND_BASE = 'http://127.0.0.1:8001';
+const FRONTEND_BASE = 'http://localhost:3000';
+
+// Helper to login as mentor via backend and inject cookie
+async function loginAsMentor(page: any, context: any) {
+  const loginResp = await context.request.post(`${BACKEND_BASE}/api/v1/auth/login`, {
+    data: { email: 'mentor@test.com', password: 'password123' }
+  });
+  const setCookie = loginResp.headers()['set-cookie'] as unknown as string | undefined;
+  if (setCookie && setCookie.includes('token=')) {
+    const tokenMatch = setCookie.match(/token=([^;]+)/);
+    if (tokenMatch) {
+      await context.addCookies([{
+        name: 'token',
+        value: tokenMatch[1],
+        domain: 'localhost',
+        path: '/',
+        httpOnly: true,
+        sameSite: 'Lax',
+      }]);
+    }
+  }
 }
 
 // Helper to create a test session via API
@@ -25,15 +41,17 @@ async function createTestSession(page: any, status: string = 'pending') {
 }
 
 test.describe('Mentor Session Actions', () => {
-  test.beforeEach(async ({ page }) => {
-    await loginAsMentor(page)
+  test.beforeEach(async ({ page, context }) => {
+    // Ensure authenticated context using shared helper to reduce rate limits
+    await loginOnce(context, context.request, 'mentor-e2e@skillforge.com', 'Test1234!', 'Mentor E2E')
+    await loginAsMentor(page, context)
   })
 
   test('displays pending sessions with confirm button', async ({ page }) => {
     await page.goto('/mentors/dashboard/sessions')
     
-    // Check for sessions table/list
-    await expect(page.getByText(/Sessions/i)).toBeVisible()
+    // Check for sessions heading
+    await expect(page.getByRole('heading', { name: /My Sessions/i })).toBeVisible()
     
     // Look for pending sessions
     const pendingBadge = page.locator('[data-status="pending"]').first()
@@ -145,8 +163,10 @@ test.describe('Mentor Session Actions', () => {
       await pendingFilter.click()
       
       // Verify only pending sessions are shown
-      await expect(page.locator('[data-status="pending"]')).toBeVisible()
-      await expect(page.locator('[data-status="completed"]')).not.toBeVisible()
+      const pendingItems = page.locator('[data-status="pending"]')
+      const completedItems = page.locator('[data-status="completed"]')
+      await expect(pendingItems.first()).toBeVisible({ timeout: 15000 })
+      await expect(completedItems).toHaveCount(0)
     }
     
     const completedFilter = page.getByRole('button', { name: /completed/i })
@@ -207,7 +227,9 @@ test.describe('Mentor Session Actions', () => {
   test('updates dashboard stats after session completion', async ({ page }) => {
     // Go to dashboard and record current stats
     await page.goto('/mentors/dashboard')
-    const completedCountText = await page.getByText(/completed/i).first().textContent()
+    await page.waitForLoadState('networkidle')
+    const completedStat = page.getByTestId('stat-completed')
+    const completedCountText = (await completedStat.textContent()) || (await page.getByText(/completed/i).first().textContent())
     const currentCompleted = parseInt(completedCountText?.match(/\d+/)?.[0] || '0')
     
     // Complete a session

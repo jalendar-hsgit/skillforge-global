@@ -244,6 +244,23 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
     }
     return true
   });
+
+  // Quick export: try client-side preview export for pixel-perfect output,
+  // fall back to showing the export options modal if it fails.
+  const handleQuickExport = async () => {
+    if (!resumeId) return setShowExportOptions(true);
+    setExporting(true);
+    try {
+      const filename = `${(resume && resume.title) ? resume.title : 'resume'}.pdf`;
+      await exportResumePDFFromPreview(Number(resumeId), filename, { dpi: 300, marginMM: 10 });
+      // small UX delay so button state is visible
+      setTimeout(() => setExporting(false), 500);
+    } catch (err) {
+      console.error('[Quick Export] preview export failed, opening export options', err);
+      setExporting(false);
+      setShowExportOptions(true);
+    }
+  };
   const [showLivePreview, setShowLivePreview] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('resume-editor-show-preview')
@@ -791,8 +808,8 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
               )}
             </div>
             
-            {/* Bottom Row - Main Action Buttons */}
-            <div className="flex items-center gap-2">
+            {/* Bottom Row - Main Action Buttons: flex-wrap to preserve previous layout while allowing two rows */}
+            <div className="flex flex-wrap gap-2 w-full">
               <Button
                 onClick={async () => {
                 if (!resume || saving) return;
@@ -993,7 +1010,7 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
               <span>Preview</span>
             </Button>
             <Button
-              onClick={() => setShowExportOptions(true)}
+              onClick={() => handleQuickExport()}
               variant="primary"
               data-testid="btn-export"
               className="font-bold text-sm px-3 py-1.5 tracking-wide transition-all duration-200 hover:shadow-xl hover:scale-105"
@@ -1001,8 +1018,8 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
               <Download className="w-3.5 h-3.5 mr-1.5" />
               <span>Export</span>
             </Button>
+            </div>
           </div>
-        </div>
         </div>
       </div>
 
@@ -1170,9 +1187,11 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
                   Live Preview
                 </h3>
               </div>
-              <div className="bg-gradient-to-br from-white/5 to-white/10 rounded-2xl p-4 border border-white/20 shadow-2xl">
-                <div ref={previewRef} className="bg-white rounded-xl shadow-2xl overflow-hidden" style={{ transform: 'scale(0.72)', transformOrigin: 'top left', width: '139%' }}>
-                  <ResumePreview resume={resume} />
+              <div className="bg-gradient-to-br from-white/5 to-white/10 rounded-2xl p-4 border border-white/20 shadow-2xl overflow-auto">
+                <div className="flex justify-center">
+                  <div ref={previewRef} className="bg-white rounded-xl shadow-2xl overflow-hidden" style={{ transform: 'scale(0.72)', transformOrigin: 'top left', width: '100%', maxWidth: '900px' }}>
+                    <ResumePreview resume={resume} />
+                  </div>
                 </div>
               </div>
             </div>
