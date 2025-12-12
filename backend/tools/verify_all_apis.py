@@ -81,20 +81,29 @@ token = r.cookies.get("token")
 # Courses (v1)
 print("\n[COURSES - /api/v1/courses]")
 test_endpoint("List Courses", "GET", "/api/v1/courses")
-r = test_endpoint("Get First Course", "GET", "/api/v1/courses/1")
+list_resp = client.get("/api/v1/courses")
+first_id = None
+if list_resp.status_code == 200:
+    data = list_resp.json()
+    if data:
+        first_id = data[0].get("id") or data[0].get("path")
+if first_id:
+    test_endpoint("Get First Course", "GET", f"/api/v1/courses/{first_id}")
+else:
+    results.append(("Get First Course", 404, False))
+    print("  [6] Get First Course: 404 - FAIL")
 
 # Progress (v1)
 print("\n[PROGRESS - /api/v1/progress]")
-test_endpoint("Get Progress", "GET", "/api/v1/progress?path=python-fundamentals", cookies={"token": token})
-test_endpoint("Update Progress", "POST", "/api/v1/progress", 
-              json={"path": "test", "module": 1, "lesson": 1, "completed": True},
+test_endpoint("Get Progress", "GET", "/api/v1/progress?path=python-ai", cookies={"token": token})
+test_endpoint("Update Progress", "POST", "/api/v1/progress?path=python-ai&module_id=py-001", 
               cookies={"token": token})
 
 # Quizzes (v1)
 print("\n[QUIZZES - /api/v1/quizzes]")
-test_endpoint("Get Quiz", "GET", "/api/v1/quizzes/python-basics")
-test_endpoint("Submit Quiz", "POST", "/api/v1/quizzes/python-basics/submit",
-              json={"answers": {}}, cookies={"token": token})
+test_endpoint("Get Quiz", "GET", "/api/v1/quizzes/python-ai")
+test_endpoint("Submit Quiz", "POST", "/api/v1/quizzes/python-ai/submit",
+              json={"path":"python-ai","answers":[{"id":"q1","answerIndex":1}]}, cookies={"token": token})
 
 # Chat (v1)
 print("\n[CHAT - /api/v1/chat]")

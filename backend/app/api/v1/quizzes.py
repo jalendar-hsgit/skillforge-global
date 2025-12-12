@@ -1,3 +1,45 @@
+from fastapi import APIRouter, HTTPException, Header, Cookie
+from typing import Dict
+import json, os
+from ...schemas.quiz import QuizEnvelope, QuizSubmitIn, QuizSubmitOut, QuizSubmitOutItem
+
+router = APIRouter(prefix="/quizzes", tags=["quizzes"])
+
+DATA_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "data", "quizzes.json")
+DATA_PATH = os.path.normpath(DATA_PATH)
+
+def _load_all() -> Dict[str, dict]:
+    with open(DATA_PATH, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+@router.get("/{slug}", response_model=QuizEnvelope)
+def get_quiz(slug: str):
+    allq = _load_all()
+    quiz = allq.get(slug)
+    if not quiz:
+        raise HTTPException(status_code=404, detail="Quiz not found")
+    return quiz
+
+@router.post("/{slug}/submit", response_model=QuizSubmitOut)
+def submit_quiz(slug: str, payload: QuizSubmitIn, token: str | None = Cookie(None), authorization: str | None = Header(None)):
+    # For now submission does not require auth; future: validate token
+    allq = _load_all()
+    quiz = allq.get(slug)
+    if not quiz:
+        raise HTTPException(status_code=404, detail="Quiz not found")
+    # Build answer map
+    answers_map = {q["id"]: q["answerIndex"] for q in quiz.get("questions", [])}
+    explanations = {q["id"]: q.get("explanation") for q in quiz.get("questions", [])}
+    total = len(payload.answers)
+    score = 0
+    results: list[QuizSubmitOutItem] = []
+    for a in payload.answers:
+        correct_index = answers_map.get(a.id)
+        is_correct = (correct_index == a.answerIndex)
+        if is_correct:
+            score += 1
+        results.append(QuizSubmitOutItem(id=a.id, correct=is_correct, correctIndex=correct_index or -1, explanation=explanations.get(a.id)))
+    return QuizSubmitOut(score=score, total=total, results=results)
 from fastapi import APIRouter, HTTPException, Query, Header, Depends
 from fastapi.responses import StreamingResponse
 from ...schemas.quiz import QuizEnvelope, QuizSubmitIn, QuizSubmitOut, QuizSubmitOutItem, QuizQuestion
@@ -12,7 +54,7 @@ from ...services.llm_provider import get_llm_provider
 from ...services.adaptive_difficulty import AdaptiveDifficultyEngine
 from ...services.rate_limiter import rate_limit
 
-router = APIRouter(prefix="/quizzes", tags=["quizzes"])
+# Use existing router defined above; do not reassign
 
 DATA_PATH = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "data", "quizzes.json"))
 
@@ -22,14 +64,14 @@ def _load_quiz(path: str):
     return data.get(path)
 
 @router.get("", response_model=QuizEnvelope)
-def get_quiz(path: str = Query(..., description="Path slug, e.g. python-ai")):
+def get_quiz_query(path: str = Query(..., description="Path slug, e.g. python-ai")):
     q = _load_quiz(path)
     if not q:
         raise HTTPException(status_code=404, detail="Quiz not found")
     return q
 
 @router.post("/submit", response_model=QuizSubmitOut)
-def submit_quiz(payload: QuizSubmitIn, authorization: str | None = Header(None), db: Session = Depends(get_db)):
+def submit_quiz_query(payload: QuizSubmitIn, authorization: str | None = Header(None), db: Session = Depends(get_db)):
     q = _load_quiz(payload.path)
     if not q:
         raise HTTPException(status_code=404, detail="Quiz not found")

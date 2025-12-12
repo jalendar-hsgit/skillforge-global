@@ -197,6 +197,47 @@ def update_my_mentor_profile(
     )
 
 
+# ============ Public Mentor Listing & Search ============
+
+@router.get("", response_model=List[MentorProfileResponse])
+def list_all_mentors(
+    limit: int = Query(50, ge=1, le=100),
+    db: Session = Depends(get_db)
+):
+    """
+    List all approved mentors (public endpoint, no auth required).
+    Returns mentors with all their details for browsing.
+    """
+    mentors = db.query(Mentor).filter(
+        Mentor.status == MentorStatus.APPROVED
+    ).order_by(
+        Mentor.average_rating.desc(),
+        Mentor.total_sessions.desc()
+    ).limit(limit).all()
+    
+    results = []
+    for mentor in mentors:
+        user = db.query(User).filter(User.id == mentor.user_id).first()
+        email = user.email if user else "unknown@example.com"
+        full_name = email.split('@')[0].replace('.', ' ').title() if user else "Unknown User"
+        
+        results.append(MentorProfileResponse(
+            id=mentor.id,
+            user_id=mentor.user_id,
+            email=email,
+            bio=mentor.bio,
+            expertise=mentor.expertise,
+            hourly_rate=mentor.hourly_rate,
+            status=mentor.status,
+            total_sessions=mentor.total_sessions,
+            average_rating=mentor.average_rating,
+            user={"full_name": full_name, "email": email},
+            created_at=mentor.created_at
+        ))
+    
+    return results
+
+
 @router.get("/search", response_model=List[MentorProfileResponse])
 def search_mentors(
     expertise: Optional[str] = Query(None, description="Filter by expertise (e.g., 'python-ai')"),

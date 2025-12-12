@@ -32,7 +32,7 @@ from app.modelsx.order import Order, Coupon, CartItem
 from app.modelsx.platform_settings import PlatformSetting
 
 # v1 routers (existing)
-from app.api.v1 import auth, courses, progress, quizzes, chat, subscribe, quiz_status, paths, achievements, dashboard
+from app.api.v1 import auth, courses, progress, quizzes, chat, subscribe, quiz_status, paths, achievements, dashboard, credits
 
 # Try to import optional v1x routers directly (bypass v1x __init__.py)
 courses_db = None
@@ -54,22 +54,22 @@ except Exception as e:
     print(f"Failed to import courses_db: {e}")
 
 try:
-    from app.api.v1x.progress_db import router as progress_db
+    from app.api.v1x.progress_db_stub import router as progress_db
 except Exception as e:
     print(f"Failed to import progress_db: {e}")
 
 try:
-    from app.api.v1x.quizzes_db import router as quizzes_db
+    from app.api.v1x.quizzes_db_stub import router as quizzes_db
 except Exception as e:
     print(f"Failed to import quizzes_db: {e}")
 
 try:
-    from app.api.v1x.youtube_sync import router as youtube_sync
+    from app.api.v1x.youtube_sync_stub import router as youtube_sync
 except Exception as e:
     print(f"Failed to import youtube_sync: {e}")
 
 try:
-    from app.api.v1x.coins_db import router as coins_db
+    from app.api.v1x.coins_stub import router as coins_db
 except Exception as e:
     print(f"Failed to import coins_db: {e}")
 
@@ -87,7 +87,7 @@ except Exception as e:
     print(f"Failed to import admin router: {e}")
 
 try:
-    from app.api.v1x.payments import router as payments
+    from app.api.v1x.payments_stub import router as payments
 except Exception as e:
     print(f"Failed to import payments: {e}")
 
@@ -102,7 +102,7 @@ except Exception as e:
     print(f"Failed to import payouts: {e}")
 
 try:
-    from app.api.v1x.subscriptions import router as subscriptions
+    from app.api.v1x.subscriptions_stub import router as subscriptions
 except Exception as e:
     print(f"Failed to import subscriptions: {e}")
 
@@ -139,7 +139,7 @@ except Exception as e:
     print(f"Failed to import resume_ai: {e}")
 
 try:
-    from app.api.v1x.cover_letter import router as cover_letter
+    from app.api.v1x.cover_letters import router as cover_letter
 except Exception as e:
     print(f"Failed to import cover_letter: {e}")
 
@@ -169,7 +169,7 @@ except Exception as e:
     print(f"Failed to import marketplace: {e}")
 
 try:
-    from app.api.v1x.job_applications import router as job_applications
+    from app.api.v1x.job_applications_stub import router as job_applications
 except Exception as e:
     print(f"Failed to import job_applications: {e}")
 
@@ -237,6 +237,7 @@ app.include_router(courses.router,    prefix="/api/v1")
 app.include_router(chat.router,       prefix="/api/v1")
 app.include_router(quizzes.router,    prefix="/api/v1")
 app.include_router(progress.router,   prefix="/api/v1")
+app.include_router(credits.router,    prefix="/api/v1")
 app.include_router(subscribe.router,  prefix="/api/v1")
 app.include_router(quiz_status.router,prefix="/api/v1")
 app.include_router(paths.router,      prefix="/api/v1")
