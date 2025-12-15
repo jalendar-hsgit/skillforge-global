@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, Integer, String, ForeignKey, UniqueConstraint, DateTime
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
 from app.core.db import Base
 
 class VideoProgress(Base):
@@ -13,6 +14,10 @@ class VideoProgress(Base):
     progress_percent = Column(Integer, nullable=False, default=0)
     last_position_sec = Column(Integer, nullable=True)
     note = Column(String, nullable=True)
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
     video = relationship("Video", back_populates="progress_items")
 

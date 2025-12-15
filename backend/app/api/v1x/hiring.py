@@ -420,12 +420,41 @@ def request_references(
     
     db.commit()
     
-    # TODO: Send automated emails to references
+    # Send automated emails to references
+    emails_sent = 0
+    response_deadline = datetime.utcnow() + timedelta(days=7)
+    
+    for idx, ref in enumerate(references):
+        reference_email = ref.get("email")
+        reference_name = ref.get("name")
+        
+        if reference_email and reference_name:
+            try:
+                from app.services.email_service import email_service
+                import asyncio
+                
+                # Send reference check request email
+                asyncio.create_task(
+                    email_service.send_reference_check_request(
+                        to_email=reference_email,
+                        reference_name=reference_name,
+                        candidate_name=f"{application.first_name} {application.last_name}",
+                        position=application.position,
+                        company_name=application.company_name,
+                        reference_check_id=reference_checks[idx].id,
+                        response_deadline=response_deadline
+                    )
+                )
+                emails_sent += 1
+            except Exception as e:
+                # Log error but continue with other references
+                print(f"Failed to send email to {reference_email}: {e}")
     
     return {
         "message": "Reference requests sent",
         "references_contacted": len(reference_checks),
-        "response_deadline": datetime.utcnow() + timedelta(days=7),
+        "emails_sent": emails_sent,
+        "response_deadline": response_deadline,
         "automated_reminders": True
     }
 

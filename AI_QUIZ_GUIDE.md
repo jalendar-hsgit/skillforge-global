@@ -11,7 +11,7 @@ Enhanced quiz system with real LLM-backed generation, streaming, adaptive diffic
 Multi-provider support with automatic fallback to deterministic generation if LLM fails.
 
 **Supported Providers:**
-- **OpenAI** (raptor-mini (Preview), gpt-4, gpt-3.5-turbo)
+- **OpenAI** (gpt-4o-mini, gpt-4, gpt-3.5-turbo)
 - **Anthropic** (claude-3-5-sonnet, claude-3-opus, claude-3-haiku)
 - **Azure OpenAI** (your deployed models)
 - **Ollama** (local/self-hosted llama3, mistral, etc.)
@@ -21,7 +21,7 @@ Multi-provider support with automatic fallback to deterministic generation if LL
 # Set in backend/.env
 AI_PROVIDER=openai
 OPENAI_API_KEY=sk-...
-OPENAI_MODEL=raptor-mini  # Raptor mini (Preview)
+OPENAI_MODEL=gpt-4o-mini
 ```
 
 **API Endpoint:**
@@ -218,7 +218,7 @@ CREATE TABLE generated_quizzes (
   title VARCHAR(500) NOT NULL,
   questions JSON NOT NULL,
   provider VARCHAR(50),  -- openai, anthropic, ollama
-  model VARCHAR(100),    -- raptor-mini (Preview), claude-3-5-sonnet
+  model VARCHAR(100),    -- gpt-4o-mini, claude-3-5-sonnet
   adaptive_context JSON,
   times_taken INTEGER DEFAULT 0,
   best_score INTEGER,
@@ -264,7 +264,7 @@ pip install openai==1.54.0 anthropic==0.39.0 httpx-sse==0.4.0
 # backend/.env
 AI_PROVIDER=openai
 OPENAI_API_KEY=sk-your-key-here
-OPENAI_MODEL=raptor-mini  # Raptor mini (Preview)
+OPENAI_MODEL=gpt-4o-mini
 ```
 
 ### 3. Run Migrations
@@ -306,12 +306,12 @@ curl -X POST http://localhost:8001/api/v1/quizzes/generate \
 ## Performance & Costs
 
 ### Generation Speed
-- **OpenAI raptor-mini**: ~2-4s for 5 questions
+- **OpenAI gpt-4o-mini**: ~2-4s for 5 questions
 - **Anthropic claude-3-5-sonnet**: ~3-5s for 5 questions
 - **Ollama (local)**: ~10-20s for 5 questions (depends on hardware)
 
 ### API Costs (per 5-question quiz)
-- **OpenAI raptor-mini**: ~$0.002 ($0.15/M input, $0.60/M output)
+- **OpenAI gpt-4o-mini**: ~$0.002 ($0.15/M input, $0.60/M output)
 - **Anthropic claude-3-5-sonnet**: ~$0.015 ($3/M input, $15/M output)
 - **Ollama**: Free (local compute)
 
@@ -383,7 +383,7 @@ echo "OPENAI_API_KEY=sk-..." >> backend/.env
 - Increase client timeout
 
 ### Slow generation
-- Use faster model (raptor-mini instead of gpt-4)
+- Use faster model (gpt-4o-mini instead of gpt-4)
 - Reduce num_questions
 - Use Ollama locally for zero latency
 

@@ -18,7 +18,7 @@ pip install openai==1.54.0 anthropic==0.39.0 httpx-sse==0.4.0
 # Create backend/.env file
 echo "AI_PROVIDER=openai" >> backend/.env
 echo "OPENAI_API_KEY=sk-your-key-here" >> backend/.env
-echo "OPENAI_MODEL=raptor-mini" >> backend/.env  # Raptor mini (Preview)
+echo "OPENAI_MODEL=gpt-4o-mini" >> backend/.env
 ```
 
 ## Step 3: Run Database Migration
@@ -127,7 +127,7 @@ OLLAMA_MODEL=llama3.2
 ## Cost Estimates
 
 ### Per 5-Question Quiz
-- **OpenAI raptor-mini (Preview)**: ~$0.002 (0.2 cents)
+- **OpenAI gpt-4o-mini**: ~$0.002 (0.2 cents)
 - **Anthropic claude-3.5-sonnet**: ~$0.015 (1.5 cents)
 - **Ollama (local)**: $0.00 (free)
 

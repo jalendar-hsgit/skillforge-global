@@ -188,7 +188,7 @@ OLLAMA_MODEL=llama3.2
 # Or use OpenAI (cloud, paid)
 AI_PROVIDER=openai
 OPENAI_API_KEY=sk-...
-OPENAI_MODEL=raptor-mini  # Raptor mini (Preview)
+OPENAI_MODEL=gpt-4o-mini
 
 # Or use Anthropic (cloud, paid)
 AI_PROVIDER=anthropic
@@ -203,7 +203,7 @@ No code changes needed - just update `.env` and restart backend!
 | Provider | Cost per 1K Questions | Notes |
 |----------|----------------------|-------|
 | **Ollama** | $0 | Free, runs locally |
-| OpenAI (raptor-mini) | ~$0.15 | Fast, lower-cost preview model (Raptor mini) |
+| OpenAI (gpt-4o-mini) | ~$0.15 | Fast, high quality |
 | Anthropic (Claude 3.5) | ~$3.00 | Excellent quality |
 
 **Recommendation:** Use Ollama for development/testing, cloud providers for production scale.

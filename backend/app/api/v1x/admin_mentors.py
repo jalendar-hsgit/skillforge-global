@@ -10,7 +10,9 @@ from app.core.db import get_db
 from app.core.security import get_current_user
 from app.models.user import User
 from app.modelsx.mentor import Mentor, MentorStatus, MentorSession
+from app.services.email_service import email_service
 from pydantic import BaseModel
+import asyncio
 
 router = APIRouter(prefix="/admin/mentors", tags=["admin"])
 
@@ -126,7 +128,33 @@ def update_mentor_status(
     db.commit()
     db.refresh(mentor)
     
-    # TODO: Send email notification to mentor about status change
+    # Send email notification to mentor about status change
+    user = db.query(User).filter(User.id == mentor.user_id).first()
+    if user and user.email:
+        try:
+            mentor_name = f"{user.first_name} {user.last_name}" if user.first_name else user.username
+            
+            if request.status == MentorStatus.APPROVED:
+                # Send approval email
+                asyncio.create_task(
+                    email_service.send_mentor_approved(
+                        to_email=user.email,
+                        mentor_name=mentor_name
+                    )
+                )
+            elif request.status == MentorStatus.REJECTED:
+                # Send rejection email with reason if provided
+                rejection_reason = getattr(request, 'reason', None)
+                asyncio.create_task(
+                    email_service.send_mentor_rejected(
+                        to_email=user.email,
+                        mentor_name=mentor_name,
+                        reason=rejection_reason
+                    )
+                )
+        except Exception as e:
+            # Log error but don't fail the status update
+            print(f"Failed to send mentor status email: {e}")
     
     return {
         "message": f"Mentor status updated to {request.status.value}",

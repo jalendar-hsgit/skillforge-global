@@ -11,7 +11,7 @@
 ### 1. Multi-Provider LLM Integration ✅
 **File:** `backend/app/services/llm_provider.py`
 
-- **OpenAI Provider**: raptor-mini (Preview), GPT-4, GPT-3.5-turbo support
+- **OpenAI Provider**: GPT-4o-mini, GPT-4, GPT-3.5-turbo support
 - **Anthropic Provider**: Claude 3.5 Sonnet, Claude 3 Opus/Haiku
 - **Ollama Provider**: Local models (Llama 3, Mistral, etc.)
 - **Azure OpenAI Provider**: Enterprise deployments (structure ready)
@@ -161,7 +161,7 @@ pip install openai==1.54.0 anthropic==0.39.0 httpx-sse==0.4.0
 # Create backend/.env from backend/.env.example
 AI_PROVIDER=openai
 OPENAI_API_KEY=sk-your-key-here
-OPENAI_MODEL=raptor-mini  # Raptor mini (Preview)
+OPENAI_MODEL=gpt-4o-mini
 ```
 
 ### 3. Run Database Migrations
@@ -327,12 +327,12 @@ const quiz = await fetch(`/api/v1/quizzes/saved/${quizzes[0].id}`, {
 ## 📈 Performance Metrics
 
 ### Generation Speed (5 questions)
-- **OpenAI raptor-mini**: ~2-4 seconds
+- **OpenAI gpt-4o-mini**: ~2-4 seconds
 - **Anthropic claude-3.5-sonnet**: ~3-5 seconds
 - **Ollama (local)**: ~10-20 seconds
 
 ### API Costs (5 questions)
-- **OpenAI raptor-mini**: ~$0.002
+- **OpenAI gpt-4o-mini**: ~$0.002
 - **Anthropic claude-3.5-sonnet**: ~$0.015
 - **Ollama**: Free (local)
 
@@ -433,7 +433,7 @@ const quiz = await fetch(`/api/v1/quizzes/saved/${quizzes[0].id}`, {
 
 ## 🙏 Credits
 
-- **OpenAI API**: raptor-mini (Preview) for fast, cost-effective generation
+- **OpenAI API**: GPT-4o-mini for fast, cost-effective generation
 - **Anthropic API**: Claude 3.5 Sonnet for high-quality questions
 - **Ollama**: Self-hosted option for privacy-conscious users
 - **FastAPI**: Backend framework with native async/await

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Header, Cookie, HTTPException
 from ...core.security import decode_token
 
-router = APIRouter(prefix="/coins", tags=["coins"])
+router = APIRouter(prefix="/coins_db", tags=["coins"])
 
 def _require_user(authorization: str | None, token: str | None):
     if authorization and authorization.startswith("Bearer "):
@@ -23,3 +23,15 @@ def get_balance(authorization: str | None = Header(None), token: str | None = Co
 def list_transactions(authorization: str | None = Header(None), token: str | None = Cookie(None)):
     _require_user(authorization, token)
     return []
+
+@router.get("/transactions/summary")
+def get_transaction_summary(authorization: str | None = Header(None), token: str | None = Cookie(None)):
+    _require_user(authorization, token)
+    return {
+        "total_transactions": 0,
+        "total_earns": 0,
+        "total_spends": 0,
+        "total_earned": 0,
+        "total_spent": 0,
+        "current_balance": 0
+    }

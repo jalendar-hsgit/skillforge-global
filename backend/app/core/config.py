@@ -19,15 +19,10 @@ class Settings(BaseSettings):
     YOUTUBE_API_REGION: str = "US"
     
     # LLM Provider for AI Quiz Generation
-    # NOTE: Raptor mini (Preview) is supported via the OpenAI provider by selecting
-    # the OpenAI model name "raptor-mini". To enable Raptor mini globally, leave
-    # AI_PROVIDER=openai and use OPENAI_MODEL=raptor-mini.
     AI_PROVIDER: str = "openai"  # Options: openai, anthropic, azure, ollama
     # Test keys for development - REPLACE IN PRODUCTION
     OPENAI_API_KEY: str = "sk-test-key-replace-in-production-with-real-openai-key"
-    # Use OpenAI's Raptor mini model for lower-latency, cost-effective preview usage.
-    # You can override this via environment (.env): OPENAI_MODEL=your-model-name
-    OPENAI_MODEL: str = "raptor-mini"
+    OPENAI_MODEL: str = "gpt-4o-mini"
     ANTHROPIC_API_KEY: str = "sk-ant-test-key-replace-in-production-with-real-anthropic-key"
     ANTHROPIC_MODEL: str = "claude-3-5-sonnet-20241022"
     AZURE_OPENAI_ENDPOINT: str | None = None

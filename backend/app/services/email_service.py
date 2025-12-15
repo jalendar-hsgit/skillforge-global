@@ -723,6 +723,75 @@ class EmailService:
         """
         
         return await self.send_email(to_email, subject, html_content)
+    
+    async def send_reference_check_request(
+        self,
+        to_email: str,
+        reference_name: str,
+        candidate_name: str,
+        position: str,
+        company_name: str,
+        reference_check_id: int,
+        response_deadline: datetime
+    ) -> bool:
+        """Send reference check request email."""
+        subject = f"Reference Request for {candidate_name}"
+        
+        # Create response link (would integrate with actual reference check form)
+        response_link = f"{settings.FRONTEND_ORIGIN}/reference-check/{reference_check_id}"
+        
+        html_content = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h2 style="color: #2563eb;">Reference Request</h2>
+                
+                <p>Dear {reference_name},</p>
+                
+                <p><strong>{candidate_name}</strong> has applied for the position of <strong>{position}</strong> at <strong>{company_name}</strong> 
+                and has listed you as a professional reference.</p>
+                
+                <div style="background: #eff6ff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2563eb;">
+                    <h3 style="margin-top: 0; color: #1e40af;">We'd Appreciate Your Input</h3>
+                    <p style="margin-bottom: 0;">
+                        Your feedback will help us make an informed hiring decision. The reference form 
+                        takes approximately 5-10 minutes to complete and all responses are confidential.
+                    </p>
+                </div>
+                
+                <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <p style="margin: 0;"><strong>Candidate:</strong> {candidate_name}</p>
+                    <p style="margin: 5px 0;"><strong>Position:</strong> {position}</p>
+                    <p style="margin: 5px 0;"><strong>Response Deadline:</strong> {response_deadline.strftime('%B %d, %Y')}</p>
+                </div>
+                
+                <p>
+                    <a href="{response_link}" 
+                       style="display: inline-block; background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 0;">
+                        Complete Reference Form
+                    </a>
+                </p>
+                
+                <p style="color: #6b7280; font-size: 14px;">
+                    <strong>Questions We'll Ask:</strong><br>
+                    • How long have you worked with {candidate_name}?<br>
+                    • What were their key strengths?<br>
+                    • What areas could they improve?<br>
+                    • Would you recommend them for this role?
+                </p>
+                
+                <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+                
+                <p style="color: #6b7280; font-size: 12px;">
+                    This is an automated reference check request from SkillForge Global.<br>
+                    If you have questions or concerns, please contact hr@skillforge.global
+                </p>
+            </div>
+        </body>
+        </html>
+        """
+        
+        return await self.send_email(to_email, subject, html_content)
 
 
 # Singleton instance

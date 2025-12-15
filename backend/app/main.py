@@ -30,6 +30,34 @@ from app.modelsx.job_application import JobApplication as JobApplicationTracker
 from app.modelsx.order import Order, Coupon, CartItem
 # import platform settings
 from app.modelsx.platform_settings import PlatformSetting
+# import coding practice models
+from app.modelsx.coding_practice import CodingChallenge, CodingSubmission, SimulatorEnvironment, PracticeSession, CloudLabScenario, ChallengeHint
+# import code snippets models
+from app.modelsx.code_snippets import CodeSnippet, SnippetVote, SnippetCopy
+# import solution sharing models
+from app.modelsx.solution_sharing import ChallengeSolution, SolutionVote, SolutionComment, SolutionBookmark
+# import user profile models
+from app.modelsx.user_profiles import UserProfile, UserActivity, UserPreferences, UserStatistics
+# import social/follow system models
+from app.modelsx.social import UserFollow, Notification
+# import learning paths models
+from app.modelsx.learning_paths import LearningPath, PathChallenge, UserPathProgress
+# import premium tiers models
+from app.modelsx.premium_tiers import SubscriptionTier, FeatureBenefit, UserSubscription, SubscriptionHistory, PromoCode
+# import github integration models
+from app.modelsx.github_integration import GitHubAccount, GitHubRepository, GitHubContribution, GitHubStats
+# import advanced dashboard models
+from app.modelsx.advanced_dashboard import DashboardWidget, UserDashboardWidget, DashboardLayout, DashboardMetric, UserAnalytics, DashboardInsight
+# import AI hints models
+from app.modelsx.ai_hints import AIHint, AIHintUsage, HintFeedback, HintTemplate, UserHintQuota
+# import PWA models
+from app.modelsx.pwa import ServiceWorkerConfig, OfflineSyncQueue, OfflineCache, PWANotificationPreference, PWAAnalytics
+# import Contest models
+from app.modelsx.contests import Contest, ContestChallenge, ContestParticipant, ContestSubmission, ContestLeaderboard, ContestPrize, ContestTeam, ContestRound
+# import Notification models
+from app.modelsx.notifications import Notification, NotificationPreference, NotificationLog, NotificationTemplate
+# import Code Execution models
+from app.modelsx.code_executor import CodeExecution, TestCaseResult, ExecutionEnvironment, ExecutionMetrics
 
 # v1 routers (existing)
 from app.api.v1 import auth, courses, progress, quizzes, chat, subscribe, quiz_status, paths, achievements, dashboard, credits
@@ -198,7 +226,89 @@ try:
 except Exception as e:
     print(f"Failed to import resume_analytics_events: {e}")
 
-# App
+try:
+    from app.api.v1x.coding_practice import router as coding_practice
+except Exception as e:
+    print(f"Failed to import coding_practice: {e}")
+
+try:
+    from app.api.v1x.code_snippets import router as code_snippets
+except Exception as e:
+    print(f"Failed to import code_snippets: {e}")
+
+try:
+    from app.api.v1x.solution_sharing import router as solution_sharing
+except Exception as e:
+    print(f"Failed to import solution_sharing: {e}")
+
+try:
+    from app.api.v1x.user_profiles import router as user_profiles
+except Exception as e:
+    print(f"Failed to import user_profiles: {e}")
+
+try:
+    from app.api.v1x.solution_comments import router as solution_comments
+except Exception as e:
+    print(f"Failed to import solution_comments: {e}")
+
+try:
+    from app.api.v1x.social import router as social
+except Exception as e:
+    print(f"Failed to import social: {e}")
+
+try:
+    from app.api.v1x.learning_paths import router as learning_paths
+except Exception as e:
+    print(f"Failed to import learning_paths: {e}")
+
+try:
+    from app.api.v1x.premium_tiers import router as premium_tiers
+except Exception as e:
+    print(f"Failed to import premium_tiers: {e}")
+
+try:
+    from app.api.v1x.github_integration import router as github_integration
+except Exception as e:
+    print(f"Failed to import github_integration: {e}")
+
+try:
+    from app.api.v1x.advanced_dashboard import router as advanced_dashboard
+except Exception as e:
+    print(f"Failed to import advanced_dashboard: {e}")
+
+try:
+    from app.api.v1x.ai_hints import router as ai_hints
+except Exception as e:
+    print(f"Failed to import ai_hints: {e}")
+
+try:
+    from app.api.v1x.pwa import router as pwa
+except Exception as e:
+    print(f"Failed to import pwa: {e}")
+
+# import contests router
+contests = None
+try:
+    from app.api.v1x.contests import router as contests_router
+    contests = contests_router
+except Exception as e:
+    print(f"Failed to import contests: {e}")
+
+# import notifications router
+notifications = None
+try:
+    from app.api.v1x.notifications import router as notifications_router
+    notifications = notifications_router
+except Exception as e:
+    print(f"Failed to import notifications: {e}")
+
+# import code executor router
+code_executor = None
+try:
+    from app.api.v1x.code_executor import router as code_executor_router
+    code_executor = code_executor_router
+except Exception as e:
+    print(f"Failed to import code_executor: {e}")
 app = FastAPI(title=getattr(settings, "APP_NAME", "SkillForge Global"))
 
 # Configure error logging and exception handlers
@@ -275,7 +385,7 @@ def _mount_v1x_export(obj):
 
 
 # Mount all v1x exports (modules or routers)
-for _export in (courses_db, progress_db, quizzes_db, youtube_sync, coins_db, mentors, payments, chat_files, payouts, subscriptions, connect, student_dashboard, mentor_portal, recordings, resumes, resume_ai, cover_letter, resume_comparison, linkedin_import, hiring, resume_import, marketplace, job_applications, job_notifications, job_calendar, resume_export, resume_templates, resume_analytics_events, admin_router):
+for _export in (courses_db, progress_db, quizzes_db, youtube_sync, coins_db, mentors, payments, chat_files, payouts, subscriptions, connect, student_dashboard, mentor_portal, recordings, resumes, resume_ai, cover_letter, resume_comparison, linkedin_import, hiring, resume_import, marketplace, job_applications, job_notifications, job_calendar, resume_export, resume_templates, resume_analytics_events, coding_practice, code_snippets, solution_sharing, user_profiles, solution_comments, social, learning_paths, premium_tiers, github_integration, advanced_dashboard, ai_hints, pwa, contests, notifications, code_executor, admin_router):
     _mount_v1x_export(_export)
 
 # Mount WebSocket server

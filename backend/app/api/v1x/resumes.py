@@ -10,6 +10,7 @@ from datetime import datetime
 from app.core.db import get_db
 from app.core.security import get_current_user
 from app.models.user import User
+from app.models.quiz_attempt import QuizAttempt
 from app.modelsx.resume import (
     Resume, WorkExperience, Education, ResumeProject, 
     ResumeSkill, ResumeCertificate, Achievement, ATSReport
@@ -585,9 +586,50 @@ def import_quiz_certificates(
     if not resume:
         raise HTTPException(status_code=404, detail="Resume not found")
     
-    # TODO: Query quiz_attempts table for completed quizzes
-    # For now, return empty list
-    return []
+    # Query quiz_attempts table for passed quizzes
+    passed_attempts = db.query(QuizAttempt).filter(
+        QuizAttempt.user_id == current_user.id,
+        QuizAttempt.passed == True
+    ).order_by(QuizAttempt.created_at.desc()).all()
+    
+    if not passed_attempts:
+        return []
+    
+    # Get existing certificates to avoid duplicates
+    existing_certs = db.query(ResumeCertificate).filter(
+        ResumeCertificate.resume_id == resume_id
+    ).all()
+    
+    existing_paths = {cert.name for cert in existing_certs if cert.name}
+    
+    imported_certificates = []
+    
+    for attempt in passed_attempts:
+        # Skip if certificate for this path already exists
+        cert_name = f"SkillForge {attempt.path} Certification"
+        if cert_name in existing_paths:
+            continue
+        
+        # Create certificate from quiz attempt
+        certificate = ResumeCertificate(
+            resume_id=resume_id,
+            name=cert_name,
+            issuing_organization="SkillForge Global",
+            issue_date=attempt.created_at.strftime("%Y-%m-%d") if attempt.created_at else None,
+            credential_id=f"SFG-{attempt.path.upper()}-{attempt.id}",
+            is_verified=True,
+            order_index=len(existing_certs) + len(imported_certificates)
+        )
+        
+        db.add(certificate)
+        imported_certificates.append(certificate)
+    
+    if imported_certificates:
+        db.commit()
+        for cert in imported_certificates:
+            db.refresh(cert)
+    
+    return imported_certificates
 
 
 # ==================== Achievements ====================

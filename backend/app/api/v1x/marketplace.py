@@ -14,6 +14,7 @@ from app.models.user import User
 from app.modelsx.course import Course
 from app.modelsx.order import Order, CartItem, Coupon
 from app.modelsx.video import Video
+from app.modelsx.coins import CoinLedger
 from pydantic import BaseModel, Field
 from decimal import Decimal
 
@@ -388,7 +389,30 @@ async def checkout(
     # For demo purposes, mark as completed immediately
     # In production, integrate with Stripe/PayPal webhooks
     if request.payment_method == "coins":
-        # TODO: Deduct coins from user balance
+        # Calculate coin balance
+        coin_balance = db.query(func.sum(CoinLedger.delta)).filter(
+            CoinLedger.user_id == current_user.id
+        ).scalar() or 0
+        
+        # Coins required (1 coin = $1, so convert from dollars)
+        coins_required = int(total)
+        
+        # Check if user has enough coins
+        if coin_balance < coins_required:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Insufficient coins. Balance: {coin_balance}, Required: {coins_required}"
+            )
+        
+        # Deduct coins from balance
+        coin_transaction = CoinLedger(
+            user_id=current_user.id,
+            delta=-coins_required,
+            reason=f"Course purchase: {course.title if course else 'Unknown'}"
+        )
+        db.add(coin_transaction)
+        
+        # Mark order as completed
         order.status = "completed"
         order.payment_status = "completed"
         order.paid_at = datetime.utcnow()

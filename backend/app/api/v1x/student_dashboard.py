@@ -57,7 +57,7 @@ def get_student_overview(user = Depends(get_current_user)):
             SELECT DATE(updated_at) as activity_date
             FROM video_progress
             WHERE user_id = :uid
-            AND updated_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+            AND updated_at >= datetime('now', '-30 days')
             GROUP BY DATE(updated_at)
             ORDER BY activity_date DESC
         """), {"uid": user.id}).mappings().all()
@@ -83,6 +83,49 @@ def get_student_overview(user = Depends(get_current_user)):
         # Estimate hours (assuming avg 10min per video, 100% = 10min)
         estimated_hours = (learning_time['total_progress_points'] or 0) / 100 * 10 / 60
 
+        # Get coding practice statistics
+        coding_stats = {}
+        try:
+            # Total coding submissions
+            coding_submissions = db.execute(text("""
+                SELECT 
+                    COUNT(*) as total_submissions,
+                    COUNT(CASE WHEN status = 'success' AND score >= 100 THEN 1 END) as perfect_solutions,
+                    COUNT(DISTINCT challenge_id) as challenges_attempted,
+                    SUM(coins_earned) as total_coins_earned,
+                    AVG(score) as avg_score
+                FROM coding_submissions
+                WHERE user_id = :uid
+            """), {"uid": user.id}).mappings().first()
+            
+            # Active practice sessions
+            active_sessions = db.execute(text("""
+                SELECT COUNT(*) as active_count
+                FROM practice_sessions
+                WHERE user_id = :uid AND status = 'active'
+            """), {"uid": user.id}).mappings().first()
+            
+            coding_stats = {
+                "total_submissions": coding_submissions['total_submissions'] or 0,
+                "perfect_solutions": coding_submissions['perfect_solutions'] or 0,
+                "challenges_attempted": coding_submissions['challenges_attempted'] or 0,
+                "coins_earned": coding_submissions['total_coins_earned'] or 0,
+                "avg_score": round(coding_submissions['avg_score'] or 0, 1),
+                "active_sessions": active_sessions['active_count'] or 0,
+                "success_rate": round((coding_submissions['perfect_solutions'] / coding_submissions['total_submissions'] * 100) if coding_submissions['total_submissions'] > 0 else 0, 1)
+            }
+        except Exception as e:
+            # Fallback if coding_practice tables don't exist yet
+            coding_stats = {
+                "total_submissions": 0,
+                "perfect_solutions": 0,
+                "challenges_attempted": 0,
+                "coins_earned": 0,
+                "avg_score": 0,
+                "active_sessions": 0,
+                "success_rate": 0
+            }
+
         return {
             "user": {
                 "id": user.id,
@@ -104,7 +147,8 @@ def get_student_overview(user = Depends(get_current_user)):
                 "learning_streak": streak,
                 "estimated_hours": round(estimated_hours, 1),
                 "last_active": datetime.utcnow().isoformat()
-            }
+            },
+            "coding_practice": coding_stats
         }
     finally:
         db.close()
@@ -121,11 +165,13 @@ def get_enrolled_courses(user = Depends(get_current_user)):
                 vp.video_id,
                 vp.progress_percent,
                 vp.updated_at as last_watched,
+                v.title as video_title,
+                v.youtube_id,
                 c.title as course_title,
-                c.path as course_path,
-                c.youtubeId as youtube_id
+                c.path as course_path
             FROM video_progress vp
-            LEFT JOIN courses c ON c.id = vp.video_id
+            LEFT JOIN videos v ON v.id = vp.video_id
+            LEFT JOIN courses c ON c.id = v.course_id
             WHERE vp.user_id = :uid
             ORDER BY vp.updated_at DESC
         """), {"uid": user.id}).mappings().all()
@@ -408,13 +454,13 @@ def get_recommendations(user = Depends(get_current_user)):
                 SELECT DISTINCT
                     c.id,
                     c.title,
-                    c.path,
-                    c.youtubeId,
-                    c.duration
+                    c.path
                 FROM courses c
                 WHERE c.path IN ({placeholders})
                 AND c.id NOT IN (
-                    SELECT video_id FROM video_progress WHERE user_id = :uid
+                    SELECT DISTINCT v.course_id FROM videos v
+                    INNER JOIN video_progress vp ON vp.video_id = v.id
+                    WHERE vp.user_id = :uid
                 )
                 LIMIT 5
             """), params).mappings().all()
@@ -432,9 +478,7 @@ def get_recommendations(user = Depends(get_current_user)):
                 {
                     "id": row['id'],
                     "title": row['title'],
-                    "path": row['path'],
-                    "youtube_id": row['youtubeId'],
-                    "duration": row['duration']
+                    "path": row['path']
                 }
                 for row in recommendations
             ]

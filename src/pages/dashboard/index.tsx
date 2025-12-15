@@ -249,6 +249,62 @@ export default function Dashboard({ me }: { me: Me }) {
         </PageGrid>
       </PageSection>
 
+      {/* Coding Practice Banner */}
+      <PageSection>
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-forgePurple via-neuralBlue to-techBlue p-8 border border-forgePurple/30">
+          <div className="relative z-10">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2 rounded-lg bg-white/10 backdrop-blur-sm">
+                    <span className="text-2xl">💻</span>
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-white">Coding Practice Arena</h3>
+                    <p className="text-sm text-white/80">Master programming with hands-on challenges</p>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-4 gap-4 mt-6">
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+                    <div className="text-2xl font-bold text-white mb-1">15+</div>
+                    <div className="text-xs text-white/80">Languages</div>
+                  </div>
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+                    <div className="text-2xl font-bold text-white mb-1">100+</div>
+                    <div className="text-xs text-white/80">Challenges</div>
+                  </div>
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+                    <div className="text-2xl font-bold text-white mb-1">AWS</div>
+                    <div className="text-xs text-white/80">Cloud Labs</div>
+                  </div>
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+                    <div className="text-2xl font-bold text-white mb-1">Real-time</div>
+                    <div className="text-xs text-white/80">IDE</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="ml-6">
+                <a href="/practice">
+                  <Button 
+                    variant="primary" 
+                    size="lg"
+                    className="bg-white text-forgePurple hover:bg-gray-100 shadow-xl"
+                  >
+                    Start Coding →
+                  </Button>
+                </a>
+              </div>
+            </div>
+          </div>
+          
+          {/* Decorative background elements */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-forgePurple/20 rounded-full blur-3xl"></div>
+        </div>
+      </PageSection>
+
       {/* Continue Learning */}
       {nextPath && (
         <PageSection 
@@ -312,14 +368,22 @@ export default function Dashboard({ me }: { me: Me }) {
 
       {/* Quick Actions */}
       <PageSection icon="⚡" title="Quick Actions">
-        <PageGrid cols={3} gap="md">
+        <PageGrid cols={4} gap="md">
+          <ActionCard
+            icon="💻"
+            title="Coding Practice"
+            description="Solve challenges in 15+ languages"
+            buttonText="Start Coding"
+            buttonHref="/practice"
+            variant="gradient"
+          />
           <ActionCard
             icon="🎯"
             title="Take a Quiz"
             description="Test your knowledge and earn Forge Credits."
             buttonText="Browse Quizzes"
             buttonHref="/paths"
-            variant="gradient"
+            variant="default"
           />
           <ActionCard
             icon="🏆"

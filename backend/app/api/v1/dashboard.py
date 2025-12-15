@@ -40,7 +40,7 @@ def get_dashboard_stats(
     # Video stats
     video_progress = db.query(VideoProgress).filter(
         VideoProgress.user_id == user_id,
-        VideoProgress.completed == True
+        VideoProgress.progress_percent == 100
     ).count()
     
     # Quiz stats (legacy + new sessions)
@@ -64,7 +64,7 @@ def get_dashboard_stats(
     pass_rate = (passed_quizzes / total_quizzes * 100) if total_quizzes > 0 else 0
     
     # Forge AI Credits (Coins)
-    coin_balance = db.query(func.sum(CoinLedger.amount)).filter(
+    coin_balance = db.query(func.sum(CoinLedger.delta)).filter(
         CoinLedger.user_id == user_id
     ).scalar() or 0
     
@@ -88,7 +88,7 @@ def get_dashboard_stats(
     
     recent_videos = db.query(VideoProgress).filter(
         VideoProgress.user_id == user_id,
-        VideoProgress.last_position_updated >= seven_days_ago
+        VideoProgress.updated_at >= seven_days_ago
     ).count()
     
     recent_quizzes = db.query(QuizSession).filter(
@@ -154,7 +154,7 @@ def get_learning_paths(
         completed_videos = db.query(VideoProgress).join(Video).filter(
             Video.course_id == course.id,
             VideoProgress.user_id == user_id,
-            VideoProgress.completed == True
+            VideoProgress.progress_percent == 100
         ).count()
         
         if total_videos > 0:
@@ -164,7 +164,7 @@ def get_learning_paths(
             last_progress = db.query(VideoProgress).join(Video).filter(
                 Video.course_id == course.id,
                 VideoProgress.user_id == user_id
-            ).order_by(desc(VideoProgress.last_position_updated)).first()
+            ).order_by(desc(VideoProgress.updated_at)).first()
             
             paths_progress.append({
                 "path": course.slug,
@@ -172,7 +172,7 @@ def get_learning_paths(
                 "total_videos": total_videos,
                 "completed_videos": completed_videos,
                 "percentage": round(percentage, 1),
-                "last_watched": last_progress.last_position_updated.isoformat() if last_progress else None
+                "last_watched": last_progress.updated_at.isoformat() if last_progress else None
             })
     
     return {"paths": paths_progress}
@@ -334,7 +334,7 @@ def calculate_streak(user_id: int, db: Session) -> int:
     ).filter(QuizSession.user_id == user_id).all()
     
     video_dates = db.query(
-        func.date(VideoProgress.last_position_updated).label('activity_date')
+        func.date(VideoProgress.updated_at).label('activity_date')
     ).filter(VideoProgress.user_id == user_id).all()
     
     # Combine and deduplicate

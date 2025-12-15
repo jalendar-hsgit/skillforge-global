@@ -65,7 +65,7 @@
 
 #### Core Features ✅
 - ✅ **Multi-Provider LLM Support**
-   - OpenAI (raptor-mini Preview) - ~$0.15/1K questions
+  - OpenAI (gpt-4o-mini) - ~$0.15/1K questions
   - Anthropic (claude-3.5-sonnet) - ~$3/1K questions
   - **Ollama (llama3.2) - FREE local** 🆓
 - ✅ Real-time SSE streaming (watch questions generate live)

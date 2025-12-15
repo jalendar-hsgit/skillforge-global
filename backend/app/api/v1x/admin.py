@@ -643,14 +643,87 @@ def admin_list_courses(
     db: Session = Depends(get_db),
     admin_user: User = Depends(get_current_admin)
 ):
-    """Get all courses with admin metadata"""
+    """Get all courses with admin metadata including enrollments and completion rates"""
     courses = _load_courses()
     
-    # Add enrollment counts (placeholder - would need enrollments table)
-    for course in courses:
-        course["enrollments"] = 0  # TODO: Get from enrollments table
-        course["completion_rate"] = 0  # TODO: Calculate from progress
-        course["published"] = True  # TODO: Add published field to schema
+    # Try to get course metrics from database if marketplace is available
+    if HAS_MARKETPLACE:
+        try:
+            from app.modelsx.video import Video
+            from app.modelsx.progress import VideoProgress
+            
+            for course in courses:
+                course_id = course.get("id")
+                
+                # Get enrollments from completed orders
+                enrollments = db.query(func.count(Order.id)).filter(
+                    and_(
+                        Order.course_id == course_id,
+                        Order.status == "completed"
+                    )
+                ).scalar() or 0
+                course["enrollments"] = enrollments
+                
+                # Calculate completion rate from video progress
+                # Get total videos in course
+                total_videos = db.query(func.count(Video.id)).filter(
+                    Video.course_id == course_id
+                ).scalar() or 0
+                
+                if total_videos > 0 and enrollments > 0:
+                    # Get users who purchased this course
+                    enrolled_user_ids = [
+                        order.user_id for order in db.query(Order.user_id).filter(
+                            and_(
+                                Order.course_id == course_id,
+                                Order.status == "completed"
+                            )
+                        ).all()
+                    ]
+                    
+                    # Get video IDs for this course
+                    video_ids = [
+                        v.id for v in db.query(Video.id).filter(Video.course_id == course_id).all()
+                    ]
+                    
+                    # Count users who completed all videos (100% on all videos)
+                    completed_users = 0
+                    for user_id in enrolled_user_ids:
+                        # Count how many videos this user completed
+                        completed_videos = db.query(func.count(VideoProgress.id)).filter(
+                            and_(
+                                VideoProgress.user_id == user_id,
+                                VideoProgress.video_id.in_(video_ids),
+                                VideoProgress.progress_percent == 100
+                            )
+                        ).scalar() or 0
+                        
+                        # User completed course if they finished all videos
+                        if completed_videos == total_videos:
+                            completed_users += 1
+                    
+                    # Calculate completion rate as percentage
+                    completion_rate = round((completed_users / enrollments) * 100, 1) if enrollments > 0 else 0.0
+                    course["completion_rate"] = completion_rate
+                else:
+                    course["completion_rate"] = 0.0
+                
+                # Check if course exists in database (published)
+                db_course = db.query(CourseModel).filter(CourseModel.id == course_id).first()
+                course["published"] = db_course is not None
+                
+        except Exception as e:
+            # If queries fail, use defaults
+            for course in courses:
+                course["enrollments"] = 0
+                course["completion_rate"] = 0.0
+                course["published"] = True
+    else:
+        # Fallback if marketplace not available
+        for course in courses:
+            course["enrollments"] = 0
+            course["completion_rate"] = 0.0
+            course["published"] = True
     
     return courses
 
