@@ -67,6 +67,35 @@ from app.modelsx.forums import (
     ForumCategory, ForumThread, ForumReply, ForumThreadVote, ForumReplyVote,
     ForumBookmark, ModeratorAction
 )
+# import Recommendation models
+from app.modelsx.recommendations import (
+    UserPreferences, ChallengeInteraction, Recommendation,
+    SimilarityMatrix, RecommendationFeedback, RecommendationQueue
+)
+# import Team models
+from app.modelsx.teams import (
+    Team, TeamMember, TeamInvitation, TeamChallenge,
+    TeamStatistics, TeamContest, TeamAnnouncement
+)
+# import Search models
+from app.modelsx.search import (
+    SearchQuery, SearchResult, SearchFilter, TrendingSearch,
+    SearchAnalytics, SearchIndex, SavedSearch
+)
+# import Interview models
+from app.modelsx.interview import (
+    QuestionCategory, InterviewQuestion, MockInterview, InterviewAnswer,
+    InterviewSchedule, InterviewPerformance, InterviewFeedback
+)
+# import Referral models
+from app.modelsx.referral import (
+    ReferralCode, Referral, ReferralReward, ReferralCampaign, ReferralStatistics
+)
+# import Marketplace models
+from app.modelsx.marketplace import (
+    DigitalProduct, ProductPurchase, ProductReview, SellerAccount,
+    ProductBundle, SellerPayout, MarketplaceAnalytics
+)
 
 # v1 routers (existing)
 from app.api.v1 import auth, courses, progress, quizzes, chat, subscribe, quiz_status, paths, achievements, dashboard, credits
@@ -343,6 +372,54 @@ try:
 except Exception as e:
     print(f"Failed to import forums: {e}")
 
+# import recommendations router
+recommendations = None
+try:
+    from app.api.v1x.recommendations import router as recommendations_router
+    recommendations = recommendations_router
+except Exception as e:
+    print(f"Failed to import recommendations: {e}")
+
+# import teams router
+teams = None
+try:
+    from app.api.v1x.teams import router as teams_router
+    teams = teams_router
+except Exception as e:
+    print(f"Failed to import teams: {e}")
+
+# import search router
+search = None
+try:
+    from app.api.v1x.search import router as search_router
+    search = search_router
+except Exception as e:
+    print(f"Failed to import search: {e}")
+
+# import interview router
+interview = None
+try:
+    from app.api.v1x.interview import router as interview_router
+    interview = interview_router
+except Exception as e:
+    print(f"Failed to import interview: {e}")
+
+# import referral router
+referral = None
+try:
+    from app.api.v1x.referral import router as referral_router
+    referral = referral_router
+except Exception as e:
+    print(f"Failed to import referral: {e}")
+
+# import marketplace router
+marketplace = None
+try:
+    from app.api.v1x.marketplace import router as marketplace_router
+    marketplace = marketplace_router
+except Exception as e:
+    print(f"Failed to import marketplace: {e}")
+
 # Configure error logging and exception handlers
 from app.core.logging_middleware import setup_logging
 from app.core.settings_middleware import MaintenanceModeMiddleware
@@ -416,7 +493,7 @@ def _mount_v1x_export(obj):
 
 
 # Mount all v1x exports (modules or routers)
-for _export in (courses_db, progress_db, quizzes_db, youtube_sync, coins_db, mentors, payments, chat_files, payouts, subscriptions, connect, student_dashboard, mentor_portal, recordings, resumes, resume_ai, cover_letter, resume_comparison, linkedin_import, hiring, resume_import, marketplace, job_applications, job_notifications, job_calendar, resume_export, resume_templates, resume_analytics_events, coding_practice, code_snippets, solution_sharing, user_profiles, solution_comments, social, learning_paths, premium_tiers, github_integration, advanced_dashboard, ai_hints, pwa, contests, notifications, code_executor, activity, badges, forums, admin_router):
+for _export in (courses_db, progress_db, quizzes_db, youtube_sync, coins_db, mentors, payments, chat_files, payouts, subscriptions, connect, student_dashboard, mentor_portal, recordings, resumes, resume_ai, cover_letter, resume_comparison, linkedin_import, hiring, resume_import, marketplace, job_applications, job_notifications, job_calendar, resume_export, resume_templates, resume_analytics_events, coding_practice, code_snippets, solution_sharing, user_profiles, solution_comments, social, learning_paths, premium_tiers, github_integration, advanced_dashboard, ai_hints, pwa, contests, notifications, code_executor, activity, badges, forums, recommendations, teams, search, interview, referral, admin_router):
     _mount_v1x_export(_export)
 
 # Mount WebSocket server
