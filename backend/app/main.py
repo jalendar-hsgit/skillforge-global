@@ -60,6 +60,13 @@ from app.modelsx.notifications import Notification, NotificationPreference, Noti
 from app.modelsx.code_executor import CodeExecution, TestCaseResult, ExecutionEnvironment, ExecutionMetrics
 # import Activity and Feed models
 from app.modelsx.activity import Activity, ActivityLike, ActivityComment, FeedSettings, Trending, Timeline
+# import Badge and Gamification models
+from app.modelsx.badges import Badge, UserBadge, BadgeProgress, Leaderboard, Achievement, UserAchievement
+# import Forum and Discussion models
+from app.modelsx.forums import (
+    ForumCategory, ForumThread, ForumReply, ForumThreadVote, ForumReplyVote,
+    ForumBookmark, ModeratorAction
+)
 
 # v1 routers (existing)
 from app.api.v1 import auth, courses, progress, quizzes, chat, subscribe, quiz_status, paths, achievements, dashboard, credits
@@ -320,6 +327,22 @@ try:
 except Exception as e:
     print(f"Failed to import activity: {e}")
 
+# import badges and gamification router
+badges = None
+try:
+    from app.api.v1x.badges import router as badges_router
+    badges = badges_router
+except Exception as e:
+    print(f"Failed to import badges: {e}")
+
+# import forums and discussion router
+forums = None
+try:
+    from app.api.v1x.forums import router as forums_router
+    forums = forums_router
+except Exception as e:
+    print(f"Failed to import forums: {e}")
+
 # Configure error logging and exception handlers
 from app.core.logging_middleware import setup_logging
 from app.core.settings_middleware import MaintenanceModeMiddleware
@@ -393,7 +416,7 @@ def _mount_v1x_export(obj):
 
 
 # Mount all v1x exports (modules or routers)
-for _export in (courses_db, progress_db, quizzes_db, youtube_sync, coins_db, mentors, payments, chat_files, payouts, subscriptions, connect, student_dashboard, mentor_portal, recordings, resumes, resume_ai, cover_letter, resume_comparison, linkedin_import, hiring, resume_import, marketplace, job_applications, job_notifications, job_calendar, resume_export, resume_templates, resume_analytics_events, coding_practice, code_snippets, solution_sharing, user_profiles, solution_comments, social, learning_paths, premium_tiers, github_integration, advanced_dashboard, ai_hints, pwa, contests, notifications, code_executor, activity, admin_router):
+for _export in (courses_db, progress_db, quizzes_db, youtube_sync, coins_db, mentors, payments, chat_files, payouts, subscriptions, connect, student_dashboard, mentor_portal, recordings, resumes, resume_ai, cover_letter, resume_comparison, linkedin_import, hiring, resume_import, marketplace, job_applications, job_notifications, job_calendar, resume_export, resume_templates, resume_analytics_events, coding_practice, code_snippets, solution_sharing, user_profiles, solution_comments, social, learning_paths, premium_tiers, github_integration, advanced_dashboard, ai_hints, pwa, contests, notifications, code_executor, activity, badges, forums, admin_router):
     _mount_v1x_export(_export)
 
 # Mount WebSocket server
