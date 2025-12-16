@@ -58,6 +58,8 @@ from app.modelsx.contests import Contest, ContestChallenge, ContestParticipant, 
 from app.modelsx.notifications import Notification, NotificationPreference, NotificationLog, NotificationTemplate
 # import Code Execution models
 from app.modelsx.code_executor import CodeExecution, TestCaseResult, ExecutionEnvironment, ExecutionMetrics
+# import Activity and Feed models
+from app.modelsx.activity import Activity, ActivityLike, ActivityComment, FeedSettings, Trending, Timeline
 
 # v1 routers (existing)
 from app.api.v1 import auth, courses, progress, quizzes, chat, subscribe, quiz_status, paths, achievements, dashboard, credits
@@ -309,15 +311,21 @@ try:
     code_executor = code_executor_router
 except Exception as e:
     print(f"Failed to import code_executor: {e}")
-app = FastAPI(title=getattr(settings, "APP_NAME", "SkillForge Global"))
+
+# import activity and feed router
+activity = None
+try:
+    from app.api.v1x.activity import router as activity_router
+    activity = activity_router
+except Exception as e:
+    print(f"Failed to import activity: {e}")
 
 # Configure error logging and exception handlers
 from app.core.logging_middleware import setup_logging
 from app.core.settings_middleware import MaintenanceModeMiddleware
 setup_logging(app)
 
-# Create tables
-Base.metadata.create_all(bind=engine)
+app = FastAPI(title=getattr(settings, "APP_NAME", "SkillForge Global"))
 
 # Add maintenance mode middleware (before CORS)
 app.add_middleware(MaintenanceModeMiddleware)
@@ -385,7 +393,7 @@ def _mount_v1x_export(obj):
 
 
 # Mount all v1x exports (modules or routers)
-for _export in (courses_db, progress_db, quizzes_db, youtube_sync, coins_db, mentors, payments, chat_files, payouts, subscriptions, connect, student_dashboard, mentor_portal, recordings, resumes, resume_ai, cover_letter, resume_comparison, linkedin_import, hiring, resume_import, marketplace, job_applications, job_notifications, job_calendar, resume_export, resume_templates, resume_analytics_events, coding_practice, code_snippets, solution_sharing, user_profiles, solution_comments, social, learning_paths, premium_tiers, github_integration, advanced_dashboard, ai_hints, pwa, contests, notifications, code_executor, admin_router):
+for _export in (courses_db, progress_db, quizzes_db, youtube_sync, coins_db, mentors, payments, chat_files, payouts, subscriptions, connect, student_dashboard, mentor_portal, recordings, resumes, resume_ai, cover_letter, resume_comparison, linkedin_import, hiring, resume_import, marketplace, job_applications, job_notifications, job_calendar, resume_export, resume_templates, resume_analytics_events, coding_practice, code_snippets, solution_sharing, user_profiles, solution_comments, social, learning_paths, premium_tiers, github_integration, advanced_dashboard, ai_hints, pwa, contests, notifications, code_executor, activity, admin_router):
     _mount_v1x_export(_export)
 
 # Mount WebSocket server
