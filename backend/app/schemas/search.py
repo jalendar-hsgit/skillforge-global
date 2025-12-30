@@ -56,7 +56,7 @@ class SearchFilterCreate(BaseModel):
     category: List[str] = Field(default=[])
     rating_min: float = Field(default=0.0, ge=0.0, le=5.0)
     rating_max: float = Field(default=5.0, ge=0.0, le=5.0)
-    sort_by: str = Field(default="relevance", regex="^(relevance|rating|newest|most_popular)$")
+    sort_by: str = Field(default="relevance", pattern="^(relevance|rating|newest|most_popular)$")
 
 
 class SearchFilterUpdate(BaseModel):
@@ -171,7 +171,7 @@ class AdvancedSearchRequest(BaseModel):
     tags: Optional[List[str]] = None
     rating_min: Optional[float] = None
     rating_max: Optional[float] = None
-    sort_by: str = Field(default="relevance", regex="^(relevance|rating|newest|most_popular)$")
+    sort_by: str = Field(default="relevance", pattern="^(relevance|rating|newest|most_popular)$")
     page: int = Field(default=1, ge=1)
     page_size: int = Field(default=20, ge=1, le=100)
 

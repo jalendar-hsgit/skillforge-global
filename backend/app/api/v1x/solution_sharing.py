@@ -126,7 +126,7 @@ async def share_solution(
 @router.get("/challenges/{challenge_id}/solutions")
 async def get_challenge_solutions(
     challenge_id: int,
-    sort_by: str = Query("votes", regex="^(votes|recent|helpful)$"),
+    sort_by: str = Query("votes", pattern="^(votes|recent|helpful)$"),
     language: Optional[str] = None,
     limit: int = Query(20, le=100),
     offset: int = Query(0, ge=0),

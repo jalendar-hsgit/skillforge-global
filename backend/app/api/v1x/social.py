@@ -11,7 +11,8 @@ from datetime import datetime
 from app.core.db import get_db
 from app.core.security import get_current_user
 from app.models import User
-from app.modelsx.social import UserFollow, Notification
+from app.modelsx.social import UserFollow
+from app.modelsx.notifications import Notification, NotificationType
 
 
 router = APIRouter(prefix="/users", tags=["user-social"])
@@ -53,10 +54,10 @@ async def follow_user(
     # Create notification for followed user
     notification = Notification(
         user_id=user_id,
-        notification_type="follow",
+        notification_type=NotificationType.FRIEND_ACTIVITY,
         title=f"{current_user.username} started following you",
-        description=f"Check out their profile and solutions!",
-        related_user_id=current_user.id,
+        message=f"Check out their profile and solutions!",
+        actor_id=current_user.id,
     )
     db.add(notification)
     

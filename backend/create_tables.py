@@ -8,7 +8,7 @@ from app.modelsx.payout import MentorPayout, MentorEarning
 from app.modelsx.subscription import Subscription, PlanFeature, SubscriptionEvent
 from app.modelsx.stripe_connect import MentorStripeAccount
 from app.modelsx.chat_file import MentorChatFile
-from app.modelsx.resume import Resume, WorkExperience, Education, ResumeProject, ResumeSkill, ResumeCertificate, Achievement, ResumeTemplate, AIProjectTemplate, ResumeAnalytics, ATSReport
+from app.modelsx.resume import Resume, WorkExperience, Education, ResumeProject, ResumeSkill, ResumeCertificate, ResumeAchievement, ResumeTemplate, AIProjectTemplate, ResumeAnalytics, ATSReport
 from app.modelsx.resume_comparison import ResumeVersion, ResumeComparison
 from app.modelsx.job_application import JobApplication
 from app.modelsx.order import Order, Coupon, CartItem

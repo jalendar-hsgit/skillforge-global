@@ -50,8 +50,9 @@ export default function NewResumePage() {
         router.push('/login?redirect=/resumes/new');
         return;
       } else {
-        console.error('Failed to create resume');
-        alert('Failed to create resume. Please try again.');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Failed to create resume:', response.status, errorData);
+        alert(`Failed to create resume: ${errorData.detail || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error creating resume:', error);

@@ -79,7 +79,7 @@ class Resume(Base):
     projects = relationship("ResumeProject", back_populates="resume", cascade="all, delete-orphan")
     skills = relationship("ResumeSkill", back_populates="resume", cascade="all, delete-orphan")
     certificates = relationship("ResumeCertificate", back_populates="resume", cascade="all, delete-orphan")
-    achievements = relationship("Achievement", back_populates="resume", cascade="all, delete-orphan")
+    achievements = relationship("ResumeAchievement", back_populates="resume", cascade="all, delete-orphan")
     versions = relationship("ResumeVersion", back_populates="resume", cascade="all, delete-orphan", lazy="dynamic")
 
 
@@ -200,9 +200,9 @@ class ResumeCertificate(Base):
     resume = relationship("Resume", back_populates="certificates")
 
 
-class Achievement(Base):
+class ResumeAchievement(Base):
     """Awards, honors, and achievements"""
-    __tablename__ = "achievements"
+    __tablename__ = "resume_achievements"
     
     id = Column(Integer, primary_key=True, index=True)
     resume_id = Column(Integer, ForeignKey("resumes.id"), nullable=False)
@@ -257,21 +257,7 @@ class AIProjectTemplate(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
-class ResumeAnalytics(Base):
-    """Track resume performance"""
-    __tablename__ = "resume_analytics"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    resume_id = Column(Integer, ForeignKey("resumes.id"), nullable=False)
-    
-    event_type = Column(String(50))  # "view", "download", "share", "edit"
-    event_data = Column(JSON)  # Additional context
-    
-    ip_address = Column(String(50))
-    user_agent = Column(String(500))
-    referrer = Column(String(500))
-    
-    created_at = Column(DateTime, default=datetime.utcnow)
+# Note: ResumeAnalytics is defined in app.modelsx.resume_analytics
 
 
 class ATSReport(Base):

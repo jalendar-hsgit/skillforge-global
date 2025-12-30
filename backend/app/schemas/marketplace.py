@@ -45,7 +45,7 @@ class DigitalProductCreate(BaseModel):
     features: List[str] = Field(default=[])
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "name": "Advanced Python Masterclass",
                 "description": "Complete guide to mastering Python",

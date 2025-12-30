@@ -10,9 +10,7 @@ from sqlalchemy import (
     JSON, Float, Enum as SQLEnum, Index
 )
 from sqlalchemy.orm import relationship
-from sqlalchemy.ext.declarative import declarative_base
-
-Base = declarative_base()
+from app.core.db import Base
 
 
 class SearchContentType(str, Enum):
@@ -223,7 +221,7 @@ class SearchIndex(Base):
     title = Column(String(200), nullable=False, index=True)
     content = Column(Text, nullable=False)  # Full content for search
     tags = Column(JSON, default=[])  # Indexed tags
-    metadata = Column(JSON, default={})  # difficulty, language, category, etc
+    search_metadata = Column(JSON, default={})  # difficulty, language, category, etc
     
     # Searchable attributes
     author_name = Column(String(100), nullable=True, index=True)

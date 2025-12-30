@@ -25,7 +25,7 @@ from app.modelsx.stripe_connect import MentorStripeAccount
 from app.modelsx.chat_file import MentorChatFile
 from app.modelsx.resume import (
     Resume, WorkExperience, Education, ResumeProject, ResumeSkill, 
-    ResumeCertificate, Achievement, ResumeTemplate, AIProjectTemplate, 
+    ResumeCertificate, ResumeAchievement, ResumeTemplate, AIProjectTemplate, 
     ResumeAnalytics, ATSReport
 )
 from app.modelsx.job_application import JobApplication

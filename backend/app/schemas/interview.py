@@ -25,7 +25,7 @@ class InterviewQuestionCreate(BaseModel):
     category_id: int
     title: str = Field(..., min_length=5, max_length=300)
     description: str = Field(..., min_length=10)
-    difficulty: str = Field(default="medium", regex="^(easy|medium|hard)$")
+    difficulty: str = Field(default="medium", pattern="^(easy|medium|hard)$")
     interview_type: str = Field(default="technical")
     tags: List[str] = Field(default=[])
     company_tags: List[str] = Field(default=[])
@@ -61,8 +61,8 @@ class InterviewQuestionResponse(BaseModel):
 
 # MockInterview Schemas
 class MockInterviewCreate(BaseModel):
-    interview_type: str = Field(..., regex="^(behavioral|technical|system_design|data_structures|coding|mixed)$")
-    difficulty: str = Field(default="medium", regex="^(easy|medium|hard|expert)$")
+    interview_type: str = Field(..., pattern="^(behavioral|technical|system_design|data_structures|coding|mixed)$")
+    difficulty: str = Field(default="medium", pattern="^(easy|medium|hard|expert)$")
     duration_minutes: int = Field(default=60, ge=30, le=120)
     target_company: Optional[str] = None
     target_role: Optional[str] = None

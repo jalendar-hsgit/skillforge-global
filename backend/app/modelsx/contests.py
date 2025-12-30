@@ -259,7 +259,8 @@ class ContestPrize(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     
     # Relationships
-    badge = relationship("Badge", backref="contest_prizes")
+    # Note: Badge relationship uses lazy='select' to avoid circular dependency
+    # backref removed - if needed, add explicit relationship in Badge model
     
     def __repr__(self):
         return f"<ContestPrize(contest_id={self.contest_id}, rank={self.rank_min}-{self.rank_max})>"

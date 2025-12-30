@@ -102,7 +102,7 @@ async def list_threads(
     status: Optional[str] = None,
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
-    sort_by: str = Query("recent", regex="recent|popular|unanswered|viewed"),
+    sort_by: str = Query("recent", pattern="recent|popular|unanswered|viewed"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -262,7 +262,7 @@ async def get_thread_replies(
     thread_id: int,
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
-    sort_by: str = Query("helpful", regex="helpful|recent"),
+    sort_by: str = Query("helpful", pattern="helpful|recent"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -352,7 +352,7 @@ async def delete_reply(
 @router.post("/threads/{thread_id}/vote", response_model=ForumThreadResponse)
 async def vote_thread(
     thread_id: int,
-    vote_type: str = Query("upvote", regex="upvote|downvote"),
+    vote_type: str = Query("upvote", pattern="upvote|downvote"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):

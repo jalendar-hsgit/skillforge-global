@@ -83,7 +83,7 @@ def create_team(
 @router.get("/discover", response_model=List[TeamDiscoveryResponse])
 def discover_teams(
     visibility: Optional[str] = None,
-    sort_by: str = Query("members", regex="^(members|points|rating)$"),
+    sort_by: str = Query("members", pattern="^(members|points|rating)$"),
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=50),
     db: Session = Depends(get_db)
@@ -730,7 +730,7 @@ def create_announcement(
 @router.get("/{team_id}/announcements", response_model=List[TeamAnnouncementDetailResponse])
 def get_announcements(
     team_id: int,
-    sort_by: str = Query("recent", regex="^(recent|pinned|important)$"),
+    sort_by: str = Query("recent", pattern="^(recent|pinned|important)$"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):

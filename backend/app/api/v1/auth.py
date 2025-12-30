@@ -33,7 +33,8 @@ class SignupRequest(BaseModel):
     # Only superadmins can promote users via admin panel
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    email: EmailStr | None = None
+    username: str | None = None
     password: str
 
 
@@ -130,8 +131,14 @@ def login(res: Response, request: Request, data: LoginRequest, db: Session = Dep
         if not settings.E2E_TEST_MODE:
             rate_limit(ip_hash, "auth:login", limit=10, window_seconds=300)
 
-        # Lookup user
-        u = db.query(User).filter(User.email == data.email).first()
+        # Lookup user by email or username
+        if data.email:
+            u = db.query(User).filter(User.email == data.email).first()
+        elif data.username:
+            u = db.query(User).filter(User.username == data.username).first()
+        else:
+            raise HTTPException(status_code=400, detail="Email or username required")
+            
         if not u:
             logger.debug("Login failed: user not found")
             raise HTTPException(status_code=401, detail="Invalid login")

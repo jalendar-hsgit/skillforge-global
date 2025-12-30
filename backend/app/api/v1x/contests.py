@@ -28,7 +28,7 @@ router = APIRouter(prefix="/api/v1x/contests", tags=["contests"])
 def list_contests(
     status_filter: Optional[str] = Query(None),
     category: Optional[str] = Query(None),
-    sort_by: str = Query("start_time", regex="^(start_time|prize_pool|participants)$"),
+    sort_by: str = Query("start_time", pattern="^(start_time|prize_pool|participants)$"),
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),

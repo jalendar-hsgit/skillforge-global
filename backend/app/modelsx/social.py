@@ -27,29 +27,3 @@ class UserFollow(Base):
     
     # Unique constraint - user can only follow another once
     __table_args__ = (UniqueConstraint('follower_id', 'following_id', name='unique_follow'),)
-
-
-class Notification(Base):
-    """
-    User notifications for various events
-    """
-    __tablename__ = "notifications"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    
-    notification_type = Column(String, nullable=False)  # "follow", "solution_upvote", "challenge_solved", "achievement_earned"
-    title = Column(String, nullable=False)
-    description = Column(String)
-    
-    # Reference to related object
-    related_user_id = Column(Integer, ForeignKey("users.id"))  # For follows
-    challenge_id = Column(Integer, ForeignKey("coding_challenges.id"))  # For challenges
-    solution_id = Column(Integer, ForeignKey("challenge_solutions.id"))  # For solutions
-    
-    is_read = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
-    
-    # Relationships
-    user = relationship("User", foreign_keys=[user_id], backref="notifications")
-    related_user = relationship("User", foreign_keys=[related_user_id])

@@ -162,18 +162,162 @@ export default function ResumePreviewPage() {
             >
               🔗 Share
             </button>
-            <button
-              onClick={() => {
-                window.print();
-                // Track download event
-                if (resume?.id && resume?.user_id) {
-                  fetch(`${API_BASE}/api/v1x/resume-analytics/events/download/${resume.id}?user_id=${resume.user_id}`, { method: 'POST' });
-                }
-              }}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              🖨️ Print / Save as PDF
-            </button>
+            <div className="relative group">
+              <button
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+              >
+                📥 Download <span className="text-xs">▼</span>
+              </button>
+              <div className="absolute right-0 mt-1 w-40 bg-white border border-gray-300 rounded-lg shadow-lg hidden group-hover:block z-50">
+                <button
+                  onClick={async () => {
+                    try {
+                      // Get the rendered resume content HTML
+                      const resumeContent = document.getElementById('resume-content');
+                      if (!resumeContent) {
+                        alert('Resume content not found');
+                        return;
+                      }
+                      
+                      const html = resumeContent.innerHTML;
+                      const filename = resume.full_name ? `${resume.full_name.replace(/\s+/g, '_')}.pdf` : 'resume.pdf';
+                      
+                      // Send to backend for conversion
+                      const response = await fetch(`${API_BASE}/api/v1x/resumes/${resume.id}/export-pdf-from-html`, {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                        credentials: 'include',
+                        body: JSON.stringify({
+                          html: html,
+                          filename: filename,
+                          page_format: 'A4',
+                          margins: { top: 20, bottom: 20, left: 20, right: 20 }
+                        })
+                      });
+                      
+                      if (response.ok) {
+                        // Download the PDF
+                        const blob = await response.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = filename;
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+                        
+                        // Track download event
+                        if (resume?.id && resume?.user_id) {
+                          fetch(`${API_BASE}/api/v1x/resume-analytics/events/download/${resume.id}?user_id=${resume.user_id}`, { 
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                            },
+                            credentials: 'include'
+                          }).catch(err => {
+                            console.debug('Analytics tracking failed:', err);
+                          });
+                        }
+                      } else {
+                        console.error('PDF export failed:', response.statusText);
+                        // Fallback to browser print
+                        window.print();
+                      }
+                    } catch (err) {
+                      console.error('Error exporting PDF:', err);
+                      // Fallback to browser print
+                      window.print();
+                    }
+                  }}
+                  className="w-full px-4 py-2 text-left hover:bg-blue-50 text-gray-700 border-b border-gray-200"
+                >
+                  📄 PDF
+                </button>
+                <button
+                  onClick={async () => {
+                    try {
+                      const response = await fetch(`${API_BASE}/api/v1x/resumes/${resume.id}/export?format=docx`, {
+                        method: 'GET',
+                        credentials: 'include'
+                      });
+                      
+                      if (response.ok) {
+                        const blob = await response.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `${resume.full_name || 'resume'}.docx`;
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+                        
+                        // Track download event
+                        if (resume?.id && resume?.user_id) {
+                          fetch(`${API_BASE}/api/v1x/resume-analytics/events/download/${resume.id}?user_id=${resume.user_id}`, { 
+                            method: 'POST',
+                            credentials: 'include'
+                          }).catch(err => {
+                            console.debug('Analytics tracking failed:', err);
+                          });
+                        }
+                      } else {
+                        alert('Failed to export DOCX. Please try again.');
+                      }
+                    } catch (err) {
+                      console.error('Error exporting DOCX:', err);
+                      alert('Error exporting DOCX: ' + err);
+                    }
+                  }}
+                  className="w-full px-4 py-2 text-left hover:bg-blue-50 text-gray-700 border-b border-gray-200"
+                >
+                  📝 Word (.docx)
+                </button>
+                <button
+                  onClick={async () => {
+                    try {
+                      const response = await fetch(`${API_BASE}/api/v1x/resumes/${resume.id}/export?format=txt`, {
+                        method: 'GET',
+                        credentials: 'include'
+                      });
+                      
+                      if (response.ok) {
+                        const blob = await response.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `${resume.full_name || 'resume'}.txt`;
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+                        
+                        // Track download event
+                        if (resume?.id && resume?.user_id) {
+                          fetch(`${API_BASE}/api/v1x/resume-analytics/events/download/${resume.id}?user_id=${resume.user_id}`, { 
+                            method: 'POST',
+                            credentials: 'include'
+                          }).catch(err => {
+                            console.debug('Analytics tracking failed:', err);
+                          });
+                        }
+                      } else {
+                        alert('Failed to export TXT. Please try again.');
+                      }
+                    } catch (err) {
+                      console.error('Error exporting TXT:', err);
+                      alert('Error exporting TXT: ' + err);
+                    }
+                  }}
+                  className="w-full px-4 py-2 text-left hover:bg-blue-50 text-gray-700"
+                >
+                  📋 Text (.txt)
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Resume Container - Print optimized */}

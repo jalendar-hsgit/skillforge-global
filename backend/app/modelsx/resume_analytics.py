@@ -1,10 +1,8 @@
 from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, JSON
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.ext.declarative import declarative_base
+from app.core.db import Base
 import uuid
 from datetime import datetime
-
-Base = declarative_base()
 
 class ResumeAnalytics(Base):
     __tablename__ = "resume_analytics"

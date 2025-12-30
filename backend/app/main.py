@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
+from sqlalchemy import text
 
 from app.core.config import settings
 from app.core.db import Base, engine
@@ -20,7 +21,8 @@ from app.modelsx.subscription import Subscription, PlanFeature, SubscriptionEven
 from app.modelsx.stripe_connect import MentorStripeAccount
 from app.modelsx.chat_file import MentorChatFile
 # import resume models
-from app.modelsx.resume import Resume, WorkExperience, Education, ResumeProject, ResumeSkill, ResumeCertificate, Achievement, ResumeTemplate, AIProjectTemplate, ResumeAnalytics, ATSReport
+from app.modelsx.resume import Resume, WorkExperience, Education, ResumeProject, ResumeSkill, ResumeCertificate, ResumeAchievement, ResumeTemplate, AIProjectTemplate, ATSReport
+from app.modelsx.resume_analytics import ResumeAnalytics
 # Ensure versioning/comparison tables are registered before create_all
 from app.modelsx.resume_comparison import ResumeVersion, ResumeComparison
 # import hiring models
@@ -39,7 +41,7 @@ from app.modelsx.solution_sharing import ChallengeSolution, SolutionVote, Soluti
 # import user profile models
 from app.modelsx.user_profiles import UserProfile, UserActivity, UserPreferences, UserStatistics
 # import social/follow system models
-from app.modelsx.social import UserFollow, Notification
+from app.modelsx.social import UserFollow
 # import learning paths models
 from app.modelsx.learning_paths import LearningPath, PathChallenge, UserPathProgress
 # import premium tiers models
@@ -52,6 +54,8 @@ from app.modelsx.advanced_dashboard import DashboardWidget, UserDashboardWidget,
 from app.modelsx.ai_hints import AIHint, AIHintUsage, HintFeedback, HintTemplate, UserHintQuota
 # import PWA models
 from app.modelsx.pwa import ServiceWorkerConfig, OfflineSyncQueue, OfflineCache, PWANotificationPreference, PWAAnalytics
+# import Badge and Gamification models (MUST be before contests which references badges)
+from app.modelsx.badges import Badge, UserBadge, BadgeProgress, Leaderboard, Achievement as BadgeAchievement, UserAchievement
 # import Contest models
 from app.modelsx.contests import Contest, ContestChallenge, ContestParticipant, ContestSubmission, ContestLeaderboard, ContestPrize, ContestTeam, ContestRound
 # import Notification models
@@ -60,8 +64,6 @@ from app.modelsx.notifications import Notification, NotificationPreference, Noti
 from app.modelsx.code_executor import CodeExecution, TestCaseResult, ExecutionEnvironment, ExecutionMetrics
 # import Activity and Feed models
 from app.modelsx.activity import Activity, ActivityLike, ActivityComment, FeedSettings, Trending, Timeline
-# import Badge and Gamification models
-from app.modelsx.badges import Badge, UserBadge, BadgeProgress, Leaderboard, Achievement, UserAchievement
 # import Forum and Discussion models
 from app.modelsx.forums import (
     ForumCategory, ForumThread, ForumReply, ForumThreadVote, ForumReplyVote,
@@ -253,6 +255,7 @@ try:
     from app.api.v1x.resume_export import router as resume_export
 except Exception as e:
     print(f"Failed to import resume_export: {e}")
+    resume_export = None
 
 try:
     from app.api.v1x.resume_templates import router as resume_templates
@@ -263,6 +266,24 @@ try:
     from app.api.v1x.resume_analytics_events import router as resume_analytics_events
 except Exception as e:
     print(f"Failed to import resume_analytics_events: {e}")
+
+try:
+    from app.api.v1x.resume_scoring import router as resume_scoring
+except Exception as e:
+    print(f"Failed to import resume_scoring: {e}")
+    resume_scoring = None
+
+try:
+    from app.api.v1x.leaderboard import router as leaderboard
+except Exception as e:
+    print(f"Failed to import leaderboard: {e}")
+    leaderboard = None
+
+try:
+    from app.api.v1x.admin_metrics import router as admin_metrics
+except Exception as e:
+    print(f"Failed to import admin_metrics: {e}")
+    admin_metrics = None
 
 try:
     from app.api.v1x.coding_practice import router as coding_practice
@@ -420,12 +441,37 @@ try:
 except Exception as e:
     print(f"Failed to import marketplace: {e}")
 
+# ============================================================
+# CREATE ALL DATABASE TABLES - MUST BE AFTER ALL MODEL IMPORTS
+# ============================================================
+print(f"[Init] Creating database tables...")
+print(f"[Init] Models registered: {len(Base.metadata.tables)}")
+
+try:
+    # For SQLite, we can disable foreign key constraints temporarily
+    if "sqlite" in str(engine.url).lower():
+        with engine.begin() as conn:
+            conn.execute(text("PRAGMA foreign_keys=OFF"))
+            Base.metadata.create_all(bind=conn)
+            conn.execute(text("PRAGMA foreign_keys=ON"))
+    else:
+        # For other databases, just create normally
+        Base.metadata.create_all(bind=engine)
+    
+    print(f"[Init] OK Database initialized with {len(Base.metadata.tables)} tables")
+except Exception as e:
+    print(f"[Init] ERROR creating tables: {e}")
+    import traceback
+    traceback.print_exc()
+
 # Configure error logging and exception handlers
 from app.core.logging_middleware import setup_logging
 from app.core.settings_middleware import MaintenanceModeMiddleware
-setup_logging(app)
 
 app = FastAPI(title=getattr(settings, "APP_NAME", "SkillForge Global"))
+
+# Setup logging after app is created
+setup_logging(app)
 
 # Add maintenance mode middleware (before CORS)
 app.add_middleware(MaintenanceModeMiddleware)
@@ -493,7 +539,9 @@ def _mount_v1x_export(obj):
 
 
 # Mount all v1x exports (modules or routers)
-for _export in (courses_db, progress_db, quizzes_db, youtube_sync, coins_db, mentors, payments, chat_files, payouts, subscriptions, connect, student_dashboard, mentor_portal, recordings, resumes, resume_ai, cover_letter, resume_comparison, linkedin_import, hiring, resume_import, marketplace, job_applications, job_notifications, job_calendar, resume_export, resume_templates, resume_analytics_events, coding_practice, code_snippets, solution_sharing, user_profiles, solution_comments, social, learning_paths, premium_tiers, github_integration, advanced_dashboard, ai_hints, pwa, contests, notifications, code_executor, activity, badges, forums, recommendations, teams, search, interview, referral, admin_router):
+# Filter out None values to handle failed imports gracefully
+_exports = [x for x in (courses_db, progress_db, quizzes_db, youtube_sync, coins_db, mentors, payments, chat_files, payouts, subscriptions, connect, student_dashboard, mentor_portal, recordings, resumes, resume_ai, cover_letter, resume_comparison, linkedin_import, hiring, resume_import, marketplace, job_applications, job_notifications, job_calendar, resume_export, resume_templates, resume_analytics_events, resume_scoring, leaderboard, admin_metrics, coding_practice, code_snippets, solution_sharing, user_profiles, solution_comments, social, learning_paths, premium_tiers, github_integration, advanced_dashboard, ai_hints, pwa, contests, notifications, code_executor, activity, badges, forums, recommendations, teams, search, interview, referral, admin_router) if x is not None]
+for _export in _exports:
     _mount_v1x_export(_export)
 
 # Mount WebSocket server

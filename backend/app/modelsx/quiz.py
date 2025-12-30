@@ -30,3 +30,8 @@ class QuizAttempt(Base):
     quiz_id = Column(Integer, ForeignKey("quizzes.id"), nullable=False)
     score = Column(Integer, nullable=False)
     started_at = Column(DateTime, default=datetime.utcnow)
+    # Time tracking fields for enhanced analytics (NEW)
+    completed_at = Column(DateTime, nullable=True)  # When quiz was finished
+    time_spent_seconds = Column(Integer, nullable=True, default=0)  # Total time in seconds
+    question_times = Column(JSON, nullable=True)  # {question_id: time_in_seconds}
+    answers = Column(JSON, nullable=True)  # {question_id: selected_answer}

@@ -160,7 +160,7 @@ def advanced_search(
 @router.get("/trending", response_model=List[TrendingSearchResponse])
 def get_trending_searches(
     limit: int = Query(10, ge=1, le=50),
-    period: str = Query("week", regex="^(today|week|month)$"),
+    period: str = Query("week", pattern="^(today|week|month)$"),
     db: Session = Depends(get_db)
 ):
     """Get trending searches for the specified period"""

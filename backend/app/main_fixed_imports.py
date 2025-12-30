@@ -17,7 +17,7 @@ from app.modelsx.subscription import Subscription, PlanFeature, SubscriptionEven
 from app.modelsx.stripe_connect import MentorStripeAccount
 from app.modelsx.chat_file import MentorChatFile
 # import resume models
-from app.modelsx.resume import Resume, WorkExperience, Education, ResumeProject, ResumeSkill, ResumeCertificate, Achievement, ResumeTemplate, AIProjectTemplate, ResumeAnalytics, ATSReport
+from app.modelsx.resume import Resume, WorkExperience, Education, ResumeProject, ResumeSkill, ResumeCertificate, ResumeAchievement, ResumeTemplate, AIProjectTemplate, ResumeAnalytics, ATSReport
 # import hiring models - alias JobApplication to avoid conflict with job tracker
 from app.modelsx.hiring import Company, CompanyTeamMember, JobPosting, JobApplication as HiringJobApplication, Interview, TechnicalAssessment, BackgroundCheck, EducationVerification, EmploymentVerification, ReferenceCheck, JobOffer, HiringMetrics
 # import job application tracking

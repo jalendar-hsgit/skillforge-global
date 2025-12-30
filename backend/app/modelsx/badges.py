@@ -10,9 +10,7 @@ from sqlalchemy import (
     JSON, Float, Enum as SQLEnum, Index
 )
 from sqlalchemy.orm import relationship
-from sqlalchemy.ext.declarative import declarative_base
-
-Base = declarative_base()
+from app.core.db import Base
 
 
 class BadgeRarity(str, Enum):
@@ -203,7 +201,7 @@ class Achievement(Base):
     One-time achievement tracking (different from badges)
     For special accomplishments or rare events
     """
-    __tablename__ = "achievements"
+    __tablename__ = "gamification_achievements"
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(150), nullable=False)
@@ -239,7 +237,7 @@ class UserAchievement(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    achievement_id = Column(Integer, ForeignKey("achievements.id", ondelete="CASCADE"), nullable=False)
+    achievement_id = Column(Integer, ForeignKey("gamification_achievements.id", ondelete="CASCADE"), nullable=False)
 
     # Additional context
     context_data = Column(JSON, default={})  # Challenge id, score, time, etc

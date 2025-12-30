@@ -13,7 +13,7 @@ from app.models.user import User
 from app.models.quiz_attempt import QuizAttempt
 from app.modelsx.resume import (
     Resume, WorkExperience, Education, ResumeProject, 
-    ResumeSkill, ResumeCertificate, Achievement, ATSReport
+    ResumeSkill, ResumeCertificate, ResumeAchievement, ATSReport
 )
 from app.schemas.resume import (
     ResumeCreate, ResumeUpdate, ResumeOut, ResumeListOut,
@@ -35,21 +35,29 @@ router = APIRouter(prefix="/resumes", tags=["resumes"])
 
 # ==================== CRUD Operations ====================
 
-@router.post("/", response_model=ResumeOut, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=ResumeListOut, status_code=status.HTTP_201_CREATED)
 def create_resume(
     resume_data: ResumeCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """Create a new resume"""
-    resume = Resume(
-        user_id=current_user.id,
-        **resume_data.dict()
-    )
-    db.add(resume)
-    db.commit()
-    db.refresh(resume)
-    return resume
+    try:
+        resume = Resume(
+            user_id=current_user.id,
+            **resume_data.dict()
+        )
+        db.add(resume)
+        db.commit()
+        db.refresh(resume)
+        return resume
+    except Exception as e:
+        db.rollback()
+        print(f"Error creating resume: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to create resume: {str(e)}"
+        )
 
 
 @router.get("/", response_model=List[ResumeListOut])
@@ -650,7 +658,7 @@ def add_achievement(
     if not resume:
         raise HTTPException(status_code=404, detail="Resume not found")
     
-    ach = Achievement(resume_id=resume_id, **achievement.dict())
+    ach = ResumeAchievement(resume_id=resume_id, **achievement.dict())
     db.add(ach)
     db.commit()
     db.refresh(ach)
@@ -666,8 +674,8 @@ def update_achievement(
     current_user: User = Depends(get_current_user)
 ):
     """Update achievement"""
-    ach = db.query(Achievement).join(Resume).filter(
-        Achievement.id == achievement_id,
+    ach = db.query(ResumeAchievement).join(Resume).filter(
+        ResumeAchievement.id == achievement_id,
         Resume.user_id == current_user.id
     ).first()
     
@@ -690,8 +698,8 @@ def delete_achievement(
     current_user: User = Depends(get_current_user)
 ):
     """Delete achievement"""
-    ach = db.query(Achievement).join(Resume).filter(
-        Achievement.id == achievement_id,
+    ach = db.query(ResumeAchievement).join(Resume).filter(
+        ResumeAchievement.id == achievement_id,
         Resume.user_id == current_user.id
     ).first()
     

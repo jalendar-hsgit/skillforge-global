@@ -9,9 +9,7 @@ from sqlalchemy import (
     JSON, Index
 )
 from sqlalchemy.orm import relationship
-from sqlalchemy.ext.declarative import declarative_base
-
-Base = declarative_base()
+from app.core.db import Base
 
 
 class UserPreferences(Base):

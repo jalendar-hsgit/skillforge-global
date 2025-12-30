@@ -10,9 +10,7 @@ from sqlalchemy import (
     JSON, Index, Table
 )
 from sqlalchemy.orm import relationship
-from sqlalchemy.ext.declarative import declarative_base
-
-Base = declarative_base()
+from app.core.db import Base
 
 
 class ThreadStatus(str, Enum):
@@ -107,7 +105,7 @@ class ForumThread(Base):
     # Relationships
     category = relationship("ForumCategory", foreign_keys=[category_id], back_populates="threads")
     creator = relationship("User", foreign_keys=[creator_id])
-    replies = relationship("ForumReply", back_populates="thread", cascade="all, delete-orphan")
+    replies = relationship("ForumReply", foreign_keys="ForumReply.thread_id", back_populates="thread", cascade="all, delete-orphan")
     votes = relationship("ForumThreadVote", back_populates="thread", cascade="all, delete-orphan")
     bookmarks = relationship("ForumBookmark", back_populates="thread", cascade="all, delete-orphan")
 
