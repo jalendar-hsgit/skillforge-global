@@ -17,6 +17,7 @@ from app.modelsx.resume import (
     ResumeSkill, ResumeCertificate, ResumeAchievement,
     Language, Publication, Patent, VolunteerWork, Reference
 )
+# Don't import Achievement here - it's in badges.py, not resume.py
 from app.modelsx.resume import ResumeTemplate
 from sqlalchemy import or_
 
