@@ -132,6 +132,9 @@ from app.api.v1 import forum, messages, notifications, feed, profiles
 # Phase 3.4 routers
 from app.api.v1 import learning_paths, certificates, skills, recommendations
 
+# Phase 3.5 routers
+from app.api.v1 import websocket
+
 # Try to import optional v1x routers directly (bypass v1x __init__.py)
 courses_db = None
 progress_db = None
@@ -620,6 +623,9 @@ app.include_router(learning_paths.router, prefix="/api/v1")
 app.include_router(certificates.router,   prefix="/api/v1")
 app.include_router(skills.router,         prefix="/api/v1")
 app.include_router(recommendations.router, prefix="/api/v1")
+
+# Phase 3.5 WebSocket routers
+app.include_router(websocket.router, prefix="/api/v1")
 
 # Admin routers
 try:
