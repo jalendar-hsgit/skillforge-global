@@ -14,7 +14,8 @@ from app.modelsx.coins import CoinLedger
 # import quiz template models for AI-generated quizzes
 from app.modelsx.quiz_template import GeneratedQuiz, QuizSession
 # import mentor models
-from app.modelsx.mentor import Mentor, MentorSession, MentorAvailability, MentorMessage, MentorReview
+from app.modelsx.mentor import Mentor, MentorSession, MentorAvailability, MentorMessage, MentorReview, SessionFeedback
+from app.modelsx.mentor_verification import MentorVerification
 from app.modelsx.payout import MentorPayout, MentorEarning
 from app.modelsx.admin_log import AdminLog
 from app.modelsx.subscription import Subscription, PlanFeature, SubscriptionEvent
@@ -40,8 +41,8 @@ from app.modelsx.code_snippets import CodeSnippet, SnippetVote, SnippetCopy
 from app.modelsx.solution_sharing import ChallengeSolution, SolutionVote, SolutionComment, SolutionBookmark
 # import user profile models
 from app.modelsx.user_profiles import UserProfile, UserActivity, UserPreferences, UserStatistics
-# import social/follow system models
-from app.modelsx.social import UserFollow
+# import social/follow system models and Phase 3.3 features
+from app.modelsx.social import UserFollow, ForumTopic, ForumThread, ForumReply, Conversation, Message, Notification, SocialFeedItem, UserProfile
 # import learning paths models
 from app.modelsx.learning_paths import LearningPath, PathChallenge, UserPathProgress
 # import premium tiers models
@@ -99,8 +100,34 @@ from app.modelsx.marketplace import (
     ProductBundle, SellerPayout, MarketplaceAnalytics
 )
 
+# ============================================================
+# PHASE 2.3 MODELS - IMPORT ALL 10 MODELS
+# ============================================================
+from app.modelsx.phase_2_3_models import (
+    MentorVerificationDocument,
+    AnalyticsMetric,
+    MentorAnalyticsSummary,
+    SessionPayment,
+    VideoSession,
+    SessionRecording,
+    SessionChatMessage,
+    Message
+)
+
+# Forum models (already imported above from forums.py)
+
+
+# ============================================================
+# PAYMENT & EMAIL SERVICES
+# ============================================================
+from app.services.stripe_service import StripeService
+from app.services.email_service import email_service
+
 # v1 routers (existing)
 from app.api.v1 import auth, courses, progress, quizzes, chat, subscribe, quiz_status, paths, achievements, dashboard, credits
+
+# Phase 3.3 routers
+from app.api.v1 import forum, messages, notifications, feed, profiles
 
 # Try to import optional v1x routers directly (bypass v1x __init__.py)
 courses_db = None
@@ -145,6 +172,18 @@ try:
     from app.api.v1x.mentors import router as mentors
 except Exception as e:
     print(f"Failed to import mentors: {e}")
+
+try:
+    from app.api.v1x.mentor_verification import router as mentor_verification
+except Exception as e:
+    mentor_verification = None
+    print(f"Failed to import mentor_verification: {e}")
+
+try:
+    from app.api.v1x.account import router as account
+except Exception as e:
+    account = None
+    print(f"Failed to import account: {e}")
 
 admin_mentors = None  # Deprecated router; replaced by unified app.api.v1x.admin
 
@@ -195,6 +234,12 @@ try:
     from app.api.v1x.recordings import router as recordings
 except Exception as e:
     print(f"Failed to import recordings: {e}")
+
+try:
+    from app.api.v1x.session import router as session
+except Exception as e:
+    session = None
+    print(f"Failed to import session: {e}")
 
 try:
     from app.api.v1x.resumes import router as resumes
@@ -284,6 +329,12 @@ try:
 except Exception as e:
     print(f"Failed to import admin_metrics: {e}")
     admin_metrics = None
+
+try:
+    from app.api.v1x.admin_analytics import router as admin_analytics
+except Exception as e:
+    print(f"Failed to import admin_analytics: {e}")
+    admin_analytics = None
 
 try:
     from app.api.v1x.coding_practice import router as coding_practice
@@ -442,6 +493,52 @@ except Exception as e:
     print(f"Failed to import marketplace: {e}")
 
 # ============================================================
+# PHASE 2.3 ROUTERS - IMPORT ALL 6 ROUTERS + STRIPE
+# ============================================================
+verification_router = None
+try:
+    from app.api.v1x.phase_2_3_endpoints import verification_router
+except Exception as e:
+    print(f"Failed to import verification_router: {e}")
+
+analytics_router = None
+try:
+    from app.api.v1x.phase_2_3_endpoints import analytics_router
+except Exception as e:
+    print(f"Failed to import analytics_router: {e}")
+
+payments_router_phase23 = None
+try:
+    from app.api.v1x.phase_2_3_endpoints import payments_router as payments_router_phase23
+except Exception as e:
+    print(f"Failed to import payments_router (Phase 2.3): {e}")
+
+video_router = None
+try:
+    from app.api.v1x.phase_2_3_endpoints import video_router
+except Exception as e:
+    print(f"Failed to import video_router: {e}")
+
+messaging_router = None
+try:
+    from app.api.v1x.phase_2_3_endpoints import messaging_router
+except Exception as e:
+    print(f"Failed to import messaging_router: {e}")
+
+forum_router = None
+try:
+    from app.api.v1x.phase_2_3_endpoints import forum_router
+except Exception as e:
+    print(f"Failed to import forum_router: {e}")
+
+# NEW: Stripe-integrated payment router
+payments_integrated_router = None
+try:
+    from app.api.v1x.payments_integrated import payments_router as payments_integrated_router
+except Exception as e:
+    print(f"Failed to import payments_integrated_router: {e}")
+
+# ============================================================
 # CREATE ALL DATABASE TABLES - MUST BE AFTER ALL MODEL IMPORTS
 # ============================================================
 print(f"[Init] Creating database tables...")
@@ -508,6 +605,13 @@ app.include_router(paths.router,      prefix="/api/v1")
 app.include_router(achievements.router, prefix="/api/v1")
 app.include_router(dashboard.router,  prefix="/api/v1")
 
+# Phase 3.3 Social Features routers
+app.include_router(forum.router,      prefix="/api/v1")
+app.include_router(messages.router,   prefix="/api/v1")
+app.include_router(notifications.router, prefix="/api/v1")
+app.include_router(feed.router,       prefix="/api/v1")
+app.include_router(profiles.router,   prefix="/api/v1")
+
 # Admin routers
 try:
     from app.api.v1.admin_quizzes import router as admin_quizzes
@@ -515,6 +619,20 @@ try:
     print("Admin quizzes router mounted")
 except Exception as e:
     print(f"Failed to mount admin_quizzes: {e}")
+
+try:
+    from app.api.v1x.session import router as session
+except Exception as e:
+    session = None
+    print(f"Failed to import session: {e}")
+
+# Temporarily disabled to debug startup crash
+# try:
+#     if session:  # session was imported at the top
+#         app.include_router(session, prefix="/api")
+#         print("Session router mounted at /api/session")
+# except Exception as e:
+#     print(f"Failed to mount session router at /api/session: {e}")
 
 from fastapi import APIRouter
 
@@ -540,7 +658,8 @@ def _mount_v1x_export(obj):
 
 # Mount all v1x exports (modules or routers)
 # Filter out None values to handle failed imports gracefully
-_exports = [x for x in (courses_db, progress_db, quizzes_db, youtube_sync, coins_db, mentors, payments, chat_files, payouts, subscriptions, connect, student_dashboard, mentor_portal, recordings, resumes, resume_ai, cover_letter, resume_comparison, linkedin_import, hiring, resume_import, marketplace, job_applications, job_notifications, job_calendar, resume_export, resume_templates, resume_analytics_events, resume_scoring, leaderboard, admin_metrics, coding_practice, code_snippets, solution_sharing, user_profiles, solution_comments, social, learning_paths, premium_tiers, github_integration, advanced_dashboard, ai_hints, pwa, contests, notifications, code_executor, activity, badges, forums, recommendations, teams, search, interview, referral, admin_router) if x is not None]
+# Note: session is mounted separately at /api/session, not included here
+_exports = [x for x in (courses_db, progress_db, quizzes_db, youtube_sync, coins_db, mentors, mentor_verification, account, payments, chat_files, payouts, subscriptions, connect, student_dashboard, mentor_portal, recordings, resumes, resume_ai, cover_letter, resume_comparison, linkedin_import, hiring, resume_import, marketplace, job_applications, job_notifications, job_calendar, resume_export, resume_templates, resume_analytics_events, resume_scoring, leaderboard, admin_metrics, admin_analytics, coding_practice, code_snippets, solution_sharing, user_profiles, solution_comments, social, learning_paths, premium_tiers, github_integration, advanced_dashboard, ai_hints, pwa, contests, notifications, code_executor, activity, badges, forums, recommendations, teams, search, interview, referral, admin_router, verification_router, analytics_router, payments_router_phase23, video_router, messaging_router, forum_router, payments_integrated_router) if x is not None]
 for _export in _exports:
     _mount_v1x_export(_export)
 
