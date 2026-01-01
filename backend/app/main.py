@@ -44,7 +44,7 @@ from app.modelsx.user_profiles import UserProfile, UserActivity, UserPreferences
 # import social/follow system models and Phase 3.3 features
 from app.modelsx.social import UserFollow, ForumTopic, ForumThread, ForumReply, Conversation, Message, Notification, SocialFeedItem, UserProfile
 # import learning paths models
-from app.modelsx.learning_paths import LearningPath, PathChallenge, UserPathProgress
+from app.modelsx.learning_paths import LearningPath, PathChallenge, UserPathProgress, Certificate, SkillValidation, PathRecommendation
 # import premium tiers models
 from app.modelsx.premium_tiers import SubscriptionTier, FeatureBenefit, UserSubscription, SubscriptionHistory, PromoCode
 # import github integration models
@@ -128,6 +128,9 @@ from app.api.v1 import auth, courses, progress, quizzes, chat, subscribe, quiz_s
 
 # Phase 3.3 routers
 from app.api.v1 import forum, messages, notifications, feed, profiles
+
+# Phase 3.4 routers
+from app.api.v1 import learning_paths, certificates, skills, recommendations
 
 # Try to import optional v1x routers directly (bypass v1x __init__.py)
 courses_db = None
@@ -611,6 +614,12 @@ app.include_router(messages.router,   prefix="/api/v1")
 app.include_router(notifications.router, prefix="/api/v1")
 app.include_router(feed.router,       prefix="/api/v1")
 app.include_router(profiles.router,   prefix="/api/v1")
+
+# Phase 3.4 Learning Paths routers
+app.include_router(learning_paths.router, prefix="/api/v1")
+app.include_router(certificates.router,   prefix="/api/v1")
+app.include_router(skills.router,         prefix="/api/v1")
+app.include_router(recommendations.router, prefix="/api/v1")
 
 # Admin routers
 try:
