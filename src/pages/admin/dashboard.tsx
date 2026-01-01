@@ -1,231 +1,328 @@
-import { useSession } from 'next-auth/react'
-import Head from 'next/head'
-import { useRouter } from 'next/router'
-import AdminMetricsDashboard from '@/components/admin/AdminMetricsDashboard'
-import PageLayout from '@/components/PageLayout'
-import { useState } from 'react'
+import React, { useState, useEffect } from 'react';
+import Head from 'next/head';
+import { useRouter } from 'next/router';
+import { useAuth } from '@/hooks/useAuth';
+import Link from 'next/link';
+import AnalyticsCard from '@/components/admin/AnalyticsCard';
 
-export default function AdminDashboardPage() {
-  const { data: session, status } = useSession()
-  const router = useRouter()
-  const [period, setPeriod] = useState<number>(30)
+interface DashboardStats {
+  users: {
+    total: number;
+    newThisWeek: number;
+    weeklyTrend: number;
+    activeToday: number;
+  };
+  courses: {
+    total: number;
+    enrollmentsTotal: number;
+    completionRate: number;
+    avgRating: number;
+  };
+  revenue: {
+    total: number;
+    pending: number;
+    thisMonth: number;
+    monthlyTrend: number;
+  };
+  engagement: {
+    avgSessionDuration: number;
+    dailyActiveUsers: number;
+    bounceRate: number;
+    courseCompletionRate: number;
+  };
+}
 
-  // Loading state
-  if (status === 'loading') {
+export default function AdminDashboard() {
+  const router = useRouter();
+  const { user, isAuthenticated } = useAuth();
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push('/login');
+      return;
+    }
+
+    // Check if user is admin
+    if (user && !['ADMIN', 'SUPERADMIN'].includes(user.role)) {
+      router.push('/');
+      return;
+    }
+
+    if (isAuthenticated && user?.id) {
+      fetchDashboardStats();
+    }
+  }, [isAuthenticated, user?.id, user?.role]);
+
+  const fetchDashboardStats = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8001';
+      const token = localStorage.getItem('token');
+
+      const response = await fetch(`${apiBase}/api/v1x/admin/analytics/dashboard`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          router.push('/');
+          return;
+        }
+        throw new Error('Failed to fetch dashboard stats');
+      }
+
+      const data = await response.json();
+      setStats(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error loading dashboard');
+      console.error('Dashboard fetch error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
     return (
-      <PageLayout>
-        <div className="flex justify-center items-center min-h-screen">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading admin dashboard...</p>
-          </div>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin text-4xl mb-4">⏳</div>
+          <p className="text-gray-600 dark:text-gray-400">Loading dashboard...</p>
         </div>
-      </PageLayout>
-    )
-  }
-
-  // Unauthorized state
-  if (!session) {
-    router.push('/auth/signin')
-    return null
-  }
-
-  const userRole = (session?.user as any)?.role || ''
-  const isAdmin = userRole === 'admin' || userRole === 'superadmin'
-
-  if (!isAdmin) {
-    return (
-      <PageLayout>
-        <div className="max-w-2xl mx-auto px-4 py-12">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-            <h1 className="text-2xl font-bold text-red-600 mb-2">❌ Access Denied</h1>
-            <p className="text-red-700">
-              You don't have permission to access the admin dashboard. This area is restricted to administrators only.
-            </p>
-            <button
-              onClick={() => router.push('/')}
-              className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
-            >
-              Return to Home
-            </button>
-          </div>
-        </div>
-      </PageLayout>
-    )
+      </div>
+    );
   }
 
   return (
     <>
       <Head>
-        <title>Admin Dashboard - SkillForge Global</title>
-        <meta name="description" content="Admin dashboard for SkillForge Global platform monitoring and management" />
-        <meta name="robots" content="noindex, nofollow" />
+        <title>Admin Dashboard - SkillForge</title>
+        <meta name="description" content="SkillForge admin dashboard with analytics" />
       </Head>
 
-      <PageLayout>
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          {/* Header Section */}
-          <div className="mb-8 flex justify-between items-start">
-            <div>
-              <h1 className="text-4xl font-bold text-gray-900 mb-2">⚙️ Admin Dashboard</h1>
-              <p className="text-lg text-gray-600">
-                Monitor system health, user growth, and platform metrics
-              </p>
-            </div>
-            <div className="bg-white rounded-lg shadow p-4">
-              <p className="text-sm text-gray-600 mb-2">Logged in as</p>
-              <p className="font-semibold text-gray-900">{session?.user?.name || session?.user?.email}</p>
-              <p className="text-xs text-gray-500 mt-1">Role: <span className="font-mono bg-blue-100 px-2 py-1 rounded">{userRole}</span></p>
-            </div>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+        <div className="max-w-7xl mx-auto px-4">
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
+              📊 Admin Dashboard
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400">
+              Platform analytics and management
+            </p>
           </div>
 
-          {/* Period Selector */}
-          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 className="text-xl font-semibold mb-4">Dashboard Period</h2>
-            <div className="flex gap-4">
-              <button
-                onClick={() => setPeriod(30)}
-                className={`px-6 py-2 rounded-lg font-medium transition ${
-                  period === 30
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Last 30 Days
-              </button>
-              <button
-                onClick={() => setPeriod(90)}
-                className={`px-6 py-2 rounded-lg font-medium transition ${
-                  period === 90
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Last 90 Days
-              </button>
-              <button
-                onClick={() => setPeriod(365)}
-                className={`px-6 py-2 rounded-lg font-medium transition ${
-                  period === 365
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Last Year
-              </button>
+          {error && (
+            <div className="bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-200 px-4 py-3 rounded-lg mb-6">
+              {error}
+            </div>
+          )}
+
+          {/* Quick Navigation */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Quick Links</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+              <Link href="/admin/dashboard">
+                <button className="w-full px-4 py-3 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition">
+                  📊 Dashboard
+                </button>
+              </Link>
+              <Link href="/admin/courses">
+                <button className="w-full px-4 py-3 rounded-lg bg-purple-500 text-white font-semibold hover:bg-purple-600 transition">
+                  📚 Courses
+                </button>
+              </Link>
+              <Link href="/admin/revenue">
+                <button className="w-full px-4 py-3 rounded-lg bg-green-500 text-white font-semibold hover:bg-green-600 transition">
+                  💰 Revenue
+                </button>
+              </Link>
+              <Link href="/admin/engagement">
+                <button className="w-full px-4 py-3 rounded-lg bg-orange-500 text-white font-semibold hover:bg-orange-600 transition">
+                  📈 Engagement
+                </button>
+              </Link>
+              <Link href="/admin/users">
+                <button className="w-full px-4 py-3 rounded-lg bg-red-500 text-white font-semibold hover:bg-red-600 transition">
+                  👥 Users
+                </button>
+              </Link>
             </div>
           </div>
 
-          {/* Admin Metrics Dashboard Component */}
-          <div className="space-y-8">
-            <AdminMetricsDashboard
-              userRole={userRole}
-              period={period}
-            />
-          </div>
+          {stats && (
+            <>
+              {/* User Analytics */}
+              <div className="mb-8">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  👥 User Analytics
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <AnalyticsCard
+                    title="Total Users"
+                    value={stats.users.total}
+                    icon="👤"
+                    color="blue"
+                    trend={{
+                      direction: 'up',
+                      percentage: stats.users.weeklyTrend,
+                      period: 'vs last week'
+                    }}
+                  />
+                  <AnalyticsCard
+                    title="New Users (Week)"
+                    value={stats.users.newThisWeek}
+                    icon="✨"
+                    color="green"
+                  />
+                  <AnalyticsCard
+                    title="Active Today"
+                    value={stats.users.activeToday}
+                    icon="🔥"
+                    color="yellow"
+                  />
+                  <AnalyticsCard
+                    title="Growth Rate"
+                    value={`${stats.users.weeklyTrend}%`}
+                    icon="📈"
+                    color="purple"
+                    subtext="Weekly growth"
+                  />
+                </div>
+              </div>
 
-          {/* Admin Controls */}
-          <div className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <AdminControlCard
-              title="User Management"
-              description="Manage user accounts and permissions"
-              href="/admin/users"
-              icon="👥"
-            />
-            <AdminControlCard
-              title="Content Management"
-              description="Manage courses, quizzes, and content"
-              href="/admin/content"
-              icon="📚"
-            />
-            <AdminControlCard
-              title="Reports"
-              description="Generate and view system reports"
-              href="/admin/reports"
-              icon="📊"
-            />
-            <AdminControlCard
-              title="Settings"
-              description="Configure system settings and policies"
-              href="/admin/settings"
-              icon="⚙️"
-            />
-          </div>
+              {/* Course Analytics */}
+              <div className="mb-8">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  📚 Course Analytics
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <AnalyticsCard
+                    title="Total Courses"
+                    value={stats.courses.total}
+                    icon="📖"
+                    color="blue"
+                  />
+                  <AnalyticsCard
+                    title="Total Enrollments"
+                    value={stats.courses.enrollmentsTotal}
+                    icon="📝"
+                    color="purple"
+                  />
+                  <AnalyticsCard
+                    title="Completion Rate"
+                    value={`${stats.courses.completionRate}%`}
+                    icon="✅"
+                    color="green"
+                  />
+                  <AnalyticsCard
+                    title="Avg Course Rating"
+                    value={stats.courses.avgRating.toFixed(1)}
+                    icon="⭐"
+                    color="yellow"
+                    subtext="out of 5"
+                  />
+                </div>
+              </div>
 
-          {/* Quick Actions */}
-          <div className="mt-8 bg-blue-50 rounded-lg p-6 border border-blue-200">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">🚀 Quick Actions</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <QuickActionButton
-                label="Export User Data"
-                description="Export all user data as CSV"
-                onClick={() => alert('Feature coming soon')}
-              />
-              <QuickActionButton
-                label="View Logs"
-                description="System activity and error logs"
-                onClick={() => alert('Feature coming soon')}
-              />
-              <QuickActionButton
-                label="Backup Database"
-                description="Create database backup"
-                onClick={() => alert('Feature coming soon')}
-              />
-              <QuickActionButton
-                label="Send Announcement"
-                description="Send platform-wide announcement"
-                onClick={() => alert('Feature coming soon')}
-              />
-            </div>
-          </div>
+              {/* Revenue Analytics */}
+              <div className="mb-8">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  💰 Revenue Analytics
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <AnalyticsCard
+                    title="Total Revenue"
+                    value={`$${stats.revenue.total.toLocaleString()}`}
+                    icon="💵"
+                    color="green"
+                    trend={{
+                      direction: 'up',
+                      percentage: stats.revenue.monthlyTrend,
+                      period: 'vs last month'
+                    }}
+                  />
+                  <AnalyticsCard
+                    title="This Month"
+                    value={`$${stats.revenue.thisMonth.toLocaleString()}`}
+                    icon="📅"
+                    color="green"
+                  />
+                  <AnalyticsCard
+                    title="Pending Payouts"
+                    value={`$${stats.revenue.pending.toLocaleString()}`}
+                    icon="⏳"
+                    color="yellow"
+                  />
+                  <AnalyticsCard
+                    title="Growth"
+                    value={`${stats.revenue.monthlyTrend}%`}
+                    icon="📈"
+                    color="green"
+                    subtext="Monthly growth"
+                  />
+                </div>
+              </div>
 
-          {/* Footer Note */}
-          <div className="mt-8 text-center text-sm text-gray-500 border-t pt-6">
-            <p>Admin Dashboard • Real-time monitoring and analytics</p>
-            <p>Last updated: {new Date().toLocaleString()}</p>
-          </div>
+              {/* Engagement Metrics */}
+              <div className="mb-8">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  📊 Engagement Metrics
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <AnalyticsCard
+                    title="Avg Session Duration"
+                    value={`${stats.engagement.avgSessionDuration}m`}
+                    icon="⏱️"
+                    color="blue"
+                  />
+                  <AnalyticsCard
+                    title="Daily Active Users"
+                    value={stats.engagement.dailyActiveUsers}
+                    icon="👥"
+                    color="purple"
+                  />
+                  <AnalyticsCard
+                    title="Bounce Rate"
+                    value={`${stats.engagement.bounceRate}%`}
+                    icon="🚪"
+                    color="red"
+                    subtext="Lower is better"
+                  />
+                  <AnalyticsCard
+                    title="Course Completion"
+                    value={`${stats.engagement.courseCompletionRate}%`}
+                    icon="🎯"
+                    color="green"
+                  />
+                </div>
+              </div>
+
+              {/* Admin Actions */}
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+                  🔧 Admin Actions
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <button className="px-4 py-3 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition">
+                    📋 Review Pending Content
+                  </button>
+                  <button className="px-4 py-3 rounded-lg bg-yellow-500 text-white font-semibold hover:bg-yellow-600 transition">
+                    ⚠️ Manage Reports
+                  </button>
+                  <button className="px-4 py-3 rounded-lg bg-purple-500 text-white font-semibold hover:bg-purple-600 transition">
+                    📧 Send Campaign Email
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
-      </PageLayout>
+      </div>
     </>
-  )
+  );
 }
 
-interface AdminControlCardProps {
-  title: string
-  description: string
-  href: string
-  icon: string
-}
-
-function AdminControlCard({ title, description, href, icon }: AdminControlCardProps) {
-  return (
-    <a
-      href={href}
-      className="bg-white rounded-lg shadow hover:shadow-lg transition p-6 group cursor-pointer"
-    >
-      <div className="text-3xl mb-3">{icon}</div>
-      <h4 className="font-semibold text-gray-900 group-hover:text-blue-600 transition">
-        {title}
-      </h4>
-      <p className="text-sm text-gray-600 mt-2">{description}</p>
-    </a>
-  )
-}
-
-interface QuickActionButtonProps {
-  label: string
-  description: string
-  onClick: () => void
-}
-
-function QuickActionButton({ label, description, onClick }: QuickActionButtonProps) {
-  return (
-    <button
-      onClick={onClick}
-      className="text-left p-4 bg-white rounded-lg hover:bg-blue-50 transition border border-transparent hover:border-blue-300"
-    >
-      <h4 className="font-semibold text-gray-900">{label}</h4>
-      <p className="text-sm text-gray-600 mt-1">{description}</p>
-    </button>
-  )
-}
