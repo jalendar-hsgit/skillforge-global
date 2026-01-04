@@ -168,7 +168,7 @@ class SessionManagementService:
             tuple: (can_book, reason_if_not)
         """
         from app.modelsx.mentor import Mentor, MentorSession, SessionStatus
-        from datetime import datetime
+        from datetime import datetime, timezone
         
         # Check if mentor exists and is approved
         mentor = db.query(Mentor).filter(Mentor.id == mentor_id).first()
@@ -179,7 +179,23 @@ class SessionManagementService:
             return False, "Mentor is not currently available"
         
         # Check if scheduled time is in the future
-        if scheduled_at <= datetime.utcnow():
+        # Handle both offset-aware and offset-naive datetimes
+        now = datetime.now(timezone.utc)
+        scheduled_time = scheduled_at
+        
+        # If scheduled_at is a string, parse it
+        if isinstance(scheduled_at, str):
+            try:
+                scheduled_time = datetime.fromisoformat(scheduled_at.replace('Z', '+00:00'))
+            except (ValueError, AttributeError):
+                return False, "Invalid scheduled time format"
+        
+        # Make sure we're comparing offset-aware datetimes
+        if scheduled_time.tzinfo is None:
+            # If naive, assume UTC
+            scheduled_time = scheduled_time.replace(tzinfo=timezone.utc)
+        
+        if scheduled_time <= now:
             return False, "Cannot book sessions in the past"
         
         # Check if mentor has conflicting session

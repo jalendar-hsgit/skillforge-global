@@ -94,12 +94,3 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.status(status).json({ detail: msg, code: status });
   }
 }
-  const { rest } = req.query;
-      if (!rest) {
-        // If no [...rest] path provided, this handler shouldn't be called
-        // But handle gracefully by delegating to parent handler
-        return res.status(404).json({ detail: "Not found" });
-      }
-      const idStr = Array.isArray(id) ? id[0] : id;
-      const restSegments = Array.isArray(rest) ? rest : rest ? [rest] : [];
-@@

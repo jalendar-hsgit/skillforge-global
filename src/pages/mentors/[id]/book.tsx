@@ -55,14 +55,19 @@ export default function BookSessionPage() {
   const fetchMentorAndAvailability = async () => {
     try {
       setLoading(true);
+      console.log('Fetching mentor and availability from:', API_BASE);
 
       // Fetch mentor
       const mentorResponse = await fetch(
         `${API_BASE}/api/v1x/mentors/${id}`,
         { credentials: 'include' }
       );
-      if (!mentorResponse.ok) throw new Error('Failed to fetch mentor');
+      if (!mentorResponse.ok) {
+        console.error('Failed to fetch mentor:', mentorResponse.status, mentorResponse.statusText);
+        throw new Error('Failed to fetch mentor');
+      }
       const mentorData = await mentorResponse.json();
+      console.log('Mentor loaded:', mentorData);
       setMentor(mentorData);
 
       // Fetch availability
@@ -74,16 +79,69 @@ export default function BookSessionPage() {
         const availabilityData = await availabilityResponse.json();
         const slots = availabilityData.slots || availabilityData;
         const dataArray = Array.isArray(slots) ? slots : [];
-        // Filter to future available slots only
-        const futureSlots = dataArray.filter(
-          (slot: Availability) => 
-            slot.is_available && 
-            new Date(slot.start_time) > new Date()
-        );
-        setAvailability(futureSlots);
+        console.log('Raw availability slots:', dataArray);
+        
+        // Expand recurring slots to future dates and filter to future available slots
+        const expandedSlots = dataArray.flatMap((slot: Availability, slotIndex: number) => {
+          if (!slot.is_available) return [];
+          
+          // If slot has a specific date, use that
+          if (slot.date) {
+            const slotDateTime = new Date(slot.date);
+            const [hours, minutes] = slot.start_time.split(':');
+            slotDateTime.setHours(parseInt(hours), parseInt(minutes), 0);
+            
+            if (slotDateTime > new Date()) {
+              return [{
+                ...slot,
+                expanded_date: slotDateTime.toISOString(),
+                end_time_str: slot.end_time,
+                unique_key: `${slot.id}-${slotIndex}-date`
+              }];
+            }
+            return [];
+          }
+          
+          // If slot has day_of_week, expand to next 14 days
+          if (slot.day_of_week !== null && slot.day_of_week !== undefined) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const expanded = [];
+            
+            for (let i = 1; i <= 14; i++) {
+              const checkDate = new Date(today);
+              checkDate.setDate(today.getDate() + i);
+              
+              const dayOfWeek = checkDate.getDay();
+              // Convert JS weekday (0=Sunday) to our format (0=Monday)
+              const normalizedDOW = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+              
+              if (normalizedDOW === slot.day_of_week) {
+                const [hours, minutes] = slot.start_time.split(':');
+                checkDate.setHours(parseInt(hours), parseInt(minutes), 0);
+                expanded.push({
+                  ...slot,
+                  expanded_date: checkDate.toISOString(),
+                  end_time_str: slot.end_time,
+                  unique_key: `${slot.id}-${slotIndex}-${checkDate.getTime()}`
+                });
+              }
+            }
+            return expanded;
+          }
+          
+          return [];
+        });
+        
+        setAvailability(expandedSlots);
+        console.log('Expanded slots:', expandedSlots);
+      } else {
+        console.warn('Failed to fetch availability:', availabilityResponse.status);
       }
     } catch (err: any) {
-      setError(err.message);
+      const errorMsg = err?.message || 'Failed to load mentor information';
+      console.error('Error loading mentor/availability:', errorMsg);
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -111,7 +169,7 @@ export default function BookSessionPage() {
       setBooking(true);
       setError('');
 
-      const scheduledAt = selectedSlot?.start_time || (() => {
+      const scheduledAt = (selectedSlot as any)?.expanded_date || (() => {
         const now = new Date();
         const fallbackStart = new Date(now.getTime());
         fallbackStart.setDate(now.getDate() + 1);
@@ -119,20 +177,33 @@ export default function BookSessionPage() {
         return fallbackStart.toISOString();
       })();
 
-      const response = await fetch(`${API_BASE}/api/v1x/mentors/sessions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          mentor_id: Number(id),
-          scheduled_at: scheduledAt,
-          duration_minutes: duration,
-          topic,
-          description: notes || undefined
-        })
+      console.log('Booking session:', {
+        mentor_id: Number(id),
+        scheduled_at: scheduledAt,
+        duration_minutes: duration,
+        topic
       });
+
+      let response;
+      try {
+        response = await fetch(`${API_BASE}/api/v1x/mentors/sessions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            mentor_id: Number(id),
+            scheduled_at: scheduledAt,
+            duration_minutes: duration,
+            topic,
+            description: notes || undefined
+          })
+        });
+      } catch (fetchErr: any) {
+        console.error('Network error:', fetchErr);
+        throw new Error(`Network error: Cannot reach booking server at ${API_BASE}. Make sure the backend is running.`);
+      }
 
       if (response.status === 401) {
         router.push(`/login?redirect=/mentors/${id}/book`);
@@ -140,8 +211,14 @@ export default function BookSessionPage() {
       }
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.detail || 'Failed to book session');
+        let errorDetail = 'Failed to book session';
+        try {
+          const data = await response.json();
+          errorDetail = data.detail || data.message || errorDetail;
+        } catch {
+          errorDetail = `Server error (${response.status}): ${response.statusText}`;
+        }
+        throw new Error(errorDetail);
       }
 
       const sessionData = await response.json();
@@ -158,7 +235,9 @@ export default function BookSessionPage() {
         }, 2000);
       }
     } catch (err: any) {
-      setError(err.message);
+      const errorMsg = err?.message || 'An error occurred while booking the session';
+      console.error('Booking error:', errorMsg);
+      setError(errorMsg);
     } finally {
       setBooking(false);
     }
@@ -306,9 +385,9 @@ export default function BookSessionPage() {
                     </label>
                     {availability.length === 0 ? (
                       <div className="space-y-3">
-                        <Card className="bg-neuralBlue-500/10 border border-neuralBlue-500/30 backdrop-blur-xl">
+                        <Card className="bg-techBlue-500/10 border border-techBlue-500/30 backdrop-blur-xl">
                           <div className="p-4">
-                            <p className="text-neuralBlue-200 text-sm">
+                            <p className="text-techBlue-200 text-sm">
                               <span className="font-semibold">Demo Mode:</span> No availability slots found.
                               You can still book a session — the system will use a fallback time (tomorrow at 10:00 AM).
                             </p>
@@ -317,22 +396,22 @@ export default function BookSessionPage() {
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {availability.slice(0, 8).map(slot => (
+                        {availability.slice(0, 8).map((slot: any) => (
                           <button
-                            key={slot.id}
+                            key={slot.unique_key || `${slot.id}-${slot.expanded_date}`}
                             type="button"
                             onClick={() => setSelectedSlot(slot)}
                             className={`p-5 border-2 rounded-lg text-left transition-all duration-300 ${
-                              selectedSlot?.id === slot.id
+                              selectedSlot?.unique_key === slot.unique_key || selectedSlot?.expanded_date === slot.expanded_date
                                 ? 'border-forgePurple-500 bg-forgePurple-500/10 shadow-glow-sm'
-                                : 'border-white/10 bg-deepTech-900/30 hover:border-neuralBlue-500/50 hover:shadow-glow-sm'
+                                : 'border-white/10 bg-deepTech-900/30 hover:border-techBlue-500/50 hover:shadow-glow-sm'
                             }`}
                           >
                             <p className="font-semibold text-white text-lg">
-                              {formatDate(slot.start_time)}
+                              {formatDate((slot as any).expanded_date)}
                             </p>
                             <p className="text-sm text-techGray-400 mt-1">
-                              {formatTime(slot.start_time)} - {formatTime(slot.end_time)}
+                              {formatTime((slot as any).expanded_date)} - {slot.end_time_str}
                             </p>
                           </button>
                         ))}
@@ -420,20 +499,20 @@ export default function BookSessionPage() {
                   </div>
 
                   {/* Selected Time */}
-                  {selectedSlot ? (
+                  {selectedSlot && (selectedSlot as any).expanded_date ? (
                     <div className="pb-5 border-b border-white/10">
                       <p className="text-sm text-techGray-400 mb-1">Date & Time</p>
                       <p className="font-semibold text-white">
-                        {formatDate(selectedSlot.start_time)}
+                        {formatDate((selectedSlot as any).expanded_date)}
                       </p>
                       <p className="text-sm text-techGray-300">
-                        {formatTime(selectedSlot.start_time)}
+                        {formatTime((selectedSlot as any).expanded_date)} - {(selectedSlot as any).end_time_str}
                       </p>
                     </div>
                   ) : availability.length === 0 ? (
                     <div className="pb-5 border-b border-white/10">
                       <p className="text-sm text-techGray-400 mb-1">Date & Time</p>
-                      <p className="font-semibold text-neuralBlue-400 text-sm">
+                      <p className="font-semibold text-techBlue-400 text-sm">
                         Demo: Tomorrow at 10:00 AM
                       </p>
                     </div>
@@ -450,7 +529,7 @@ export default function BookSessionPage() {
                   {/* Cost */}
                   <div>
                     <p className="text-sm text-techGray-400 mb-2">Total Cost</p>
-                    <p className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-aiElectric-400 to-neuralBlue-400">
+                    <p className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-aiElectric-400 to-techBlue-400">
                       ${calculateCost().toFixed(2)}
                     </p>
                     <p className="text-xs text-techGray-500 mt-2">

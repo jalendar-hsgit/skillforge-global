@@ -24,7 +24,7 @@ from app.schemas.search import (
     AdvancedSearchRequest, AdvancedSearchResponse
 )
 
-router = APIRouter(prefix="/api/v1x/search", tags=["search"])
+router = APIRouter(prefix="/search", tags=["search"])
 
 
 # Advanced Search Endpoints

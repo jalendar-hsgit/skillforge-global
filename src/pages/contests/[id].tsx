@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '@/components/Layout';
-import Card from '@/components/Card';
-import Button from '@/components/Button';
-import { apiCall } from '@/lib/api';
 import { useMe } from '@/hooks/useMe';
+import { Trophy, Users, Clock, CheckCircle, TrendingUp } from 'lucide-react';
 
 interface ContestDetail {
   id: number;
@@ -48,7 +46,7 @@ interface Submission {
 const ContestDetailPage: React.FC = () => {
   const router = useRouter();
   const { id } = router.query;
-  const { user } = useMe();
+  const { me: user } = useMe();
 
   const [contest, setContest] = useState<ContestDetail | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);

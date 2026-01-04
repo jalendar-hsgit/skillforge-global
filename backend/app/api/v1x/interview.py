@@ -26,7 +26,7 @@ from app.schemas.interview import (
     InterviewSessionStats, InterviewProgressResponse, QuestionBankResponse
 )
 
-router = APIRouter(prefix="/api/v1x/interview", tags=["interview"])
+router = APIRouter(prefix="/interview", tags=["interview"])
 
 
 # Question Bank Endpoints

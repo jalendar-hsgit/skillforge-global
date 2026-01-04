@@ -5,7 +5,7 @@ Request/response validation for gamification and community features
 
 from datetime import datetime
 from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from enum import Enum
 
 
@@ -194,8 +194,27 @@ class ForumCategoryResponse(BaseModel):
 class UserBasicResponse(BaseModel):
     """Basic user info for forum responses"""
     id: int
-    username: str
+    username: Optional[str] = None  # Maps to name or email
+    name: Optional[str] = None
+    email: Optional[str] = None
     avatar_url: Optional[str] = None
+    
+    class Config:
+        from_attributes = True
+    
+    @model_validator(mode='before')
+    @classmethod
+    def convert_user_model(cls, data):
+        """Convert User model to UserBasicResponse fields"""
+        if hasattr(data, 'id'):  # It's a model object
+            return {
+                'id': data.id,
+                'username': data.name or (data.email.split('@')[0] if data.email else 'user'),
+                'name': data.name,
+                'email': data.email,
+                'avatar_url': getattr(data, 'avatar_url', None)
+            }
+        return data
 
 
 class ForumReplyResponse(BaseModel):

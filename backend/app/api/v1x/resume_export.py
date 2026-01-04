@@ -15,10 +15,8 @@ from app.models.user import User
 from app.modelsx.resume import (
     Resume, WorkExperience, Education, ResumeProject,
     ResumeSkill, ResumeCertificate, ResumeAchievement,
-    Language, Publication, Patent, VolunteerWork, Reference
+    ResumeTemplate
 )
-# Don't import Achievement here - it's in badges.py, not resume.py
-from app.modelsx.resume import ResumeTemplate
 from sqlalchemy import or_
 
 # Request model for HTML-to-PDF conversion
@@ -140,7 +138,7 @@ async def export_pdf_from_html(
 @router.get("/{resume_id}/export")
 async def export_resume(
     resume_id: int,
-    format: str = "pdf",  # pdf, docx, txt
+    format: str = "pdf",  # pdf, docx, html, png, txt
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -148,6 +146,8 @@ async def export_resume(
     Export resume in multiple formats:
     - PDF: Professional formatted document
     - DOCX: Microsoft Word compatible
+    - HTML: Web-friendly format
+    - PNG: Image format for social media
     - TXT: Plain text version
     """
     print(f"[Resume Export] resume_id={resume_id}, user_id={user.id}, format={format}")
@@ -187,10 +187,14 @@ async def export_resume(
         return await export_pdf(resume, db)
     elif format == "docx":
         return await export_docx(resume, db)
+    elif format == "html":
+        return await export_html(resume, db)
+    elif format == "png":
+        return await export_png(resume, db)
     elif format == "txt":
         return await export_txt(resume, db)
     else:
-        raise HTTPException(status_code=400, detail="Unsupported format. Use: pdf, docx, or txt")
+        raise HTTPException(status_code=400, detail="Unsupported format. Use: pdf, docx, html, png, or txt")
 
 
 def _map_font_to_reportlab(font_family: str) -> tuple[str, str]:
@@ -1260,3 +1264,61 @@ async def export_txt(resume: Resume, db: Session):
         media_type="text/plain",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'}
     )
+
+
+async def export_html(resume: Resume, db: Session):
+    """Export as HTML file for web viewing"""
+    html_content = _generate_resume_html(resume)
+    
+    # Generate filename
+    name_for_file = resume.full_name or resume.title or "Resume"
+    safe_name = "".join(c if c.isalnum() or c in (' ', '-', '_') else '_' for c in name_for_file)
+    filename = f"{safe_name.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d')}.html"
+    
+    return Response(
+        content=html_content.encode('utf-8'),
+        media_type="text/html",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+
+async def export_png(resume: Resume, db: Session):
+    """Export as PNG image for social media and sharing"""
+    try:
+        from playwright.async_api import async_playwright
+    except ImportError:
+        raise HTTPException(status_code=500, detail="PNG generation requires Playwright. Please install it.")
+    
+    try:
+        html_content = _generate_resume_html(resume)
+        
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(headless=True)
+            page = await browser.new_page()
+            
+            # Set viewport to standard size for image (wider for portrait-like image)
+            await page.set_viewport_size({"width": 1024, "height": 1400})
+            
+            # Set content and wait for resources
+            await page.set_content(html_content, wait_until="networkidle")
+            
+            # Capture screenshot as PNG
+            png_bytes = await page.screenshot(full_page=True, type="png")
+            
+            await browser.close()
+            
+            # Generate filename
+            name_for_file = resume.full_name or resume.title or "Resume"
+            safe_name = "".join(c if c.isalnum() or c in (' ', '-', '_') else '_' for c in name_for_file)
+            filename = f"{safe_name.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d')}.png"
+            
+            return Response(
+                content=png_bytes,
+                media_type="image/png",
+                headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+            )
+    
+    except Exception as e:
+        print(f"[Resume Export] PNG generation failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate PNG: {str(e)}")
+

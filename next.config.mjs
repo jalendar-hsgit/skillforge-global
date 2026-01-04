@@ -42,8 +42,10 @@ const nextConfig = {
   },
 
   // Keep experimental options minimal for stable dev
+  experimental: {},
 
-  // Proxy API requests to backend
+  // Skip static pre-rendering for problematic pages
+  staticPageGenerationTimeout: 0,
   async rewrites() {
     return [
       {

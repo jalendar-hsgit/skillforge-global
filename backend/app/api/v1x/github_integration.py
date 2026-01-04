@@ -17,7 +17,7 @@ from app.modelsx.github_integration import (
     GitHubConnectionStatus, ContributionType
 )
 
-router = APIRouter(prefix="/api/v1x/github", tags=["github_integration"])
+router = APIRouter(prefix="/github", tags=["github_integration"])
 
 GITHUB_API_BASE = "https://api.github.com"
 

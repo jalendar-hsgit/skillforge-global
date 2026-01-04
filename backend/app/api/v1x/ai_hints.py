@@ -19,7 +19,7 @@ from app.modelsx.ai_hints import (
     HintType, HintDifficulty, HintQuality
 )
 
-router = APIRouter(prefix="/api/v1x/hints", tags=["AI Hints"])
+router = APIRouter(prefix="/hints", tags=["AI Hints"])
 
 
 # ============================================================================

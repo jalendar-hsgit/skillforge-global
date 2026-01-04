@@ -16,3 +16,5 @@ export function Card({ children, className = '', ...props }: CardProps) {
 export function CardBody({ children, className = '' }: { children: ReactNode; className?: string }) {
   return <div className={`p-6 sm:p-8 ${className}`}>{children}</div>
 }
+// Default export for backwards compatibility
+export default Card

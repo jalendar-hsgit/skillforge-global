@@ -36,6 +36,22 @@ class EventType(str, Enum):
     BADGE_EARNED = "badge_earned"
     COIN_EARNED = "coin_earned"
 
+    # Courses
+    COURSE_ENROLLED = "course_enrolled"
+    COURSE_PROGRESS = "course_progress"
+    COURSE_COMPLETED = "course_completed"
+
+    # Quizzes
+    QUIZ_STARTED = "quiz_started"
+    QUIZ_SUBMITTED = "quiz_submitted"
+    QUIZ_GRADED = "quiz_graded"
+
+    # Achievements
+    ACHIEVEMENT_UNLOCKED = "achievement_unlocked"
+
+    # Badge display
+    BADGE_DISPLAYED = "badge_displayed"
+
 
 class Event:
     """Real-time event data structure"""

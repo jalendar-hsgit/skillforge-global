@@ -18,6 +18,9 @@ from app.schemas.learning_paths_schemas import (
 )
 from app.api.deps import get_current_user
 
+# Phase 3.5: Real-time event emission
+from app.services.realtime_events import on_certificate_issued
+
 router = APIRouter(prefix="/certificates", tags=["certificates"])
 
 
@@ -32,7 +35,7 @@ def generate_verification_code():
 
 
 @router.post("", response_model=CertificateResponse, status_code=status.HTTP_201_CREATED)
-def issue_certificate(
+async def issue_certificate(
     cert_data: CertificateCreate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -76,6 +79,17 @@ def issue_certificate(
     db.add(certificate)
     db.commit()
     db.refresh(certificate)
+    
+    # Emit real-time event
+    await on_certificate_issued(
+        user_id=cert_data.user_id,
+        certificate_id=certificate.id,
+        certificate_number=certificate.certificate_number,
+        path_id=cert_data.path_id,
+        path_title=path.title,
+        issue_date=certificate.earned_at
+    )
+    
     return certificate
 
 

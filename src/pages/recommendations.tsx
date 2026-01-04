@@ -1,9 +1,11 @@
+export const dynamic = 'force-dynamic'
+
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '@/components/Layout';
-import Card from '@/components/Card';
-import Button from '@/components/Button';
-import { apiBase } from '@/lib/apiBase';
+import { Card } from '@/components/Card';
+import { Button } from '@/components/Button';
+import { API_BASE } from '@/lib/api';
 
 interface Recommendation {
   id: number;
@@ -54,7 +56,7 @@ export default function RecommendationsPage() {
   const fetchRecommendations = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${apiBase}/api/v1x/recommendations/?page=1&page_size=10`, {
+      const response = await fetch(`${API_BASE}/api/v1x/recommendations/?page=1&page_size=10`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
@@ -72,7 +74,7 @@ export default function RecommendationsPage() {
 
   const fetchQueue = async () => {
     try {
-      const response = await fetch(`${apiBase}/api/v1x/recommendations/queue`, {
+      const response = await fetch(`${API_BASE}/api/v1x/recommendations/queue`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
@@ -89,7 +91,7 @@ export default function RecommendationsPage() {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch(`${apiBase}/api/v1x/recommendations/stats`, {
+      const response = await fetch(`${API_BASE}/api/v1x/recommendations/stats`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
@@ -107,7 +109,7 @@ export default function RecommendationsPage() {
   const generateRecommendations = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${apiBase}/api/v1x/recommendations/generate`, {
+      const response = await fetch(`${API_BASE}/api/v1x/recommendations/generate`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -127,7 +129,7 @@ export default function RecommendationsPage() {
 
   const dismissRecommendation = async (id: number) => {
     try {
-      const response = await fetch(`${apiBase}/api/v1x/recommendations/${id}/dismiss`, {
+      const response = await fetch(`${API_BASE}/api/v1x/recommendations/${id}/dismiss`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -144,7 +146,7 @@ export default function RecommendationsPage() {
 
   const refreshQueue = async () => {
     try {
-      const response = await fetch(`${apiBase}/api/v1x/recommendations/queue/refresh`, {
+      const response = await fetch(`${API_BASE}/api/v1x/recommendations/queue/refresh`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,

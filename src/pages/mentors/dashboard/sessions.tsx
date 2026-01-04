@@ -1,67 +1,78 @@
 import Head from 'next/head'
-import Layout from '@/components/Layout'
-import AdminHeader from '@/components/AdminHeader'
-import DateRangePicker from '@/components/DateRangePicker'
+import DashboardLayout from '@/components/DashboardLayout'
+import DashboardListItem from '@/components/DashboardListItem'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
+import Link from 'next/link'
+import { DashboardListSkeleton } from '@/components/DashboardSkeletons'
 
 type Session = {
   id: number
   student_id: number
   topic: string
-  description: string
+  description?: string
   scheduled_at: string
   duration_minutes: number
+  price: number
   status: string
-  amount_paid: number
-  meeting_link: string
-  notes: string
+  meeting_link?: string
+  notes?: string
   created_at: string
+  amount_paid?: number
 }
 
 type SessionAction = 'confirm' | 'cancel' | 'complete'
 
+type PaginatedResponse = {
+  sessions: Session[]
+  total: number
+  completed: number
+}
+
 export default function MentorSessions() {
   const router = useRouter()
-  const [sessions, setSessions] = useState<Session[]>([])
-  const [total, setTotal] = useState(0)
-  const [filter, setFilter] = useState('all')
+  const [data, setData] = useState<PaginatedResponse | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [filter, setFilter] = useState<'all' | 'pending' | 'confirmed' | 'completed' | 'cancelled'>('all')
   const [actionLoading, setActionLoading] = useState<number | null>(null)
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
   const [showCancelModal, setShowCancelModal] = useState(false)
   const [cancelReason, setCancelReason] = useState('')
   const [cancelingSession, setCancelingSession] = useState<Session | null>(null)
 
   useEffect(() => {
     loadSessions()
-  }, [filter, startDate, endDate])
+  }, [filter])
 
   async function loadSessions() {
     setLoading(true)
+    setError('')
     try {
-      const params = new URLSearchParams()
-      if (filter !== 'all') params.set('status', filter)
-      if (startDate) params.set('start_date', startDate)
-      if (endDate) params.set('end_date', endDate)
+      const url = new URL(`${process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8001'}/api/v1x/mentor-portal/dashboard/sessions`)
+      if (filter !== 'all') url.searchParams.append('status', filter)
       
-      const url = `${process.env.NEXT_PUBLIC_API_BASE}/api/v1x/mentor-portal/dashboard/sessions?${params.toString()}`
-      
-      const res = await fetch(url, { credentials: 'include' })
+      const res = await fetch(url.toString(), {
+        credentials: 'include'
+      })
 
       if (res.status === 401) {
         router.push('/login?redirect=/mentors/dashboard/sessions')
         return
       }
 
-      if (res.ok) {
-        const data = await res.json()
-        setSessions(data.sessions || [])
-        setTotal(data.total || 0)
+      if (res.status === 404 || res.status === 403) {
+        setError('Not authorized to view sessions')
+        return
       }
-    } catch (err) {
-      console.error(err)
+
+      if (res.ok) {
+        const sessionsData = await res.json()
+        setData(sessionsData)
+      } else {
+        setError('Failed to load sessions')
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Failed to load sessions')
     } finally {
       setLoading(false)
     }
@@ -94,7 +105,7 @@ export default function MentorSessions() {
       }
       
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE}/api/v1x/mentors/sessions/${sessionId}`,
+        `${process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8001'}/api/v1x/mentors/sessions/${sessionId}`,
         {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -113,10 +124,7 @@ export default function MentorSessions() {
         throw new Error(text || 'Failed to update session')
       }
 
-      // Reload sessions
       await loadSessions()
-      
-      // Close cancel modal if open
       setShowCancelModal(false)
       setCancelReason('')
       setCancelingSession(null)
@@ -138,18 +146,53 @@ export default function MentorSessions() {
     }
   }
 
+  if (loading) {
+    return (
+      <DashboardLayout
+        title="My Sessions"
+        breadcrumbs={[
+          { label: 'Dashboard', href: '/mentors/dashboard' },
+          { label: 'Sessions' }
+        ]}
+      >
+        <DashboardListSkeleton count={5} />
+      </DashboardLayout>
+    )
+  }
+
+  if (error) {
+    return (
+      <DashboardLayout
+        title="My Sessions"
+        breadcrumbs={[
+          { label: 'Dashboard', href: '/mentors/dashboard' },
+          { label: 'Sessions' }
+        ]}
+      >
+        <div className="text-center text-red-400 py-12">
+          {error}
+        </div>
+      </DashboardLayout>
+    )
+  }
+
   return (
-    <Layout>
+    <DashboardLayout
+      title="My Sessions"
+      subtitle={`Total: ${data?.total || 0} sessions | Completed: ${data?.completed || 0}`}
+      breadcrumbs={[
+        { label: 'Dashboard', href: '/mentors/dashboard' },
+        { label: 'Sessions' }
+      ]}
+    >
       <Head>
         <title>My Sessions – Mentor Dashboard</title>
       </Head>
 
-      <AdminHeader title="My Sessions" backUrl="/mentors/dashboard" />
-
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
+      <div className="space-y-6">
         {/* Filter Tabs */}
         <div className="mb-6 flex gap-2 flex-wrap">
-          {['all', 'pending', 'confirmed', 'completed', 'cancelled'].map((status) => (
+          {(['all', 'pending', 'confirmed', 'completed', 'cancelled'] as const).map((status) => (
             <button
               key={status}
               onClick={() => setFilter(status)}
@@ -164,21 +207,8 @@ export default function MentorSessions() {
           ))}
         </div>
 
-        {/* Date Range Filter */}
-        <div className="mb-6">
-          <DateRangePicker
-            startDate={startDate}
-            endDate={endDate}
-            onStartChange={setStartDate}
-            onEndChange={setEndDate}
-            onClear={() => { setStartDate(''); setEndDate('') }}
-          />
-        </div>
-
         {/* Sessions List */}
-        {loading ? (
-          <div className="text-center py-12 text-techGray">Loading sessions...</div>
-        ) : sessions.length === 0 ? (
+        {(data?.sessions && data.sessions.length === 0) ? (
           <div className="bg-white/5 border border-white/10 rounded-xl p-12 text-center">
             <div className="text-6xl mb-4">📅</div>
             <h3 className="text-xl font-semibold text-white mb-2">No sessions found</h3>
@@ -189,10 +219,10 @@ export default function MentorSessions() {
         ) : (
           <>
             <div className="mb-4 text-techGray">
-              Showing {sessions.length} of {total} sessions
+              Showing {data?.sessions?.length || 0} of {data?.total || 0} sessions
             </div>
             <div className="space-y-4">
-              {sessions.map((session) => (
+              {data?.sessions?.map((session) => (
                 <div
                   key={session.id}
                   data-testid="session-row"
@@ -234,7 +264,7 @@ export default function MentorSessions() {
 
                     <div>
                       <div className="text-xs text-techGray mb-1">Amount</div>
-                      <div className="text-white font-medium">${session.amount_paid.toFixed(2)}</div>
+                      <div className="text-white font-medium">${session.amount_paid?.toFixed(2) || '$0.00'}</div>
                     </div>
                   </div>
 
@@ -252,14 +282,14 @@ export default function MentorSessions() {
                   )}
 
                   {session.notes && (
-                    <div className="bg-white/5 border border-white/10 rounded-lg p-3">
+                    <div className="bg-white/5 border border-white/10 rounded-lg p-3 mb-4">
                       <div className="text-xs text-techGray mb-1">Notes:</div>
                       <div className="text-sm text-white">{session.notes}</div>
                     </div>
                   )}
 
                   {/* Action Buttons */}
-                  <div className="flex gap-2 mt-4">
+                  <div className="flex gap-2 mt-4 flex-wrap">
                     {session.status === 'pending' && (
                       <>
                         <button
@@ -305,7 +335,7 @@ export default function MentorSessions() {
       </div>
 
       {/* Cancel Modal */}
-      {showCancelModal && (
+      {showCancelModal && cancelingSession && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div
             role="dialog"
@@ -346,6 +376,6 @@ export default function MentorSessions() {
           </div>
         </div>
       )}
-    </Layout>
+    </DashboardLayout>
   )
 }

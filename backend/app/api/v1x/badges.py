@@ -21,8 +21,9 @@ from app.schemas.badges_forums import (
     LeaderboardEntryResponse, LeaderboardListResponse,
     AchievementResponse, UserAchievementResponse, UserBadgesStatsResponse
 )
+from app.services.realtime_events import on_badge_earned
 
-router = APIRouter(prefix="/api/v1x/badges", tags=["badges"])
+router = APIRouter(prefix="/badges", tags=["badges"])
 
 
 # ============================================================================
@@ -202,6 +203,13 @@ async def earn_badge(
     db.add(user_badge)
     db.commit()
     db.refresh(user_badge)
+
+    await on_badge_earned(
+        current_user.id,
+        badge.id,
+        badge.name,
+        badge.description or "",
+    )
     
     return user_badge
 

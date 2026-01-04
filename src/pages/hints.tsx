@@ -1,9 +1,11 @@
+export const dynamic = 'force-dynamic'
+
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '@/components/Layout';
-import Card from '@/components/Card';
-import Button from '@/components/Button';
-import { apiCall } from '@/lib/api';
+import { Card } from '@/components/Card';
+import { Button } from '@/components/Button';
+import { apiGet, apiPost } from '@/lib/api';
 
 interface Hint {
   id: number;
@@ -67,9 +69,7 @@ const HintsPage: React.FC = () => {
     
     try {
       setLoading(true);
-      const data = await apiCall(`/api/v1x/hints/challenge/${challengeId}`, {
-        method: 'GET',
-      });
+      const data = await apiGet(`/api/v1x/hints/challenge/${challengeId}`);
       
       if (data.hints) {
         setHints(data.hints);
@@ -84,9 +84,7 @@ const HintsPage: React.FC = () => {
   // Fetch user quota
   const fetchQuota = async () => {
     try {
-      const data = await apiCall('/api/v1x/hints/quota', {
-        method: 'GET',
-      });
+      const data = await apiGet('/api/v1x/hints/quota');
       
       if (data.quota) {
         setQuota(data.quota);
@@ -99,9 +97,7 @@ const HintsPage: React.FC = () => {
   // Fetch hint history
   const fetchHistory = async () => {
     try {
-      const data = await apiCall('/api/v1x/hints/history', {
-        method: 'GET',
-      });
+      const data = await apiGet('/api/v1x/hints/history');
       
       if (data.history) {
         setHintHistory(data.history);
@@ -125,9 +121,7 @@ const HintsPage: React.FC = () => {
       setError('');
       setSuccess('');
       
-      const data = await apiCall(`/api/v1x/hints/request/${challengeId}`, {
-        method: 'POST',
-      });
+      const data = await apiPost(`/api/v1x/hints/request/${challengeId}`, {});
 
       if (data.hint) {
         setSelectedHint(data.hint);
@@ -158,12 +152,9 @@ const HintsPage: React.FC = () => {
 
     try {
       setLoading(true);
-      const data = await apiCall(`/api/v1x/hints/rate/${selectedHint.id}`, {
-        method: 'POST',
-        body: JSON.stringify({
-          is_helpful: isHelpful,
-          rating: ratings[selectedHint.id] || 3,
-        }),
+      const data = await apiPost(`/api/v1x/hints/rate/${selectedHint.id}`, {
+        is_helpful: isHelpful,
+        rating: ratings[selectedHint.id] || 3,
       });
 
       setSuccess(`Thank you! Your feedback helps improve hints.`);
@@ -277,7 +268,7 @@ const HintsPage: React.FC = () => {
           <Card className="mb-8 text-center">
             <Button
               onClick={requestHint}
-              disabled={!challengeId || (quota && quota.remainingToday === 0)}
+              disabled={!challengeId || !!(quota && quota.remainingToday === 0)}
             >
               {quota?.remainingToday === 0 ? 'Daily quota exceeded' : 'Request AI Hint'}
             </Button>
@@ -384,7 +375,7 @@ const HintsPage: React.FC = () => {
                 </div>
                 <div className="mt-4 text-sm text-gray-500">
                   <p>✓ {selectedHint.timesHelpful} found this helpful</p>
-                  <p>✗ {selectedHint.timesUnhelpful} found this not helpful</p>
+                  <p>✗ {selectedHint.timesShown - selectedHint.timesHelpful} found this not helpful</p>
                 </div>
               </div>
             </div>

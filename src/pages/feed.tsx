@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '@/components/Layout';
 import ActivityCard from '@/components/ActivityCard';
-import { apiCall } from '@/lib/api';
+import { apiGet, apiPost, apiDelete } from '@/lib/api';
 
 interface Activity {
   id: number;
@@ -47,7 +47,7 @@ const FeedPage: React.FC = () => {
         ? `/activity/feed/personal?skip=${skip}&limit=${LIMIT}`
         : `/activity/feed/global?skip=${skip}&limit=${LIMIT}`;
       
-      const response = await apiCall('GET', endpoint);
+      const response = await apiGet(endpoint);
       setActivities(response.activities || []);
       setTotal(response.total || 0);
     } catch (error) {
@@ -60,7 +60,7 @@ const FeedPage: React.FC = () => {
 
   const handleLike = async (activityId: number) => {
     try {
-      await apiCall('POST', `/activity/${activityId}/like`, {});
+      await apiPost(`/activity/${activityId}/like`, {});
       // Refresh the activity
       const updated = activities.map(a => 
         a.id === activityId ? { ...a, like_count: a.like_count + 1 } : a
@@ -73,7 +73,7 @@ const FeedPage: React.FC = () => {
 
   const handleUnlike = async (activityId: number) => {
     try {
-      await apiCall('DELETE', `/activity/${activityId}/like`, {});
+      await apiDelete(`/activity/${activityId}/like`);
       const updated = activities.map(a => 
         a.id === activityId ? { ...a, like_count: Math.max(0, a.like_count - 1) } : a
       );

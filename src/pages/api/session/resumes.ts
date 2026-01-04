@@ -3,12 +3,50 @@ const API_BASE = process.env.API_BASE || process.env.NEXT_PUBLIC_API_BASE || "ht
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
-    const url = `${API_BASE}/api/v1x/resumes`;
+    const baseUrl = `${API_BASE}/api/v1x/resumes`;
+    const id = (req.query.id as string) || "";
+    const action = (req.query.action as string) || "";
+
+    // Handle special actions
+    if (action && id) {
+      if (action === "duplicate") {
+        const r = await fetch(`${baseUrl}/${id}/duplicate`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            cookie: req.headers.cookie || "",
+          },
+          credentials: "include" as any,
+          body: JSON.stringify(req.body || {}),
+        });
+        const text = await r.text();
+        res.status(r.status).send(text || "{}");
+        return;
+      }
+      
+      if (action === "apply-template") {
+        const templateId = (req.query.template as string) || "";
+        if (!templateId) {
+          return res.status(400).json({ detail: "template parameter required" });
+        }
+        const r = await fetch(`${baseUrl}/${id}/apply-template/${templateId}`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            cookie: req.headers.cookie || "",
+          },
+          credentials: "include" as any,
+          body: JSON.stringify(req.body || {}),
+        });
+        const text = await r.text();
+        res.status(r.status).send(text || "{}");
+        return;
+      }
+    }
 
     // Handle GET (list or by id) and POST (create)
     if (req.method === "GET" || req.method === "POST") {
-      const id = (req.query.id as string) || "";
-      const target = req.method === "GET" && id ? `${url}/${id}` : url;
+      const target = req.method === "GET" && id ? `${baseUrl}/${id}` : baseUrl;
       const r = await fetch(target, {
         method: req.method,
         headers: {
@@ -32,9 +70,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Proxy GET by id, PATCH, DELETE: /api/session/resumes?id=123
     if (["PATCH", "DELETE"].includes(req.method || "")) {
-      const id = (req.query.id as string) || "";
       if (!id) return res.status(400).json({ detail: "id is required" });
-      const r = await fetch(`${url}/${id}`, {
+      const r = await fetch(`${baseUrl}/${id}`, {
         method: req.method,
         headers: {
           "content-type": "application/json",

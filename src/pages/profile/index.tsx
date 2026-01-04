@@ -1,37 +1,18 @@
 // src/pages/profile/index.tsx
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/router'
+import { useProtectedPage } from '@/lib/useProtectedPage'
+import { LoadingSpinner } from '@/components/LoadingSpinner'
 import ProfileCard from '@/components/ProfileCard'
 import UserStatsCard from '@/components/UserStatsCard'
 
 export default function ProfilePage() {
-  const router = useRouter()
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const token = localStorage.getItem('token')
-    if (!token) {
-      router.push('/login')
-    } else {
-      setIsAuthenticated(true)
-      setLoading(false)
-    }
-  }, [router])
+  const { user, loading } = useProtectedPage()
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading your profile...</p>
-        </div>
-      </div>
-    )
+    return <LoadingSpinner message="Loading your profile..." />
   }
 
-  if (!isAuthenticated) {
-    return null
+  if (!user) {
+    return null // Redirect handled by hook
   }
 
   return (

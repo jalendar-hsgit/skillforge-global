@@ -166,16 +166,14 @@ export default function MarketplacePage() {
                 <p className="text-white/90 text-lg">Invest in your future. Learn at your own pace.</p>
               </div>
               
-              <Link href="/marketplace/cart">
-                <Button className="relative">
-                  <ShoppingCart className="w-5 h-5 mr-2" />
-                  Cart
-                  {cartCount > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
-                      {cartCount}
-                    </span>
-                  )}
-                </Button>
+              <Link href="/marketplace/cart" className="relative inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-forgePurple text-white hover:bg-forgePurple/90 transition-colors">
+                <ShoppingCart className="w-5 h-5" />
+                Cart
+                {cartCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
+                    {cartCount}
+                  </span>
+                )}
               </Link>
             </div>
           </div>
@@ -299,8 +297,8 @@ export default function MarketplacePage() {
                       </div>
 
                       {course.is_purchased ? (
-                        <Link href={`/courses/${course.path}`}>
-                          <Button size="sm" variant="secondary">View Course</Button>
+                        <Link href={`/courses/${course.path}`} className="inline-flex items-center justify-center px-3 py-1.5 text-sm font-medium rounded-lg bg-deepTech-700 text-techGray-200 hover:bg-deepTech-600 transition-colors">
+                          View Course
                         </Link>
                       ) : course.is_paid ? (
                         <Button
@@ -319,8 +317,8 @@ export default function MarketplacePage() {
                           )}
                         </Button>
                       ) : (
-                        <Link href={`/courses/${course.path}`}>
-                          <Button size="sm">Start Learning</Button>
+                        <Link href={`/courses/${course.path}`} className="inline-flex items-center justify-center px-3 py-1.5 text-sm font-medium rounded-lg bg-forgePurple text-white hover:bg-forgePurple/90 transition-colors">
+                          Start Learning
                         </Link>
                       )}
                     </div>

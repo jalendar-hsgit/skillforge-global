@@ -20,7 +20,7 @@ from app.modelsx.pwa import (
     PWANotificationPreference, PWAAnalytics, SyncStatus
 )
 
-router = APIRouter(prefix="/api/v1x/pwa", tags=["PWA"])
+router = APIRouter(prefix="/pwa", tags=["PWA"])
 
 
 # ============================================================================

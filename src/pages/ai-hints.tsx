@@ -1,59 +1,47 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '@/components/Layout';
-import Card from '@/components/Card';
-import Button from '@/components/Button';
 import SectionHeading from '@/components/SectionHeading';
-import { API_BASE } from '@/lib/apiBase';
+import Card from '@/components/Card';
+import { Lightbulb, BookOpen, Code, ExternalLink, ThumbsUp, ThumbsDown, Zap, TrendingUp } from 'lucide-react';
 
 interface Hint {
   id: number;
-  challengeId: number;
-  type: string;
+  challenge_id: number;
+  hint_type: string;
   title: string;
   content: string;
   explanation?: string;
-  difficulty: string;
-  hasCodeExample: boolean;
-  codeExample?: string;
-  codeLanguage: string;
+  target_difficulty: string;
+  code_example?: string;
+  code_language: string;
   quality: string;
-  isPremiumOnly: boolean;
-  timesShown?: number;
-  helpfulScore?: number;
+  is_premium_only: boolean;
+  cost_coins: number;
+  times_shown?: number;
+  times_helpful?: number;
+  helpful_score?: number;
+  resource_links: string[];
 }
 
 interface HintQuota {
   id: number;
-  hintsRequestedToday: number;
-  hintsQuotaPerDay: number;
-  remainingToday: number;
-  hintsRequestedThisMonth: number;
-  hintsQuotaPerMonth: number;
-  remainingThisMonth: number;
-  isUnlimited: boolean;
-}
-
-interface HintUsage {
-  id: number;
-  hintId: number;
-  challengeId: number;
-  viewedAt: string;
-  timeOnHintSeconds: number;
-  challengeSolvedAfter?: boolean;
-  timeToSolveMinutes?: number;
+  hints_requested_today: number;
+  hints_quota_per_day: number;
+  remaining_today: number;
+  hints_requested_this_month: number;
+  hints_quota_per_month: number;
+  remaining_this_month: number;
+  is_unlimited: boolean;
 }
 
 const HintIcon = ({ type }: { type: string }) => {
   const icons: Record<string, string> = {
-    concept_explanation: '💡',
-    approach_suggestion: '🎯',
-    step_by_step: '📋',
-    common_mistakes: '⚠️',
-    edge_cases: '🔍',
-    code_pattern: '🎨',
+    EXPLANATION: '📚',
+    APPROACH: '📈',
+    CODE: '💻',
+    OPTIMIZATION: '⚡',
     debugging_hint: '🐛',
-    optimization_hint: '⚡',
   };
   return <span>{icons[type] || '💡'}</span>;
 };

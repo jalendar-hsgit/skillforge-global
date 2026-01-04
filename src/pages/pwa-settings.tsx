@@ -1,9 +1,11 @@
+export const dynamic = 'force-dynamic'
+
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
-import Card from '@/components/Card';
-import Button from '@/components/Button';
+import { Card } from '@/components/Card';
+import { Button } from '@/components/Button';
 import { usePWA } from '@/hooks/usePWA';
-import { apiCall } from '@/lib/api';
+import { apiGet, apiPut } from '@/lib/api';
 
 interface NotificationPreferences {
   enabled: boolean;
@@ -71,8 +73,8 @@ const PWASettingsPage: React.FC = () => {
       try {
         setLoading(true);
         const [prefsRes, analyticsRes] = await Promise.all([
-          apiCall('/api/v1x/pwa/notifications/preferences', { method: 'GET' }),
-          apiCall('/api/v1x/pwa/analytics', { method: 'GET' }),
+          apiGet('/api/v1x/pwa/notifications/preferences'),
+          apiGet('/api/v1x/pwa/analytics'),
         ]);
 
         if (prefsRes.preferences) {
@@ -104,10 +106,7 @@ const PWASettingsPage: React.FC = () => {
       setError('');
       setSuccess('');
 
-      await apiCall('/api/v1x/pwa/notifications/preferences', {
-        method: 'PUT',
-        body: JSON.stringify(preferences),
-      });
+      await apiPut('/api/v1x/pwa/notifications/preferences', preferences);
 
       setSuccess('Notification preferences saved!');
     } catch (err: any) {

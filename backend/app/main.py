@@ -42,7 +42,7 @@ from app.modelsx.solution_sharing import ChallengeSolution, SolutionVote, Soluti
 # import user profile models
 from app.modelsx.user_profiles import UserProfile, UserActivity, UserPreferences, UserStatistics
 # import social/follow system models and Phase 3.3 features
-from app.modelsx.social import UserFollow, ForumTopic, ForumThread, ForumReply, Conversation, Message, Notification, SocialFeedItem, UserProfile
+from app.modelsx.social import UserFollow, Conversation, Message, SocialFeedItem
 # import learning paths models
 from app.modelsx.learning_paths import LearningPath, PathChallenge, UserPathProgress, Certificate, SkillValidation, PathRecommendation
 # import premium tiers models
@@ -99,6 +99,8 @@ from app.modelsx.marketplace import (
     DigitalProduct, ProductPurchase, ProductReview, SellerAccount,
     ProductBundle, SellerPayout, MarketplaceAnalytics
 )
+# import Security audit models
+from app.modelsx.security_audit import LoginHistory, AuditLog, SessionRevocation
 
 # ============================================================
 # PHASE 2.3 MODELS - IMPORT ALL 10 MODELS
@@ -110,9 +112,9 @@ from app.modelsx.phase_2_3_models import (
     SessionPayment,
     VideoSession,
     SessionRecording,
-    SessionChatMessage,
-    Message
+    SessionChatMessage
 )
+# Note: Message model is imported from social.py above
 
 # Forum models (already imported above from forums.py)
 
@@ -129,11 +131,21 @@ from app.api.v1 import auth, courses, progress, quizzes, chat, subscribe, quiz_s
 # Phase 3.3 routers
 from app.api.v1 import forum, messages, notifications, feed, profiles
 
-# Phase 3.4 routers
-from app.api.v1 import learning_paths, certificates, skills, recommendations
+# Phase 3.4 routers (import as separate names to avoid conflicts with v1x)
+from app.api.v1 import learning_paths as v1_learning_paths
+from app.api.v1 import certificates, skills
+from app.api.v1 import recommendations as v1_recommendations
 
 # Phase 3.5 routers
 from app.api.v1 import websocket
+
+# Security routers
+security_router = None
+try:
+    from app.api.v1x.security import router as security_router
+except Exception as e:
+    security_router = None
+    print(f"Failed to import security router: {e}")
 
 # Try to import optional v1x routers directly (bypass v1x __init__.py)
 courses_db = None
@@ -150,9 +162,10 @@ subscriptions = None
 connect = None
 
 try:
-    from app.api.v1x.courses_db import router as courses_db
+    from app.api.v1x.courses_db import router as courses_db, courses_router
 except Exception as e:
     print(f"Failed to import courses_db: {e}")
+    courses_router = None
 
 try:
     from app.api.v1x.progress_db_stub import router as progress_db
@@ -215,9 +228,10 @@ except Exception as e:
     print(f"Failed to import payouts: {e}")
 
 try:
-    from app.api.v1x.subscriptions_stub import router as subscriptions
+    from app.api.v1x.subscriptions import router as subscriptions
 except Exception as e:
     print(f"Failed to import subscriptions: {e}")
+    subscriptions = None
 
 try:
     from app.api.v1x.connect import router as connect
@@ -288,9 +302,10 @@ except Exception as e:
     print(f"Failed to import marketplace: {e}")
 
 try:
-    from app.api.v1x.job_applications_stub import router as job_applications
+    from app.api.v1x.job_applications import router as job_applications
 except Exception as e:
     print(f"Failed to import job_applications: {e}")
+    job_applications = None
 
 try:
     from app.api.v1x.job_application_notifications import router as job_notifications
@@ -410,13 +425,13 @@ try:
 except Exception as e:
     print(f"Failed to import contests: {e}")
 
-# import notifications router
-notifications = None
+# import notifications router (v1x)
+notifications_v1x = None
 try:
-    from app.api.v1x.notifications import router as notifications_router
-    notifications = notifications_router
+    from app.api.v1x.notifications import router as notifications_v1x_router
+    notifications_v1x = notifications_v1x_router
 except Exception as e:
-    print(f"Failed to import notifications: {e}")
+    print(f"Failed to import notifications v1x: {e}")
 
 # import code executor router
 code_executor = None
@@ -497,6 +512,14 @@ try:
     marketplace = marketplace_router
 except Exception as e:
     print(f"Failed to import marketplace: {e}")
+
+# import notifications websocket router
+notifications_websocket = None
+try:
+    from app.api.v1x.notifications_websocket import router as notifications_websocket_router
+    notifications_websocket = notifications_websocket_router
+except Exception as e:
+    print(f"Failed to import notifications_websocket: {e}")
 
 # ============================================================
 # PHASE 2.3 ROUTERS - IMPORT ALL 6 ROUTERS + STRIPE
@@ -619,10 +642,10 @@ app.include_router(feed.router,       prefix="/api/v1")
 app.include_router(profiles.router,   prefix="/api/v1")
 
 # Phase 3.4 Learning Paths routers
-app.include_router(learning_paths.router, prefix="/api/v1")
+app.include_router(v1_learning_paths.router, prefix="/api/v1")
 app.include_router(certificates.router,   prefix="/api/v1")
 app.include_router(skills.router,         prefix="/api/v1")
-app.include_router(recommendations.router, prefix="/api/v1")
+app.include_router(v1_recommendations.router, prefix="/api/v1")
 
 # Phase 3.5 WebSocket routers
 app.include_router(websocket.router, prefix="/api/v1")
@@ -674,7 +697,7 @@ def _mount_v1x_export(obj):
 # Mount all v1x exports (modules or routers)
 # Filter out None values to handle failed imports gracefully
 # Note: session is mounted separately at /api/session, not included here
-_exports = [x for x in (courses_db, progress_db, quizzes_db, youtube_sync, coins_db, mentors, mentor_verification, account, payments, chat_files, payouts, subscriptions, connect, student_dashboard, mentor_portal, recordings, resumes, resume_ai, cover_letter, resume_comparison, linkedin_import, hiring, resume_import, marketplace, job_applications, job_notifications, job_calendar, resume_export, resume_templates, resume_analytics_events, resume_scoring, leaderboard, admin_metrics, admin_analytics, coding_practice, code_snippets, solution_sharing, user_profiles, solution_comments, social, learning_paths, premium_tiers, github_integration, advanced_dashboard, ai_hints, pwa, contests, notifications, code_executor, activity, badges, forums, recommendations, teams, search, interview, referral, admin_router, verification_router, analytics_router, payments_router_phase23, video_router, messaging_router, forum_router, payments_integrated_router) if x is not None]
+_exports = [x for x in (security_router, courses_db, courses_router, progress_db, quizzes_db, youtube_sync, coins_db, mentors, mentor_verification, account, payments, chat_files, payouts, subscriptions, connect, student_dashboard, mentor_portal, recordings, resumes, resume_ai, cover_letter, resume_comparison, linkedin_import, hiring, resume_import, marketplace, job_applications, job_notifications, job_calendar, resume_export, resume_templates, resume_analytics_events, resume_scoring, leaderboard, admin_metrics, admin_analytics, coding_practice, code_snippets, solution_sharing, user_profiles, solution_comments, social, learning_paths, premium_tiers, github_integration, advanced_dashboard, ai_hints, pwa, contests, notifications_v1x, code_executor, activity, badges, forums, recommendations, teams, search, interview, referral, admin_router, verification_router, analytics_router, payments_router_phase23, video_router, messaging_router, forum_router, payments_integrated_router, notifications_websocket) if x is not None]
 for _export in _exports:
     _mount_v1x_export(_export)
 

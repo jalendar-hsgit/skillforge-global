@@ -14,7 +14,7 @@ from app.schemas.job_application import (
     JobApplicationCreate, JobApplicationUpdate, JobApplicationOut, JobApplicationStats
 )
 
-router = APIRouter(prefix="/api/v1x/job-applications", tags=["job-applications"])
+router = APIRouter(prefix="/job-applications", tags=["job-applications"])
 
 
 @router.post("", response_model=JobApplicationOut)

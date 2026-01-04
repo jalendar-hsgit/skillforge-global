@@ -9,7 +9,8 @@ from datetime import datetime
 
 from app.core.db import get_db
 from app.models import User
-from app.modelsx.social import UserProfile, UserFollow
+from app.modelsx.user_profiles import UserProfile
+from app.modelsx.social import UserFollow
 from app.schemas.social_schemas import (
     UserProfileResponse, UserProfileCreate, UserProfileUpdate
 )

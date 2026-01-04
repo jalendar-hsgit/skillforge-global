@@ -20,19 +20,57 @@ export default function SignupPage() {
     e.preventDefault()
     setError(null)
 
-    // Validation
-    if (!name.trim()) return setError('Please enter your name')
-    if (!/^\S+@\S+\.\S+$/.test(email)) return setError('Please enter a valid email')
-    if (password.length < 8) return setError('Password must be at least 8 characters')
-    if (password !== confirmPassword) return setError('Passwords do not match')
+    // Security: Input validation
+    if (!name.trim()) {
+      setError('Please enter your full name')
+      return
+    }
+
+    if (name.trim().length < 2) {
+      setError('Name must be at least 2 characters')
+      return
+    }
+
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+      setError('Please enter a valid email address')
+      return
+    }
+
+    // Security: Check for common disposable email domains
+    const disposableDomains = ['tempmail.com', 'throwaway.email', '10minutemail.com']
+    const emailDomain = email.split('@')[1]?.toLowerCase() || ''
+    if (disposableDomains.includes(emailDomain)) {
+      setError('Please use a valid email address')
+      return
+    }
+
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters')
+      return
+    }
+
+    // Security: Check password complexity
+    const hasUppercase = /[A-Z]/.test(password)
+    const hasLowercase = /[a-z]/.test(password)
+    const hasNumber = /[0-9]/.test(password)
+    
+    if (!hasUppercase || !hasLowercase || !hasNumber) {
+      setError('Password must include uppercase, lowercase, and numbers')
+      return
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match')
+      return
+    }
 
     setLoading(true)
 
     try {
-      const response = await fetch('/api/session/signup', {
+      const response = await fetch('/api/v1/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, full_name: name })
+        body: JSON.stringify({ email, password, confirm_password: confirmPassword })
       })
       
       if (!response.ok) {

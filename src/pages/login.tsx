@@ -6,6 +6,7 @@ import Layout from '@/components/Layout'
 import { Input } from '@/components/Input'
 import { Button } from '@/components/Button'
 import { Card } from '@/components/Card'
+import { fetchWithCsrf } from '@/lib/csrf'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -13,48 +14,82 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [failedAttempts, setFailedAttempts] = useState(0)
   
   // Check for signup success message
   const showSignupSuccess = router.query.signup === 'success'
+
+  // Security: Validate email format
+  function isValidEmail(email: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
     setLoading(true)
 
+    // Security: Input validation
+    if (!email.trim()) {
+      setError('Email is required')
+      setLoading(false)
+      return
+    }
+
+    if (!isValidEmail(email)) {
+      setError('Please enter a valid email address')
+      setLoading(false)
+      return
+    }
+
+    if (!password || password.length === 0) {
+      setError('Password is required')
+      setLoading(false)
+      return
+    }
+
+    // Security: Rate limiting (client-side check)
+    if (failedAttempts >= 5) {
+      setError('Too many failed attempts. Please try again in 15 minutes.')
+      setLoading(false)
+      return
+    }
+
     try {
-      console.log('🔐 Starting login process...')
+      console.log('Starting login process...')
       
-      const response = await fetch('/api/session/login', {
+      // Use fetchWithCsrf for CSRF protection
+      const response = await fetchWithCsrf('/api/v1/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
         credentials: 'include'
       })
       
-      console.log('📨 Login response status:', response.status)
+      console.log('Login response status:', response.status)
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        console.error('❌ Login failed:', errorData)
+        console.error('Login failed:', errorData)
+        setFailedAttempts(prev => prev + 1)
         throw new Error(errorData.detail || 'Login failed')
       }
       
       // Wait for login response
       const loginData = await response.json()
-      console.log('✅ Login successful:', loginData)
+      console.log('Login successful:', loginData)
       
       // Small delay to ensure cookie is set
       await new Promise(resolve => setTimeout(resolve, 200))
       
       // Check user role to determine redirect
-      console.log('👤 Fetching user info...')
-      const meResponse = await fetch('/api/session/me', { credentials: 'include' })
-      console.log('📨 Me response status:', meResponse.status)
+      console.log('Fetching user info...')
+      const meResponse = await fetchWithCsrf('/api/v1/auth/me', { credentials: 'include' })
+      console.log('Me response status:', meResponse.status)
       
       if (meResponse.ok) {
         const user = await meResponse.json()
-        console.log('✅ User data:', user)
+        console.log('User data:', user)
         
         // Determine redirect URL
         let redirectUrl = '/dashboard'
@@ -62,28 +97,39 @@ export default function LoginPage() {
         // If there's a redirect query param, use it
         if (router.query.redirect && typeof router.query.redirect === 'string') {
           redirectUrl = router.query.redirect
-          console.log('🔀 Using redirect param:', redirectUrl)
+          console.log('Using redirect param:', redirectUrl)
         } 
         // Redirect based on role
         else if (user.role === 'ADMIN' || user.role === 'SUPERADMIN') {
           redirectUrl = '/admin'
-          console.log('👑 Admin user, redirecting to:', redirectUrl)
+          console.log('Admin user, redirecting to:', redirectUrl)
         } else {
-          console.log('👤 Regular user, redirecting to:', redirectUrl)
+          console.log('Regular user, redirecting to:', redirectUrl)
         }
         
-        console.log('🚀 Redirecting to:', redirectUrl)
+        console.log('Redirecting to:', redirectUrl)
         
         // Force a full page reload to ensure clean state
         window.location.replace(redirectUrl)
       } else {
-        console.log('⚠️ Me endpoint failed, redirecting to dashboard')
+        console.log('Me endpoint failed, redirecting to dashboard')
         // Fallback to dashboard if can't get user info
         window.location.replace('/dashboard')
       }
     } catch (err) {
-      console.error('❌ Login error:', err)
-      setError(err instanceof Error ? err.message : 'Invalid email or password')
+      console.error('Login error:', err)
+      const errorMsg = err instanceof Error ? err.message : 'Invalid email or password'
+      setError(errorMsg)
+      
+      // Security: Increment failed attempts
+      const newFailedAttempts = failedAttempts + 1
+      setFailedAttempts(newFailedAttempts)
+      
+      // Security: Log security event (if backend supports it)
+      if (newFailedAttempts % 3 === 0) {
+        console.warn(`Failed login attempt for ${email} (attempt ${newFailedAttempts})`)
+      }
+      
       setLoading(false)
     }
     // Don't set loading to false here - let the page redirect

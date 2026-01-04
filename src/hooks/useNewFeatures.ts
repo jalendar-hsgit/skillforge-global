@@ -119,10 +119,10 @@ export const useQuizTiming = (attemptId: number, quizId?: number) => {
 
         // Calculate stats
         if (data.questions && data.questions.length > 0) {
-          const times = data.questions.map(q => q.timeSpent || 0)
+          const times: number[] = data.questions.map((q: { timeSpent?: number }) => q.timeSpent || 0)
           setStats({
-            totalTime: times.reduce((a, b) => a + b, 0),
-            averagePerQuestion: times.reduce((a, b) => a + b, 0) / times.length,
+            totalTime: times.reduce((a: number, b: number) => a + b, 0),
+            averagePerQuestion: times.reduce((a: number, b: number) => a + b, 0) / times.length,
             fastest: Math.min(...times),
             slowest: Math.max(...times),
           })

@@ -10,12 +10,13 @@ from datetime import datetime
 
 from app.core.db import get_db
 from app.models import User
-from app.modelsx.social import Notification
+from app.modelsx.notifications import Notification
 from app.schemas.social_schemas import (
     NotificationResponse, NotificationMarkReadRequest,
     NotificationMarkArchivedRequest, NotificationSummary
 )
 from app.api.deps import get_current_user
+from app.services.realtime_events import on_notification_created
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
 

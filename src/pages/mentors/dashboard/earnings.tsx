@@ -1,38 +1,35 @@
 import Head from 'next/head'
-import Layout from '@/components/Layout'
-import AdminHeader from '@/components/AdminHeader'
-import DateRangePicker from '@/components/DateRangePicker'
+import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
+import DashboardLayout from '@/components/DashboardLayout'
+import { DashboardGridSkeleton } from '@/components/DashboardSkeletons'
+import DashboardStatCard from '@/components/DashboardStatCard'
+import DashboardSectionHeader from '@/components/DashboardSectionHeader'
+import DashboardListItem from '@/components/DashboardListItem'
 
 type EarningsData = {
   total_earnings: number
-  this_month: number
-  last_month: number
-  pending_payout: number
-  monthly_breakdown: Array<{ month: string; amount: number }>
-  top_students: Array<{ student_id: number; amount: number; session_count: number }>
+  total_hours: number
+  session_count: number
+  average_per_session: number
+  hourly_rate: number
+  monthly_breakdown: Array<{ month: string; earnings: number; sessions: number }>
 }
 
 export default function MentorEarnings() {
   const router = useRouter()
   const [data, setData] = useState<EarningsData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
 
   useEffect(() => {
     loadEarnings()
-  }, [startDate, endDate])
+  }, [])
 
   async function loadEarnings() {
     try {
-      const params = new URLSearchParams()
-      if (startDate) params.set('start_date', startDate)
-      if (endDate) params.set('end_date', endDate)
-
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE}/api/v1x/mentor-portal/dashboard/earnings?${params.toString()}`,
+        `${process.env.NEXT_PUBLIC_API_BASE}/api/v1x/mentor-portal/dashboard/earnings`,
         { credentials: 'include' }
       )
 
@@ -52,182 +49,84 @@ export default function MentorEarnings() {
     }
   }
 
+  const thisMonth = data?.monthly_breakdown?.[0]?.earnings ?? 0
+  const lastMonth = data?.monthly_breakdown?.[1]?.earnings ?? 0
+  const monthChange = lastMonth > 0
+    ? ((thisMonth - lastMonth) / lastMonth) * 100
+    : 0
+
   if (loading) {
     return (
-      <Layout>
-        <Head><title>Earnings – Mentor Dashboard</title></Head>
-        <AdminHeader title="My Earnings" backUrl="/mentors/dashboard" />
-        <div className="container mx-auto px-4 py-8 text-center text-techGray">
-          Loading earnings...
-        </div>
-      </Layout>
+      <DashboardLayout 
+        title="Earnings"
+        subtitle="Your earnings and payments"
+        breadcrumbs={[{ label: 'Dashboard', href: '/mentors/dashboard' }, { label: 'Earnings' }]}
+      >
+        <DashboardGridSkeleton />
+      </DashboardLayout>
     )
   }
 
   if (!data) {
     return (
-      <Layout>
-        <Head><title>Earnings – Mentor Dashboard</title></Head>
-        <AdminHeader title="My Earnings" backUrl="/mentors/dashboard" />
-        <div className="container mx-auto px-4 py-8 text-center text-red-400">
-          Failed to load earnings data
-        </div>
-      </Layout>
+      <DashboardLayout 
+        title="Earnings"
+        subtitle="Your earnings and payments"
+        breadcrumbs={[{ label: 'Dashboard', href: '/mentors/dashboard' }, { label: 'Earnings' }]}
+      >
+        <div className="text-center py-12 text-techGray-400">No earnings data available</div>
+      </DashboardLayout>
     )
   }
 
-  const monthChange = data.last_month > 0
-    ? ((data.this_month - data.last_month) / data.last_month) * 100
-    : 0
-
-  const exportToCSV = () => {
-    if (!data) return
-    
-    const rows = [
-      ['Month', 'Amount'],
-      ...data.monthly_breakdown.map(item => [item.month, item.amount.toFixed(2)])
-    ]
-    
-    const csvContent = rows.map(row => row.join(',')).join('\n')
-    const blob = new Blob([csvContent], { type: 'text/csv' })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `mentor-earnings-${new Date().toISOString().split('T')[0]}.csv`
-    a.click()
-    window.URL.revokeObjectURL(url)
-  }
-
   return (
-    <Layout>
+    <DashboardLayout
+      title="Earnings"
+      subtitle="Your earnings and payments"
+      breadcrumbs={[{ label: 'Dashboard', href: '/mentors/dashboard' }, { label: 'Earnings' }]}
+    >
       <Head>
         <title>Earnings – Mentor Dashboard</title>
       </Head>
 
-      <AdminHeader title="My Earnings" backUrl="/mentors/dashboard" />
-
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        {/* Date Range Filter */}
-        <div className="mb-6 flex items-center justify-between">
-          <DateRangePicker
-            startDate={startDate}
-            endDate={endDate}
-            onStartChange={setStartDate}
-            onEndChange={setEndDate}
-            onClear={() => { setStartDate(''); setEndDate('') }}
+      <div className="space-y-8">
+        {/* Earnings Summary */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <DashboardStatCard
+            label="Total Earnings"
+            value={`$${data.total_earnings.toFixed(2)}`}
+            color="electric"
           />
-          <button
-            onClick={exportToCSV}
-            className="px-4 py-2 bg-techBlue hover:bg-techBlue/80 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-          >
-            <span>📊</span> Export CSV
-          </button>
+          <DashboardStatCard
+            label="Sessions Count"
+            value={data.session_count}
+            color="green"
+          />
+          <DashboardStatCard
+            label="Average Per Session"
+            value={`$${data.average_per_session.toFixed(2)}`}
+            color="blue"
+          />
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-gradient-to-br from-green-500/20 to-green-600/20 border border-green-500/30 rounded-xl p-6">
-            <div className="text-techGray text-sm mb-2">Total Earnings</div>
-            <div className="text-3xl font-bold text-white mb-1">
-              ${data.total_earnings.toFixed(2)}
-            </div>
-            <div className="text-xs text-green-400">All time</div>
-          </div>
-
-          <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/20 border border-blue-500/30 rounded-xl p-6">
-            <div className="text-techGray text-sm mb-2">This Month</div>
-            <div className="text-3xl font-bold text-white mb-1">
-              ${data.this_month.toFixed(2)}
-            </div>
-            <div className={`text-xs ${monthChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {monthChange >= 0 ? '↑' : '↓'} {Math.abs(monthChange).toFixed(1)}% vs last month
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-br from-purple-500/20 to-purple-600/20 border border-purple-500/30 rounded-xl p-6">
-            <div className="text-techGray text-sm mb-2">Last Month</div>
-            <div className="text-3xl font-bold text-white mb-1">
-              ${data.last_month.toFixed(2)}
-            </div>
-            <div className="text-xs text-techGray">Previous period</div>
-          </div>
-
-          <div className="bg-gradient-to-br from-yellow-500/20 to-yellow-600/20 border border-yellow-500/30 rounded-xl p-6">
-            <div className="text-techGray text-sm mb-2">Pending Payout</div>
-            <div className="text-3xl font-bold text-white mb-1">
-              ${data.pending_payout.toFixed(2)}
-            </div>
-            <div className="text-xs text-yellow-400">Available soon</div>
-          </div>
-        </div>
-
-        {/* Monthly Chart */}
-        <div className="bg-white/5 border border-white/10 rounded-xl p-6 mb-8">
-          <h2 className="text-xl font-bold text-white mb-6">Monthly Breakdown</h2>
-          {data.monthly_breakdown.length === 0 ? (
-            <div className="text-center py-8 text-techGray">No monthly data yet</div>
-          ) : (
-            <div className="space-y-3">
-              {data.monthly_breakdown.map((item, idx) => {
-                const maxAmount = Math.max(...data.monthly_breakdown.map(d => d.amount))
-                const widthPercent = maxAmount > 0 ? (item.amount / maxAmount) * 100 : 0
-
-                return (
-                  <div key={idx}>
-                    <div className="flex justify-between mb-1 text-sm">
-                      <span className="text-techGray">{item.month}</span>
-                      <span className="text-white font-medium">${item.amount.toFixed(2)}</span>
-                    </div>
-                    <div className="w-full bg-white/10 rounded-full h-3 overflow-hidden">
-                      <div
-                        className="bg-gradient-to-r from-techBlue to-forgePurple h-full transition-all duration-500"
-                        style={{ width: `${widthPercent}%` }}
-                      />
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Top Students */}
-        <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-          <h2 className="text-xl font-bold text-white mb-6">Top Students by Revenue</h2>
-          {data.top_students.length === 0 ? (
-            <div className="text-center py-8 text-techGray">
-              No student data yet
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {data.top_students.map((student, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-lg hover:border-techBlue/50 transition-colors"
-                >
+        {/* Monthly Breakdown */}
+        <div>
+          <DashboardSectionHeader title="Monthly Breakdown" subtitle={`${data.monthly_breakdown?.length || 0} months`} />
+          <div className="space-y-2">
+            {data.monthly_breakdown && data.monthly_breakdown.map((month, idx) => (
+              <DashboardListItem key={idx} hoverColor="electric" className="p-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-white font-medium">{month.month}</span>
                   <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-techBlue to-forgePurple flex items-center justify-center text-white font-bold">
-                      #{idx + 1}
-                    </div>
-                    <div>
-                      <div className="text-white font-medium">Student #{student.student_id}</div>
-                      <div className="text-sm text-techGray">
-                        {student.session_count} session{student.session_count !== 1 ? 's' : ''}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-xl font-bold text-white">
-                      ${student.amount.toFixed(2)}
-                    </div>
-                    <div className="text-xs text-techGray">Total revenue</div>
+                    <span className="text-techGray-400 text-sm">{month.sessions} sessions</span>
+                    <span className="text-success font-semibold">${month.earnings.toFixed(2)}</span>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
+              </DashboardListItem>
+            ))}
+          </div>
         </div>
       </div>
-    </Layout>
+    </DashboardLayout>
   )
 }

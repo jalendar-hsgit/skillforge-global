@@ -28,7 +28,12 @@ interface TimingStats {
   }>
 }
 
-export default function QuizTimingBreakdown({ attemptId }: { attemptId: number }) {
+interface QuizTimingBreakdownProps {
+  attemptId: number
+  quizId?: number  // Optional quiz ID for additional context
+}
+
+export default function QuizTimingBreakdown({ attemptId, quizId }: QuizTimingBreakdownProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [attempt, setAttempt] = useState<QuizAttemptTiming | null>(null)
@@ -47,7 +52,7 @@ export default function QuizTimingBreakdown({ attemptId }: { attemptId: number }
           setAttempt(data)
 
           // Calculate stats
-          const times = Object.values(data.question_times || {})
+          const times = Object.values(data.question_times || {}) as number[]
           const totalTime = data.time_spent_seconds || 0
           const questionCount = times.length || 1
           const avgTime = Math.round(totalTime / questionCount)
@@ -63,8 +68,8 @@ export default function QuizTimingBreakdown({ attemptId }: { attemptId: number }
           setStats({
             totalTime,
             averageTimePerQuestion: avgTime,
-            minTime: Math.min(...times, 0),
-            maxTime: Math.max(...times, 0),
+            minTime: times.length > 0 ? Math.min(...times) : 0,
+            maxTime: times.length > 0 ? Math.max(...times) : 0,
             questionCount,
             questionBreakdown: breakdown,
           })

@@ -28,6 +28,9 @@ export default function NewResumePage() {
   const createInitialResume = async () => {
     setCreatingResume(true);
     try {
+      // Get template from query parameter if provided
+      const templateId = (router.query.template as string) || 'modern';
+      
       // Create via Next.js proxy so HttpOnly cookie is forwarded automatically
       const response = await fetch('/api/session/resumes', {
         method: 'POST',
@@ -37,7 +40,7 @@ export default function NewResumePage() {
         credentials: 'include',
         body: JSON.stringify({
           title: 'Untitled Resume',
-          template: 'modern',
+          template_id: templateId,
         }),
       });
 

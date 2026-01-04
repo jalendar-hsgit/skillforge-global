@@ -8,6 +8,7 @@ import os
 from threading import Lock
 
 from app.api.v1.auth import get_current_user  # assumes this returns a dict/user model with id
+from app.services.realtime_events import on_achievement_unlocked
 
 router = APIRouter(prefix="/achievements", tags=["achievements"]) 
 
@@ -62,7 +63,7 @@ def get_my_achievements(user=Depends(get_current_user)):
 
 
 @router.post("/unlock", response_model=UserAchievements)
-def unlock_achievement(payload: AchievementIn, user=Depends(get_current_user)):
+async def unlock_achievement(payload: AchievementIn, user=Depends(get_current_user)):
     from datetime import datetime, timezone
 
     uid = str(user.id if hasattr(user, "id") else user["id"])  # support dict-like
@@ -82,5 +83,13 @@ def unlock_achievement(payload: AchievementIn, user=Depends(get_current_user)):
         user_items.append(new_item)
         data[uid] = user_items
         _save_all(data)
+
+    await on_achievement_unlocked(
+        int(uid),
+        payload.key,
+        payload.title,
+        payload.points,
+        new_item["unlocked_at"],
+    )
 
     return {"user_id": int(uid), "items": user_items}

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
+import type { GetServerSideProps } from 'next';
 import { useAuth } from '@/hooks/useAuth';
 import Link from 'next/link';
 import MessageBubble from '@/components/social/MessageBubble';
+import { requireAuthSSR } from '@/lib/auth';
 
 interface Message {
   id: number;
@@ -27,6 +29,8 @@ interface Conversation {
   updatedAt: string;
   messages: Message[];
 }
+
+export const getServerSideProps: GetServerSideProps = requireAuthSSR();
 
 export default function MessagesPage() {
   const router = useRouter();

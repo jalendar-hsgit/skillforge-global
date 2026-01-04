@@ -175,6 +175,10 @@ export function EmptyState({ icon = '📭', title, description, action }: EmptyS
   )
 }
 
+// Default export wrapper for backwards compatibility
+const PageLayout = PageContainer
+export default PageLayout
+export { PageLayout }
 interface LoadingStateProps {
   message?: string
 }

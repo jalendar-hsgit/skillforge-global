@@ -1,8 +1,8 @@
 import Head from 'next/head'
-import Layout from '@/components/Layout'
-import AdminHeader from '@/components/AdminHeader'
+import DashboardLayout from '@/components/DashboardLayout'
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/router'
+import { DashboardCardSkeleton } from '@/components/DashboardSkeletons'
 
 export default function MentorProfile() {
   const router = useRouter()
@@ -39,12 +39,14 @@ export default function MentorProfile() {
         // Attempt to infer fields if present
         if (data.profile) {
           setBio(data.profile.bio || '')
-          setExpertiseInput((data.profile.expertise || []).join(', '))
+          const expertise = Array.isArray(data.profile.expertise) ? data.profile.expertise : (typeof data.profile.expertise === 'string' ? [data.profile.expertise] : [])
+          setExpertiseInput(expertise.join(', '))
           setHourlyRate(typeof data.profile.hourly_rate === 'number' ? data.profile.hourly_rate : '')
         } else if (data.mentor) {
           // some payloads may include mentor object
           setBio(data.mentor.bio || '')
-          setExpertiseInput((data.mentor.expertise || []).join(', '))
+          const expertise = Array.isArray(data.mentor.expertise) ? data.mentor.expertise : (typeof data.mentor.expertise === 'string' ? [data.mentor.expertise] : [])
+          setExpertiseInput(expertise.join(', '))
           setHourlyRate(typeof data.mentor.hourly_rate === 'number' ? data.mentor.hourly_rate : '')
         }
       } catch (e: any) {
@@ -97,16 +99,25 @@ export default function MentorProfile() {
   }
 
   return (
-    <Layout>
+    <DashboardLayout
+      title="Edit Profile"
+      subtitle="Update your mentor profile information"
+      breadcrumbs={[
+        { label: 'Dashboard', href: '/mentors/dashboard' },
+        { label: 'Profile' }
+      ]}
+    >
       <Head>
         <title>Edit Profile – Mentor Dashboard</title>
       </Head>
 
-      <AdminHeader title="Edit Mentor Profile" backUrl="/mentors/dashboard" />
-
-      <div className="container mx-auto px-4 py-8 max-w-3xl">
+      <div className="max-w-3xl mx-auto">
         {loading ? (
-          <div className="text-center py-12 text-techGray">Loading profile...</div>
+          <div className="space-y-6">
+            <DashboardCardSkeleton />
+            <DashboardCardSkeleton />
+            <DashboardCardSkeleton />
+          </div>
         ) : (
           <form onSubmit={onSubmit} className="space-y-6">
             {error && (
@@ -171,6 +182,6 @@ export default function MentorProfile() {
           </form>
         )}
       </div>
-    </Layout>
+    </DashboardLayout>
   )
 }

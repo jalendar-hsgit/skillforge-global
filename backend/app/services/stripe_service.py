@@ -402,3 +402,93 @@ class StripeService:
 
 # Singleton instance
 stripe_service = StripeService()
+
+
+# ============================================================
+# Helper functions for session payment and mentor payout
+# ============================================================
+
+async def process_session_payment(
+    session_id: int,
+    amount: float,
+    student_id: int,
+    mentor_id: int,
+    db = None
+) -> dict:
+    """
+    Process payment for a mentor session.
+    
+    Args:
+        session_id: The mentor session ID
+        amount: Payment amount in dollars
+        student_id: Student user ID
+        mentor_id: Mentor user ID
+        db: Database session (optional)
+    
+    Returns:
+        Dict with payment result
+    """
+    try:
+        result = StripeService.create_payment_intent(
+            amount=amount,
+            session_id=session_id,
+            mentor_id=mentor_id,
+            student_id=student_id
+        )
+        return {
+            'success': True,
+            'payment_intent_id': result.get('client_secret', '').split('_secret_')[0] if result.get('client_secret') else None,
+            'client_secret': result.get('client_secret'),
+            'amount': amount
+        }
+    except Exception as e:
+        return {
+            'success': False,
+            'error': str(e)
+        }
+
+
+async def process_mentor_payout(
+    mentor_id: int,
+    amount: float,
+    mentor_stripe_account: str = None,
+    session_id: int = None,
+    db = None
+) -> dict:
+    """
+    Process payout to mentor.
+    
+    Args:
+        mentor_id: Mentor user ID
+        amount: Payout amount in dollars
+        mentor_stripe_account: Mentor's Stripe Connect account ID
+        session_id: Related session ID (optional)
+        db: Database session (optional)
+    
+    Returns:
+        Dict with payout result
+    """
+    if not mentor_stripe_account:
+        return {
+            'success': False,
+            'error': 'Mentor Stripe account not configured'
+        }
+    
+    try:
+        result = StripeService.create_transfer_to_mentor(
+            amount=amount,
+            mentor_stripe_account=mentor_stripe_account,
+            session_id=session_id or 0
+        )
+        return {
+            'success': True,
+            'transfer_id': result.get('id'),
+            'amount': result.get('amount'),
+            'platform_fee': result.get('platform_fee')
+        }
+    except Exception as e:
+        return {
+            'success': False,
+            'error': str(e)
+        }
+

@@ -42,6 +42,7 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_SECRET: str = "demo_google_client_secret"
     
     # Stripe Payment
+    STRIPE_PUBLIC_KEY: str | None = None
     STRIPE_SECRET_KEY: str | None = None
     STRIPE_PUBLISHABLE_KEY: str | None = None
     STRIPE_WEBHOOK_SECRET: str | None = None

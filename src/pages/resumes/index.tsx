@@ -73,17 +73,23 @@ export default function ResumesPage({ me }: { me: any }) {
 
   const handleDuplicate = async (resumeId: number) => {
     try {
-      const res = await fetch(`/api/session/v1x/resumes/${resumeId}/duplicate`, {
+      const res = await fetch(`/api/session/resumes?id=${resumeId}&action=duplicate`, {
         method: 'POST',
         credentials: 'include',
       })
 
       if (res.ok) {
         const newResume = await res.json()
-        router.push(`/resumes/${newResume.id}`)
+        setResumes([...resumes, newResume])
+        alert('Resume duplicated successfully!')
+        router.push(`/resumes/${newResume.id}/edit`)
+      } else {
+        const error = await res.json().catch(() => ({}))
+        alert(`Failed to duplicate: ${error.detail || 'Unknown error'}`)
       }
     } catch (e) {
       console.error('Failed to duplicate resume:', e)
+      alert('Failed to duplicate resume.')
     }
   }
 
@@ -119,6 +125,18 @@ export default function ResumesPage({ me }: { me: any }) {
               <p className="text-white/60">Create, manage, and export your professional resumes</p>
             </div>
             <div className="flex gap-3">
+              <button
+                onClick={() => router.push('/resumes/templates')}
+                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white/10 border border-white/20 text-white hover:bg-white/20 transition-all"
+              >
+                🎨 Templates
+              </button>
+              <button
+                onClick={() => router.push('/resumes/compare')}
+                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white/10 border border-white/20 text-white hover:bg-white/20 transition-all"
+              >
+                ⚖️ Compare
+              </button>
               <button
                 onClick={() => setShowImportModal(true)}
                 className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white/10 border border-white/20 text-white hover:bg-white/20 transition-all"
@@ -221,7 +239,7 @@ export default function ResumesPage({ me }: { me: any }) {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 mb-3">
                       <button
                         onClick={() => handleEdit(resume.id)}
                         className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-forgePurple to-neuralBlue text-white font-semibold hover:shadow-lg hover:shadow-forgePurple/30 transition-all duration-300 hover:scale-[1.02]"
@@ -249,6 +267,34 @@ export default function ResumesPage({ me }: { me: any }) {
                         title="Delete"
                       >
                         <Trash2 className="w-4 h-4 text-white/70 group-hover/delete:text-red-400 transition-colors" />
+                      </button>
+                    </div>
+
+                    {/* Quick Links */}
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <button
+                        onClick={() => router.push(`/resumes/${resume.id}/ats-score`)}
+                        className="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-white border border-white/10 transition"
+                      >
+                        🤖 ATS Score
+                      </button>
+                      <button
+                        onClick={() => router.push(`/resumes/${resume.id}/export`)}
+                        className="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-white border border-white/10 transition"
+                      >
+                        📥 Export
+                      </button>
+                      <button
+                        onClick={() => router.push(`/resumes/${resume.id}/versions`)}
+                        className="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-white border border-white/10 transition"
+                      >
+                        ⏱️ Versions
+                      </button>
+                      <button
+                        onClick={() => router.push(`/resumes/${resume.id}/sharing`)}
+                        className="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-white border border-white/10 transition"
+                      >
+                        🔗 Share
                       </button>
                     </div>
                   </div>

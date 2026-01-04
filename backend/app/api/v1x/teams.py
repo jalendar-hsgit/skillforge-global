@@ -30,7 +30,7 @@ from app.schemas.teams import (
     TeamDiscoveryResponse, TeamJoinResponse, TeamStatsOverviewResponse
 )
 
-router = APIRouter(prefix="/api/v1x/teams", tags=["teams"])
+router = APIRouter(prefix="/teams", tags=["teams"])
 
 
 # Team CRUD Endpoints

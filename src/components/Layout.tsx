@@ -1,11 +1,13 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/router'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useMe } from '@/hooks/useMe'
 import { ROUTES } from '@/lib/routes'
 import Footer from '@/components/Footer'
 import CoinBadge from '@/components/CoinBadge'
+import NotificationCenter from '@/components/NotificationCenter'
+import { useSessionTimeout } from '@/lib/sessionManager'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -17,6 +19,9 @@ export default function Layout({ children, maxWidth = '7xl', showFooter = true }
   const { me, loading } = useMe()
   const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  // Enable session timeout for authenticated users
+  useSessionTimeout()
 
   const isActive = (path: string) => router.pathname === path || router.pathname.startsWith(path + '/')
 
@@ -34,12 +39,13 @@ export default function Layout({ children, maxWidth = '7xl', showFooter = true }
     { href: ROUTES.paths, label: 'Courses', icon: '📚' },
     { href: ROUTES.mentors, label: 'Mentors', icon: '👥' },
     { href: ROUTES.ai, label: 'AI Assistant', icon: '🤖' },
-    { href: ROUTES.resumeNew, label: 'Create Resume', icon: '📄' },
+    { href: '/resumes', label: 'My Resumes', icon: '📄' },
     { href: ROUTES.pricing, label: 'Pricing', icon: '💳' },
   ]
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0B0A13] via-[#1a1625] to-[#0B0A13] text-white flex flex-col">
+      
       {/* Header */}
       <header className="sticky top-0 z-50 backdrop-blur-xl bg-[#0B0A13]/80 border-b border-white/10 shadow-lg shadow-purple-500/5">
         <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -85,12 +91,30 @@ export default function Layout({ children, maxWidth = '7xl', showFooter = true }
               {/* Coin Badge */}
               {me && !loading && <CoinBadge />}
 
+              {/* Notification Center */}
+              {me && !loading && <NotificationCenter />}
+
               {/* Auth Buttons */}
               {loading ? (
                 <div className="h-9 w-24 bg-white/5 rounded-lg animate-pulse" />
               ) : me ? (
                 <div className="flex items-center gap-3">
-                  {/* User Menu */}
+                  {/* Mentor Dashboard Link (if user is mentor) */}
+                  {me.is_mentor && (
+                    <Link
+                      href={ROUTES.mentorDashboard}
+                      className={`hidden sm:flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                        isActive(ROUTES.mentorDashboard)
+                          ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg shadow-cyan-500/30'
+                          : 'bg-blue-600/10 text-blue-300 hover:bg-blue-600/20'
+                      }`}
+                    >
+                      <span>🎓</span>
+                      <span>Mentor Dashboard</span>
+                    </Link>
+                  )}
+                  
+                  {/* Student Dashboard Link */}
                   <Link
                     href={ROUTES.dashboard}
                     className={`hidden sm:flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
@@ -169,14 +193,59 @@ export default function Layout({ children, maxWidth = '7xl', showFooter = true }
                   </Link>
                 ))}
                 {me && (
-                  <Link
-                    href={ROUTES.dashboard}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium bg-gradient-to-r from-forgePurple to-neuralBlue text-white"
-                  >
-                    <span className="text-xl">📊</span>
-                    <span>Dashboard</span>
-                  </Link>
+                  <>
+                    {me.is_mentor && (
+                      <Link
+                        href={ROUTES.mentorDashboard}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium bg-gradient-to-r from-blue-600 to-cyan-600 text-white mb-2"
+                      >
+                        <span className="text-xl">🎓</span>
+                        <span>Mentor Dashboard</span>
+                      </Link>
+                    )}
+                    <Link
+                      href={ROUTES.dashboard}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium bg-gradient-to-r from-forgePurple to-neuralBlue text-white mb-2"
+                    >
+                      <span className="text-xl">📊</span>
+                      <span>Dashboard</span>
+                    </Link>
+                    <hr className="my-2 border-white/10" />
+                    <Link
+                      href="/profile"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-white/70 hover:text-white hover:bg-white/5"
+                    >
+                      <span className="text-xl">👤</span>
+                      <span>My Profile</span>
+                    </Link>
+                    <Link
+                      href="/profile/edit"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-white/70 hover:text-white hover:bg-white/5"
+                    >
+                      <span className="text-xl">✏️</span>
+                      <span>Edit Profile</span>
+                    </Link>
+                    <Link
+                      href="/profile/settings"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-white/70 hover:text-white hover:bg-white/5"
+                    >
+                      <span className="text-xl">⚙️</span>
+                      <span>Settings</span>
+                    </Link>
+                    <Link
+                      href="/mentors/dashboard/verification"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-white/70 hover:text-white hover:bg-white/5"
+                    >
+                      <span className="text-xl">✅</span>
+                      <span>Verify Credentials</span>
+                    </Link>
+                  </>
                 )}
               </div>
             </div>

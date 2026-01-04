@@ -15,7 +15,7 @@ from app.core.security import get_current_user
 from app.core.config import settings
 from app.modelsx.job_application import JobApplication, ApplicationStatus
 
-router = APIRouter(prefix="/api/v1x/job-applications-notifications", tags=["job-notifications"])
+router = APIRouter(prefix="/job-applications-notifications", tags=["job-notifications"])
 
 
 def send_email(to_email: str, subject: str, body: str, html_body: Optional[str] = None):

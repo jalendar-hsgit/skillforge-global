@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
-import { apiCall } from '@/lib/api';
+import { apiGet } from '@/lib/api';
 
 interface TrendingItem {
   id: number;
@@ -34,7 +34,7 @@ const TrendingPage: React.FC = () => {
     try {
       setLoading(true);
       const endpoint = `/activity/trending/${category}?limit=50`;
-      const response = await apiCall('GET', endpoint);
+      const response = await apiGet(endpoint);
       setTrending(Array.isArray(response) ? response : []);
     } catch (error) {
       console.error('Failed to load trending:', error);

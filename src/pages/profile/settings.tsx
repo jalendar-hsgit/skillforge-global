@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { ArrowLeft, AlertCircle, CheckCircle, Lock, Bell, Eye } from 'lucide-react'
+import { useProtectedPage } from '@/lib/useProtectedPage'
 
 interface AccountSettings {
   bio_visibility: 'public' | 'private' | 'mentors_only'
@@ -14,7 +15,7 @@ interface AccountSettings {
 
 export default function SettingsPage() {
   const router = useRouter()
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const { user, loading: authLoading, isAuthorized } = useProtectedPage()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -26,19 +27,27 @@ export default function SettingsPage() {
     two_factor_enabled: false
   })
 
+  // Security: Redirect if not authenticated
   useEffect(() => {
-    const token = localStorage.getItem('token')
-    if (!token) {
-      router.push('/login')
-    } else {
-      setIsAuthenticated(true)
-      // Load settings from localStorage as fallback
-      const saved = localStorage.getItem('accountSettings')
-      if (saved) {
-        setSettings(JSON.parse(saved))
-      }
-      setLoading(false)
+    if (!authLoading && !user) {
+      router.push('/login?redirect=' + encodeURIComponent(router.asPath))
     }
+  }, [user, authLoading, router])
+
+  useEffect(() => {
+    if (authLoading) return
+    
+    if (!user) {
+      return // Will redirect above
+    }
+    
+    // User is authenticated, load settings
+    // Load settings from localStorage as fallback
+    const saved = localStorage.getItem('accountSettings')
+    if (saved) {
+      setSettings(JSON.parse(saved))
+    }
+    setLoading(false)
   }, [router])
 
   const handleSave = async () => {
@@ -55,7 +64,8 @@ export default function SettingsPage() {
     }
   }
 
-  if (loading) {
+  // Security: Show loading while checking auth
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -66,7 +76,8 @@ export default function SettingsPage() {
     )
   }
 
-  if (!isAuthenticated) {
+  // Security: Don't render if not authenticated
+  if (!user) {
     return null
   }
 

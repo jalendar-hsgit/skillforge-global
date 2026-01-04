@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
+import type { GetServerSideProps } from 'next';
 import { useAuth } from '@/hooks/useAuth';
 import Link from 'next/link';
 import ForumTopicCard from '@/components/forum/ForumTopicCard';
+import { requireAuthSSR } from '@/lib/auth';
 
 interface ForumTopic {
   id: number;
@@ -15,6 +17,8 @@ interface ForumTopic {
   category: string;
   icon: string;
 }
+
+export const getServerSideProps: GetServerSideProps = requireAuthSSR();
 
 export default function CommunityForumsPage() {
   const router = useRouter();
@@ -103,10 +107,8 @@ export default function CommunityForumsPage() {
 
           {/* Action Button */}
           <div className="mb-8">
-            <Link href="/community/forums/new-topic">
-              <button className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors">
-                ➕ Start New Topic
-              </button>
+            <Link href="/community/forums/new-topic" className="inline-block px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors">
+              ➕ Start New Topic
             </Link>
           </div>
 

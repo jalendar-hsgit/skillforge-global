@@ -13,7 +13,7 @@ from app.core.db import get_db
 from app.core.security import get_current_user
 from app.modelsx.job_application import JobApplication
 
-router = APIRouter(prefix="/api/v1x/job-applications-calendar", tags=["job-calendar"])
+router = APIRouter(prefix="/job-applications-calendar", tags=["job-calendar"])
 
 
 def generate_ical_event(application: JobApplication, interview: dict) -> str:

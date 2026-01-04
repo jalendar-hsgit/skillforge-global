@@ -359,6 +359,177 @@ async def on_user_went_offline(user_id: int):
     await emit_event(event)
 
 
+# ==================== COURSE EVENTS ====================
+
+async def on_course_enrolled(
+    user_id: int,
+    course_id: int,
+    course_title: str,
+    course_path: str | None = None
+):
+    """
+    Broadcast when a learner enrolls in a course
+    """
+    event = create_event(
+        EventType.COURSE_ENROLLED,
+        user_id,
+        {
+            "course_id": course_id,
+            "course_title": course_title,
+            "course_path": course_path
+        },
+        target_user_id=user_id
+    )
+    await emit_event(event)
+
+
+async def on_course_progress(
+    user_id: int,
+    course_id: int,
+    course_title: str,
+    progress_percentage: float,
+    video_id: int | None = None,
+    video_title: str | None = None,
+    video_progress: float | None = None
+):
+    """
+    Broadcast course progress updates
+    """
+    event = create_event(
+        EventType.COURSE_PROGRESS,
+        user_id,
+        {
+            "course_id": course_id,
+            "course_title": course_title,
+            "progress_percentage": progress_percentage,
+            "video_id": video_id,
+            "video_title": video_title,
+            "video_progress": video_progress
+        },
+        target_user_id=user_id
+    )
+    await emit_event(event)
+
+
+async def on_course_completed(
+    user_id: int,
+    course_id: int,
+    course_title: str,
+    completion_percentage: float = 100.0
+):
+    """
+    Broadcast when a learner completes a course
+    """
+    event = create_event(
+        EventType.COURSE_COMPLETED,
+        user_id,
+        {
+            "course_id": course_id,
+            "course_title": course_title,
+            "completion_percentage": completion_percentage
+        },
+        target_user_id=user_id
+    )
+    await emit_event(event)
+
+
+# ==================== QUIZ EVENTS ====================
+
+async def on_quiz_started(
+    user_id: int,
+    quiz_id: int,
+    started_at: datetime | None = None
+):
+    """
+    Broadcast when a quiz session starts
+    """
+    event = create_event(
+        EventType.QUIZ_STARTED,
+        user_id,
+        {
+            "quiz_id": quiz_id,
+            "started_at": (started_at or datetime.utcnow()).isoformat()
+        },
+        target_user_id=user_id
+    )
+    await emit_event(event)
+
+
+async def on_quiz_submitted(
+    user_id: int,
+    quiz_id: int,
+    total_questions: int,
+    answered: int,
+    submitted_at: datetime | None = None
+):
+    """
+    Broadcast when a quiz is submitted
+    """
+    event = create_event(
+        EventType.QUIZ_SUBMITTED,
+        user_id,
+        {
+            "quiz_id": quiz_id,
+            "total_questions": total_questions,
+            "answered": answered,
+            "submitted_at": (submitted_at or datetime.utcnow()).isoformat()
+        },
+        target_user_id=user_id
+    )
+    await emit_event(event)
+
+
+async def on_quiz_graded(
+    user_id: int,
+    quiz_id: int,
+    score: float,
+    total_questions: int,
+    graded_at: datetime | None = None
+):
+    """
+    Broadcast when quiz grading is complete
+    """
+    event = create_event(
+        EventType.QUIZ_GRADED,
+        user_id,
+        {
+            "quiz_id": quiz_id,
+            "score": score,
+            "total_questions": total_questions,
+            "graded_at": (graded_at or datetime.utcnow()).isoformat()
+        },
+        target_user_id=user_id
+    )
+    await emit_event(event)
+
+
+# ==================== ACHIEVEMENT EVENTS ====================
+
+async def on_achievement_unlocked(
+    user_id: int,
+    key: str,
+    title: str,
+    points: int | None,
+    unlocked_at: str
+):
+    """
+    Broadcast when a user unlocks an achievement
+    """
+    event = create_event(
+        EventType.ACHIEVEMENT_UNLOCKED,
+        user_id,
+        {
+            "key": key,
+            "title": title,
+            "points": points,
+            "unlocked_at": unlocked_at
+        },
+        target_user_id=user_id
+    )
+    await emit_event(event)
+
+
+# ==================== GAMIFICATION EVENTS ====================
 # ==================== GAMIFICATION EVENTS ====================
 
 async def on_badge_earned(
@@ -405,6 +576,26 @@ async def on_coins_earned(
         EventType.COIN_EARNED,
         user_id,
         data,
+        target_user_id=user_id
+    )
+    await emit_event(event)
+
+
+async def on_badge_displayed(
+    user_id: int,
+    badge_id: int,
+    badge_name: str
+):
+    """
+    Broadcast when a user highlights a badge (display/share)
+    """
+    event = create_event(
+        EventType.BADGE_DISPLAYED,
+        user_id,
+        {
+            "badge_id": badge_id,
+            "badge_name": badge_name
+        },
         target_user_id=user_id
     )
     await emit_event(event)

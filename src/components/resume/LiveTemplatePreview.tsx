@@ -210,16 +210,18 @@ export default function LiveTemplatePreview({
         className={`${isExpanded ? 'overflow-auto h-[calc(100vh-56px)]' : 'overflow-y-auto'} bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-6`}
         style={{ maxHeight: isExpanded ? 'calc(100vh - 56px)' : '100%' }}
       >
-        <div className="bg-gradient-to-br from-white/5 to-white/10 rounded-2xl p-4 border border-white/20 shadow-2xl">
+        <div className="bg-gradient-to-br from-white/5 to-white/10 rounded-2xl p-4 border border-white/20 shadow-2xl flex justify-center w-full overflow-x-auto">
           <div 
             ref={previewRef}
-            className={`bg-white rounded-xl shadow-2xl overflow-hidden transition-all duration-300 ${
+            className={`bg-white rounded-xl shadow-2xl overflow-hidden transition-all duration-300 flex-shrink-0 ${
               isAnimating ? 'ring-2 ring-blue-400/50' : ''
             }`}
             style={{ 
               transform: `scale(${displayScale})`, 
-              transformOrigin: isExpanded ? 'top center' : 'top center',
-              width: isExpanded ? '100%' : '100%',
+              transformOrigin: 'top center',
+              width: '8.5in',
+              height: 'auto',
+              minHeight: '11in',
               margin: '0 auto'
             }}
           >

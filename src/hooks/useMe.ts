@@ -1,5 +1,11 @@
 import { useEffect, useState } from 'react'
-export type Me = { id:number; email:string } | null
+export type Me = { 
+  id: number
+  email: string
+  full_name?: string
+  role?: 'user' | 'mentor' | 'admin'
+  is_mentor?: boolean
+} | null
 
 export function useMe() {
   const [me, setMe] = useState<Me>(null)

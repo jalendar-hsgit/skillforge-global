@@ -19,7 +19,7 @@ from app.schemas.contest import (
     ContestLeaderboardResponse, ContestListResponse
 )
 
-router = APIRouter(prefix="/api/v1x/contests", tags=["contests"])
+router = APIRouter(prefix="/contests", tags=["contests"])
 
 
 # ============ PUBLIC ENDPOINTS ============

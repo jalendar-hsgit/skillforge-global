@@ -1,8 +1,9 @@
 import Head from 'next/head'
-import Layout from '@/components/Layout'
-import AdminHeader from '@/components/AdminHeader'
+import DashboardLayout from '@/components/DashboardLayout'
+import DashboardStatCard from '@/components/DashboardStatCard'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
+import { DashboardGridSkeleton, DashboardListSkeleton } from '@/components/DashboardSkeletons'
 
 type Review = {
   id: number
@@ -68,44 +69,44 @@ export default function MentorReviews() {
   }
 
   return (
-    <Layout>
+    <DashboardLayout
+      title="Student Reviews"
+      subtitle={`Average Rating: ${avgRating.toFixed(1)} ⭐ (${total} reviews)`}
+      breadcrumbs={[
+        { label: 'Dashboard', href: '/mentors/dashboard' },
+        { label: 'Reviews' }
+      ]}
+    >
       <Head>
         <title>Reviews – Mentor Dashboard</title>
       </Head>
 
-      <AdminHeader title="Student Reviews" backUrl="/mentors/dashboard" />
-
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
+      <div className="space-y-8">
         {/* Stats Header */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-gradient-to-br from-yellow-500/20 to-yellow-600/20 border border-yellow-500/30 rounded-xl p-6">
-            <div className="text-techGray text-sm mb-2">Average Rating</div>
-            <div className={`text-4xl font-bold mb-2 ${getRatingColor(avgRating)}`}>
-              {avgRating.toFixed(1)} ⭐
-            </div>
-            <div className="text-xs text-techGray">Based on {total} reviews</div>
-          </div>
-
-          <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/20 border border-blue-500/30 rounded-xl p-6">
-            <div className="text-techGray text-sm mb-2">Total Reviews</div>
-            <div className="text-4xl font-bold text-white mb-2">{total}</div>
-            <div className="text-xs text-techGray">All time</div>
-          </div>
-
-          <div className="bg-gradient-to-br from-green-500/20 to-green-600/20 border border-green-500/30 rounded-xl p-6">
-            <div className="text-techGray text-sm mb-2">5-Star Reviews</div>
-            <div className="text-4xl font-bold text-white mb-2">
-              {reviews.filter(r => r.rating === 5).length}
-            </div>
-            <div className="text-xs text-techGray">
-              {total > 0 ? ((reviews.filter(r => r.rating === 5).length / total) * 100).toFixed(0) : 0}% of total
-            </div>
-          </div>
+          <DashboardStatCard
+            label="Average Rating"
+            value={`${avgRating.toFixed(1)} ⭐`}
+            color="purple"
+          />
+          <DashboardStatCard
+            label="Total Reviews"
+            value={total.toString()}
+            color="blue"
+          />
+          <DashboardStatCard
+            label="5-Star Reviews"
+            value={reviews.filter(r => r.rating === 5).length.toString()}
+            color="green"
+          />
         </div>
 
         {/* Reviews List */}
         {loading ? (
-          <div className="text-center py-12 text-techGray">Loading reviews...</div>
+          <div>
+            <DashboardGridSkeleton count={3} />
+            <DashboardListSkeleton count={5} />
+          </div>
         ) : reviews.length === 0 ? (
           <div className="bg-white/5 border border-white/10 rounded-xl p-12 text-center">
             <div className="text-6xl mb-4">⭐</div>
@@ -150,6 +151,6 @@ export default function MentorReviews() {
           </div>
         )}
       </div>
-    </Layout>
+    </DashboardLayout>
   )
 }

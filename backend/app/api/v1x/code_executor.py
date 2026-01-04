@@ -20,7 +20,7 @@ from app.schemas.notifications_executor import (
     TestCaseResultResponse
 )
 
-router = APIRouter(prefix="/api/v1x/execute", tags=["code-execution"])
+router = APIRouter(prefix="/execute", tags=["code-execution"])
 
 
 # ============ EXECUTION ENGINE ============

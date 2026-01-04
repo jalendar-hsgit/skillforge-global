@@ -8,7 +8,7 @@ import re
 from dataclasses import dataclass
 from enum import Enum
 
-class ATS_KEYWORDS = {
+ATS_KEYWORDS = {
     "technical": [
         "python", "javascript", "java", "c++", "c#", "sql", "html", "css",
         "react", "angular", "vue", "django", "flask", "fastapi", "nodejs", "express",

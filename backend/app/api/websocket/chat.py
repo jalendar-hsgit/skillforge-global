@@ -432,8 +432,11 @@ async def webrtc_ice_candidate(sid, data):
             }, room=target_sid)
 
 
-# Create ASGI app
+# Create ASGI app with proper handling for non-socket.io requests
+# The other_asgi_app=None and static_files=None ensures proper WebSocket handling
 socket_app = socketio.ASGIApp(
     sio,
-    socketio_path='socket.io'
+    socketio_path='socket.io',
+    # Handle non-socket.io requests by closing gracefully
+    other_asgi_app=None
 )

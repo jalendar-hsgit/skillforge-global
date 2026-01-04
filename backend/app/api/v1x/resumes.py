@@ -220,6 +220,70 @@ def duplicate_resume(
     return new_resume
 
 
+@router.post("/{resume_id}/apply-template/{template_id}", response_model=ResumeOut)
+def apply_template_to_resume(
+    resume_id: int,
+    template_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Apply a template to an existing resume (changes styling, preserves content)"""
+    resume = db.query(Resume).filter(
+        Resume.id == resume_id,
+        Resume.user_id == current_user.id
+    ).first()
+    
+    if not resume:
+        raise HTTPException(status_code=404, detail="Resume not found")
+    
+    # Validate template exists
+    from app.modelsx.resume import ResumeTemplate
+    template = db.query(ResumeTemplate).filter(
+        ResumeTemplate.id == int(template_id) if template_id.isdigit() else ResumeTemplate.name.ilike(f"%{template_id}%"),
+        ResumeTemplate.is_active == True
+    ).first()
+    
+    if not template:
+        raise HTTPException(status_code=404, detail=f"Template '{template_id}' not found")
+    
+    # Apply template styling to resume
+    resume.template_id = str(template.id)
+    
+    # Apply template config to resume styling
+    if template.config:
+        config = template.config
+        if isinstance(config, str):
+            import json
+            config = json.loads(config)
+        
+        # Apply template layout and styling
+        resume.layout = config.get('layout', resume.layout or 'single-column')
+        resume.font_family = config.get('font', resume.font_family or 'Inter')
+        resume.accent_color = config.get('accent_color', resume.accent_color or '#2563eb')
+        resume.picture_style = config.get('picture_style', resume.picture_style or 'circle')
+        resume.color_theme = config.get('color_theme', resume.color_theme or 'blue')
+        
+        # Apply advanced styling if provided
+        if 'text_color' in config:
+            resume.text_color = config['text_color']
+        if 'heading_color' in config:
+            resume.heading_color = config['heading_color']
+        if 'line_spacing' in config:
+            resume.line_spacing = config['line_spacing']
+        if 'background_type' in config:
+            resume.background_type = config['background_type']
+        if 'rating_style' in config:
+            resume.rating_style = config['rating_style']
+    
+    # Track template application in update timestamp
+    resume.updated_at = datetime.utcnow()
+    
+    db.commit()
+    db.refresh(resume)
+    
+    return resume
+
+
 # ==================== Work Experience ====================
 
 @router.post("/{resume_id}/work-experience", response_model=WorkExperienceOut)

@@ -1,9 +1,12 @@
 import Head from 'next/head'
-import Layout from '@/components/Layout'
-import AdminHeader from '@/components/AdminHeader'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
+import DashboardLayout from '@/components/DashboardLayout'
+import { DashboardGridSkeleton } from '@/components/DashboardSkeletons'
+import DashboardStatCard from '@/components/DashboardStatCard'
+import DashboardSectionHeader from '@/components/DashboardSectionHeader'
+import DashboardListItem from '@/components/DashboardListItem'
 
 type MentorStats = {
   total_sessions: number
@@ -63,50 +66,44 @@ export default function MentorDashboard() {
     setError('')
     try {
       const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8001'}/api/v1x/mentor-portal/dashboard/overview`
-      console.log('Fetching mentor dashboard from:', apiUrl)
       
       const res = await fetch(apiUrl, {
         credentials: 'include'
       })
 
-      console.log('Response status:', res.status)
-
       if (res.status === 401) {
-        console.log('Unauthorized - redirecting to login')
         router.push('/login?redirect=/mentors/dashboard')
         return
       }
 
       if (res.status === 404) {
-        console.log('Not a mentor')
         setError('You are not registered as a mentor')
         return
       }
 
       if (res.status === 403) {
-        const errorData = await res.json()
-        console.log('Forbidden:', errorData)
-        setError(errorData.detail || 'Mentor account not approved')
+        try {
+          const errorData = await res.json()
+          setError(errorData.detail || 'Mentor account not approved')
+        } catch {
+          setError('Mentor account not approved')
+        }
         return
       }
 
       if (res.ok) {
         const dashboardData = await res.json()
-        console.log('Dashboard data received:', dashboardData)
         
-        // Ensure status is a string
         if (dashboardData.mentor && typeof dashboardData.mentor.status !== 'string') {
           dashboardData.mentor.status = String(dashboardData.mentor.status)
         }
         setData(dashboardData)
       } else {
-        const errorText = await res.text()
-        console.error('Dashboard error:', res.status, errorText)
-        setError(`Failed to load dashboard (${res.status})`)
+        setError('Failed to load dashboard')
       }
-    } catch (err: any) {
-      console.error('Dashboard fetch error:', err)
-      setError(err?.message || 'Failed to load dashboard')
+    } catch (err) {
+      console.error('Error loading dashboard:', err)
+      setError('Error loading dashboard')
     } finally {
       setLoading(false)
     }
@@ -114,29 +111,39 @@ export default function MentorDashboard() {
 
   if (loading) {
     return (
-      <Layout>
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-techGray">Loading mentor dashboard...</div>
-        </div>
-      </Layout>
+      <DashboardLayout
+        title="Dashboard"
+        subtitle="Welcome back, mentor"
+        breadcrumbs={[{ label: 'Dashboard', href: '/mentors/dashboard' }]}
+      >
+        <Head>
+          <title>Mentor Dashboard</title>
+        </Head>
+        <DashboardGridSkeleton count={4} />
+      </DashboardLayout>
     )
   }
 
   if (error) {
     return (
-      <Layout>
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <div className="text-red-400 mb-4">{error}</div>
-            <Link
-              href="/mentors"
-              className="inline-block px-6 py-3 bg-forgePurple hover:bg-forgePurple/80 text-white font-medium rounded-lg transition-colors"
-            >
-              Back to Mentors
-            </Link>
-          </div>
+      <DashboardLayout
+        title="Dashboard"
+        subtitle="Welcome back, mentor"
+        breadcrumbs={[{ label: 'Dashboard', href: '/mentors/dashboard' }]}
+      >
+        <Head>
+          <title>Mentor Dashboard</title>
+        </Head>
+        <div className="max-w-md mx-auto text-center">
+          <div className="text-error mb-6 text-lg font-medium">{error}</div>
+          <Link
+            href="/mentors"
+            className="inline-block px-6 py-3 bg-forgePurple hover:bg-forgePurple/80 text-white font-medium rounded-lg transition-colors"
+          >
+            Back to Mentors
+          </Link>
         </div>
-      </Layout>
+      </DashboardLayout>
     )
   }
 
@@ -147,81 +154,45 @@ export default function MentorDashboard() {
   const { mentor, stats, upcoming_sessions, recent_reviews } = data
 
   return (
-    <Layout>
+    <DashboardLayout
+      title="Dashboard"
+      subtitle="Your performance overview"
+      breadcrumbs={[{ label: 'Dashboard', href: '/mentors/dashboard' }]}
+    >
       <Head>
-        <title>Mentor Dashboard – SkillForge Global</title>
+        <title>Mentor Dashboard</title>
       </Head>
 
-      <AdminHeader 
-        title="Mentor Dashboard" 
-        showBackButton={true}
-        backUrl="/mentors"
-      />
-
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        {/* Welcome Section */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-white mb-2">Welcome, Mentor! 👨‍🏫</h2>
-          <p className="text-techGray">
-            Status: <span className={`font-semibold ${
-              (mentor?.status || '').toLowerCase() === 'approved' ? 'text-green-400' : 'text-yellow-400'
-            }`}>{(mentor?.status || 'unknown').toUpperCase()}</span>
-          </p>
-        </div>
-
+      <div className="space-y-8">
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {/* Total Earnings */}
-          <div className="bg-gradient-to-br from-green-500/20 to-green-500/5 border border-green-500/30 rounded-xl p-6">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-3xl">💰</span>
-              <span className="text-green-400 text-sm font-medium">All Time</span>
-            </div>
-            <div className="text-3xl font-bold text-white mb-1">${stats.total_earnings.toFixed(2)}</div>
-            <div className="text-sm text-techGray">Total Earnings</div>
-            <div className="text-xs text-green-400 mt-2">
-              +${stats.month_earnings.toFixed(2)} this month
-            </div>
-          </div>
+          <DashboardStatCard
+            label="Total Earnings"
+            value={`$${stats.total_earnings.toFixed(2)}`}
+            subtitle={`+$${stats.month_earnings.toFixed(2)} this month`}
+            color="purple"
+          />
 
-          {/* Total Sessions */}
-          <div className="bg-gradient-to-br from-techBlue/20 to-techBlue/5 border border-techBlue/30 rounded-xl p-6">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-3xl">📅</span>
-              <span className="text-techBlue text-sm font-medium">Sessions</span>
-            </div>
-            <div className="text-3xl font-bold text-white mb-1">{stats.total_sessions}</div>
-            <div className="text-sm text-techGray">Total Sessions</div>
-            <div className="text-xs text-techBlue mt-2">
-              {stats.completed_sessions} completed
-            </div>
-          </div>
+          <DashboardStatCard
+            label="Total Sessions"
+            value={stats.total_sessions}
+            subtitle={`${stats.completed_sessions} completed`}
+            color="blue"
+          />
 
-          {/* Average Rating */}
-          <div className="bg-gradient-to-br from-yellow-500/20 to-yellow-500/5 border border-yellow-500/30 rounded-xl p-6">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-3xl">⭐</span>
-              <span className="text-yellow-400 text-sm font-medium">Rating</span>
-            </div>
-            <div className="text-3xl font-bold text-white mb-1">{stats.average_rating.toFixed(1)}</div>
-            <div className="text-sm text-techGray">Average Rating</div>
-            <div className="text-xs text-yellow-400 mt-2">
-              {stats.total_reviews} reviews
-            </div>
-          </div>
+          <DashboardStatCard
+            label="Average Rating"
+            value={`${stats.average_rating.toFixed(1)} ⭐`}
+            subtitle={`${stats.total_reviews} reviews`}
+            color="electric"
+          />
 
-          {/* Unique Students */}
-          <div className="bg-gradient-to-br from-forgePurple/20 to-forgePurple/5 border border-forgePurple/30 rounded-xl p-6">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-3xl">👥</span>
-              <span className="text-forgePurple text-sm font-medium">Students</span>
-            </div>
-            <div className="text-3xl font-bold text-white mb-1">{stats.unique_students}</div>
-            <div className="text-sm text-techGray">Total Students</div>
-            <div className="text-xs text-forgePurple mt-2">
-              {stats.month_sessions} sessions this month
-            </div>
-          </div>
+          <DashboardStatCard
+            label="Total Students"
+            value={stats.unique_students}
+            subtitle={`${stats.month_sessions} sessions this month`}
+            color="green"
+          />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -229,79 +200,70 @@ export default function MentorDashboard() {
           <div className="lg:col-span-2 space-y-8">
             {/* Upcoming Sessions */}
             <div>
-              <h2 className="text-2xl font-bold text-white mb-4">Upcoming Sessions</h2>
+              <DashboardSectionHeader title="Upcoming Sessions" />
               {upcoming_sessions.length === 0 ? (
-                <div className="bg-white/5 border border-white/10 rounded-xl p-8 text-center">
-                  <div className="text-4xl mb-4">📅</div>
-                  <h3 className="text-xl font-semibold text-white mb-2">No upcoming sessions</h3>
-                  <p className="text-techGray">Check back later for new session bookings</p>
-                </div>
+                <DashboardListItem>
+                  <p className="text-techGray-400 text-center">No upcoming sessions</p>
+                </DashboardListItem>
               ) : (
                 <div className="space-y-4">
                   {upcoming_sessions.map((session) => (
-                    <div
-                      key={session.id}
-                      className="bg-white/5 border border-white/10 rounded-xl p-6 hover:border-techBlue/50 transition-colors"
-                    >
+                    <DashboardListItem key={session.id} hoverColor="purple">
                       <div className="flex items-center justify-between mb-3">
                         <h3 className="text-lg font-semibold text-white">{session.topic}</h3>
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        <span className={`px-3 py-1 rounded text-xs font-medium ${
                           session.status === 'confirmed' 
-                            ? 'bg-green-500/20 text-green-400' 
-                            : 'bg-yellow-500/20 text-yellow-400'
+                            ? 'bg-success/20 text-success' 
+                            : 'bg-warning/20 text-warning'
                         }`}>
                           {session.status}
                         </span>
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-techGray">
+                      <div className="flex gap-4 text-sm text-techGray-400">
                         <span>📅 {new Date(session.scheduled_at).toLocaleDateString()}</span>
                         <span>⏱️ {session.duration_minutes} min</span>
                         <span>👤 Student #{session.student_id}</span>
                       </div>
-                    </div>
+                    </DashboardListItem>
                   ))}
                 </div>
               )}
             </div>
 
-            {/* Quick Actions */}
+            {/* Quick Navigation */}
             <div>
-              <h2 className="text-2xl font-bold text-white mb-4">Quick Actions</h2>
+              <DashboardSectionHeader title="Quick Navigation" />
               <div className="grid grid-cols-2 gap-4">
-                <Link
-                  href="/mentors/dashboard/sessions"
-                  className="bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl p-6 transition-colors"
-                >
-                  <div className="text-3xl mb-3">📋</div>
-                  <h3 className="text-lg font-semibold text-white mb-2">All Sessions</h3>
-                  <p className="text-sm text-techGray">View and manage all sessions</p>
+                <Link href="/mentors/dashboard/earnings" className="block">
+                  <DashboardListItem hoverColor="purple">
+                    <div className="text-3xl mb-3">💵</div>
+                    <h3 className="font-semibold text-white mb-2">Earnings</h3>
+                    <p className="text-sm text-techGray-400">Detailed breakdown</p>
+                  </DashboardListItem>
                 </Link>
 
-                <Link
-                  href="/mentors/dashboard/earnings"
-                  className="bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl p-6 transition-colors"
-                >
-                  <div className="text-3xl mb-3">💵</div>
-                  <h3 className="text-lg font-semibold text-white mb-2">Earnings</h3>
-                  <p className="text-sm text-techGray">Detailed earnings breakdown</p>
+                <Link href="/mentors/dashboard/analytics" className="block">
+                  <DashboardListItem hoverColor="blue">
+                    <div className="text-3xl mb-3">📊</div>
+                    <h3 className="font-semibold text-white mb-2">Analytics</h3>
+                    <p className="text-sm text-techGray-400">Performance insights</p>
+                  </DashboardListItem>
                 </Link>
 
-                <Link
-                  href="/mentors/dashboard/students"
-                  className="bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl p-6 transition-colors"
-                >
-                  <div className="text-3xl mb-3">👨‍🎓</div>
-                  <h3 className="text-lg font-semibold text-white mb-2">Students</h3>
-                  <p className="text-sm text-techGray">View your student list</p>
+                <Link href="/mentors/dashboard/payouts" className="block">
+                  <DashboardListItem hoverColor="electric">
+                    <div className="text-3xl mb-3">🏦</div>
+                    <h3 className="font-semibold text-white mb-2">Payouts</h3>
+                    <p className="text-sm text-techGray-400">Withdrawal options</p>
+                  </DashboardListItem>
                 </Link>
 
-                <Link
-                  href="/mentors/dashboard/analytics"
-                  className="bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl p-6 transition-colors"
-                >
-                  <div className="text-3xl mb-3">📊</div>
-                  <h3 className="text-lg font-semibold text-white mb-2">Analytics</h3>
-                  <p className="text-sm text-techGray">Performance insights</p>
+                <Link href="/" className="block">
+                  <DashboardListItem hoverColor="purple">
+                    <div className="text-3xl mb-3">🏠</div>
+                    <h3 className="font-semibold text-white mb-2">Home</h3>
+                    <p className="text-sm text-techGray-400">Back to main site</p>
+                  </DashboardListItem>
                 </Link>
               </div>
             </div>
@@ -309,74 +271,80 @@ export default function MentorDashboard() {
 
           {/* Sidebar */}
           <div className="space-y-8">
-            {/* Profile Summary */}
+            {/* Profile Card */}
             <div>
-              <h2 className="text-xl font-bold text-white mb-4">Your Profile</h2>
-              <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-                <div className="mb-4">
-                  <div className="text-sm text-techGray mb-1">Hourly Rate</div>
-                  <div className="text-2xl font-bold text-white">${mentor.hourly_rate}/hr</div>
-                </div>
-                <div className="mb-4">
-                  <div className="text-sm text-techGray mb-1">Expertise</div>
-                  <div className="text-white">
-                    {Array.isArray(mentor.expertise) 
-                      ? mentor.expertise.join(', ') 
-                      : (mentor.expertise || 'Not set')}
-                  </div>
-                </div>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold text-white">Your Profile</h2>
                 <Link
                   href="/mentors/dashboard/profile"
-                  className="block w-full px-4 py-2 bg-forgePurple hover:bg-forgePurple/80 text-white text-center font-medium rounded-lg transition-colors"
+                  className="px-3 py-1 text-sm bg-forgePurple hover:bg-forgePurple/80 text-white rounded transition-colors font-medium"
                 >
-                  Edit Profile
+                  ✎ Edit
                 </Link>
               </div>
+              <DashboardListItem hoverColor="purple" className="space-y-4">
+                <div>
+                  <p className="text-sm text-techGray-400 mb-1">Hourly Rate</p>
+                  <p className="text-2xl font-bold text-forgePurple">${mentor.hourly_rate}/hr</p>
+                </div>
+                <div>
+                  <p className="text-sm text-techGray-400 mb-2">Expertise</p>
+                  <div className="flex flex-wrap gap-2">
+                    {Array.isArray(mentor.expertise) && mentor.expertise.length > 0
+                      ? mentor.expertise.map((skill, i) => (
+                          <span key={i} className="px-2 py-1 bg-forgePurple/20 text-forgePurple text-xs rounded">
+                            {skill}
+                          </span>
+                        ))
+                      : <span className="text-techGray-400 text-sm">Not set</span>
+                    }
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm text-techGray-400 mb-1">Status</p>
+                  <p className={`font-medium capitalize ${
+                    mentor.status === 'approved' ? 'text-success' : 
+                    mentor.status === 'pending' ? 'text-warning' : 
+                    'text-error'
+                  }`}>{mentor.status}</p>
+                </div>
+              </DashboardListItem>
             </div>
 
             {/* Recent Reviews */}
             <div>
-              <h2 className="text-xl font-bold text-white mb-4">Recent Reviews</h2>
+              <DashboardSectionHeader title="Recent Reviews" subtitle={`${recent_reviews.length} reviews`} />
               {recent_reviews.length === 0 ? (
-                <div className="bg-white/5 border border-white/10 rounded-xl p-6 text-center">
-                  <p className="text-techGray text-sm">No reviews yet</p>
-                </div>
+                <DashboardListItem>
+                  <p className="text-techGray-400 text-sm text-center">No reviews yet</p>
+                </DashboardListItem>
               ) : (
                 <div className="space-y-3">
                   {recent_reviews.slice(0, 3).map((review) => (
-                    <div
-                      key={review.id}
-                      className="bg-white/5 border border-white/10 rounded-lg p-4"
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-1">
+                    <DashboardListItem key={review.id} className="p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex gap-0.5">
                           {[...Array(5)].map((_, i) => (
-                            <span key={i} className={i < review.rating ? 'text-yellow-400' : 'text-gray-600'}>
+                            <span key={i} className={i < review.rating ? 'text-aiElectric' : 'text-techGray-600'}>
                               ⭐
                             </span>
                           ))}
                         </div>
-                        <span className="text-xs text-techGray">
+                        <span className="text-xs text-techGray-500">
                           {new Date(review.created_at).toLocaleDateString()}
                         </span>
                       </div>
                       {(review.review_text || review.comment) && (
-                        <p className="text-sm text-techGray italic">"{review.review_text || review.comment}"</p>
+                        <p className="text-sm text-techGray-400 italic">"{review.review_text || review.comment}"</p>
                       )}
-                    </div>
+                    </DashboardListItem>
                   ))}
-                  <Link
-                    href="/mentors/dashboard/reviews"
-                    className="block text-center text-sm text-techBlue hover:underline"
-                  >
-                    View all reviews →
-                  </Link>
                 </div>
               )}
             </div>
           </div>
         </div>
       </div>
-    </Layout>
+    </DashboardLayout>
   )
 }

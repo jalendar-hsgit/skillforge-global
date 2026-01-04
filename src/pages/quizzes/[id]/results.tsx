@@ -1,8 +1,10 @@
+export const dynamic = 'force-dynamic'
+
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import { useState, useEffect } from 'react'
 import QuizTimingBreakdown from '@/components/quiz/QuizTimingBreakdown'
-import PageLayout from '@/components/PageLayout'
+import { PageLayout } from '@/components/PageLayout'
 import { newFeaturesAPI } from '@/lib/newFeaturesAPI'
 
 interface QuizResultsState {

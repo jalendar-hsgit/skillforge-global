@@ -23,7 +23,7 @@ from app.schemas.activity import (
     TimelineResponse, ActivityStatsResponse
 )
 
-router = APIRouter(prefix="/api/v1x/activity", tags=["activity"])
+router = APIRouter(prefix="/activity", tags=["activity"])
 
 
 # ============================================================================

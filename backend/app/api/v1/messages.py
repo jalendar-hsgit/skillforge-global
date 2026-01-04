@@ -18,6 +18,9 @@ from app.schemas.social_schemas import (
 )
 from app.api.deps import get_current_user
 
+# Phase 3.5: Real-time event emission
+from app.services.realtime_events import on_message_created
+
 router = APIRouter(prefix="/messages", tags=["messages"])
 
 
@@ -112,7 +115,7 @@ def get_conversation(
 
 
 @router.post("/messages", response_model=MessageResponse, status_code=status.HTTP_201_CREATED)
-def send_message(
+async def send_message(
     msg_data: MessageCreate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -141,6 +144,25 @@ def send_message(
     
     db.commit()
     db.refresh(new_message)
+    
+    # Determine recipient (other participant in conversation)
+    recipient_id = (
+        conversation.participant2_id
+        if conversation.participant1_id == current_user.id
+        else conversation.participant1_id
+    )
+    
+    # Emit real-time event
+    await on_message_created(
+        message_id=new_message.id,
+        conversation_id=msg_data.conversation_id,
+        sender_id=current_user.id,
+        sender_name=current_user.name or current_user.email,
+        recipient_id=recipient_id,
+        content=msg_data.content,
+        created_at=new_message.created_at
+    )
+    
     return new_message
 
 

@@ -16,7 +16,7 @@ from app.modelsx.advanced_dashboard import (
     UserAnalytics, DashboardInsight, WidgetType, MetricType
 )
 
-router = APIRouter(prefix="/api/v1x/dashboard", tags=["advanced_dashboard"])
+router = APIRouter(prefix="/dashboard", tags=["advanced_dashboard"])
 
 
 # ===================== Dashboard Layout =====================

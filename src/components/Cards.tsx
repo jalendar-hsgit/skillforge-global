@@ -225,24 +225,53 @@ export function AlertCard({ variant, title, message, action, onDismiss }: AlertC
 
 interface ActionCardProps {
   icon: string
-  title: string
-  description: string
-  buttonText: string
+  title?: string
+  label?: string  // Alternative to title for simple display
+  description?: string
+  value?: string  // For displaying a value
+  color?: string  // For custom color styling
+  buttonText?: string
   buttonHref?: string
   buttonOnClick?: () => void
+  onClick?: () => void  // Simple click handler
   variant?: 'default' | 'gradient'
 }
 
 export function ActionCard({ 
   icon, 
-  title, 
-  description, 
+  title,
+  label,
+  description,
+  value,
+  color,
   buttonText, 
   buttonHref, 
   buttonOnClick,
+  onClick,
   variant = 'default' 
 }: ActionCardProps) {
-  const button = (
+  const displayTitle = title || label
+  
+  // Simple card version (when value is provided)
+  if (value !== undefined) {
+    return (
+      <div 
+        className={`bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-xl rounded-xl p-4 border border-white/10 cursor-pointer hover:border-white/30 transition-all ${onClick ? 'hover:scale-105' : ''}`}
+        onClick={onClick}
+        style={color ? { borderColor: color } : undefined}
+      >
+        <div className="flex items-center gap-3">
+          <div className="text-2xl">{icon}</div>
+          <div className="flex-1">
+            <h4 className="text-sm font-medium text-white/70">{displayTitle}</h4>
+            <p className="text-lg font-bold" style={color ? { color } : undefined}>{value}</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+  
+  const button = buttonText ? (
     <button
       onClick={buttonOnClick}
       className={`w-full mt-4 px-6 py-3 rounded-lg font-semibold transition-all transform hover:scale-105 ${
@@ -253,14 +282,14 @@ export function ActionCard({
     >
       {buttonText} →
     </button>
-  )
+  ) : null
 
   return (
     <div className="bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/10">
       <div className="text-5xl mb-4">{icon}</div>
-      <h3 className="text-xl font-bold mb-2">{title}</h3>
-      <p className="text-white/60 text-sm mb-4">{description}</p>
-      {buttonHref ? (
+      <h3 className="text-xl font-bold mb-2">{displayTitle}</h3>
+      {description && <p className="text-white/60 text-sm mb-4">{description}</p>}
+      {buttonHref && button ? (
         <Link href={buttonHref}>
           {button}
         </Link>

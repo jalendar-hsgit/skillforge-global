@@ -16,12 +16,13 @@ from app.schemas.learning_paths_schemas import (
     UserSkillsResponse
 )
 from app.api.deps import get_current_user
+from app.services.realtime_events import on_skill_validated
 
 router = APIRouter(prefix="/skills", tags=["skills"])
 
 
 @router.post("", response_model=SkillValidationResponse, status_code=status.HTTP_201_CREATED)
-def create_skill_validation(
+async def create_skill_validation(
     skill_data: SkillValidationCreate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -49,6 +50,20 @@ def create_skill_validation(
     db.add(validation)
     db.commit()
     db.refresh(validation)
+    
+    # Get the user being validated
+    validated_user = db.query(User).filter(User.id == skill_data.user_id).first()
+    
+    # Emit real-time event
+    await on_skill_validated(
+        user_id=skill_data.user_id,
+        skill_id=validation.id,
+        skill_name=skill_data.skill_name,
+        proficiency_level=skill_data.proficiency_level,
+        confidence_score=0.0,  # Initial confidence
+        endorsement_count=1  # One endorsement from validator
+    )
+    
     return validation
 
 

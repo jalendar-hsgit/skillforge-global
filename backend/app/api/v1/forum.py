@@ -9,7 +9,7 @@ from typing import List
 
 from app.core.db import get_db
 from app.models import User
-from app.modelsx.social import ForumTopic, ForumThread, ForumReply
+from app.modelsx.forums import ForumCategory as ForumTopic, ForumThread, ForumReply
 from app.schemas.social_schemas import (
     ForumTopicResponse, ForumTopicCreate, ForumTopicUpdate,
     ForumThreadResponse, ForumThreadCreate, ForumThreadUpdate,
@@ -17,6 +17,7 @@ from app.schemas.social_schemas import (
     ForumThreadWithReplies
 )
 from app.api.deps import get_current_user
+from app.services.realtime_events import on_forum_thread_created, on_forum_reply_posted
 
 router = APIRouter(prefix="/forum", tags=["forum"])
 
@@ -127,7 +128,7 @@ def get_thread_detail(thread_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/topics/{topic_id}/threads", response_model=ForumThreadResponse, status_code=status.HTTP_201_CREATED)
-def create_thread(
+async def create_thread(
     topic_id: int,
     thread_data: ForumThreadCreate,
     current_user: User = Depends(get_current_user),
@@ -151,6 +152,17 @@ def create_thread(
     
     db.commit()
     db.refresh(new_thread)
+    
+    # Emit real-time event
+    await on_forum_thread_created(
+        thread_id=new_thread.id,
+        topic_id=topic_id,
+        author_id=current_user.id,
+        author_name=current_user.name or current_user.email,
+        title=thread_data.title,
+        created_at=new_thread.created_at
+    )
+    
     return new_thread
 
 
@@ -224,7 +236,7 @@ def get_thread_replies(
 
 
 @router.post("/threads/{thread_id}/replies", response_model=ForumReplyResponse, status_code=status.HTTP_201_CREATED)
-def create_reply(
+async def create_reply(
     thread_id: int,
     reply_data: ForumReplyCreate,
     current_user: User = Depends(get_current_user),
@@ -251,6 +263,18 @@ def create_reply(
     
     db.commit()
     db.refresh(new_reply)
+    
+    # Emit real-time event
+    await on_forum_reply_posted(
+        reply_id=new_reply.id,
+        thread_id=thread_id,
+        topic_id=thread.topic_id,
+        author_id=current_user.id,
+        author_name=current_user.name or current_user.email,
+        content=reply_data.content,
+        created_at=new_reply.created_at
+    )
+    
     return new_reply
 
 

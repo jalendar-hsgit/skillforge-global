@@ -20,6 +20,8 @@ from app.models.user import User
 from app.services.email_service import email_service
 from app.services.rate_limiter import rate_limit
 from app.core.config import settings
+# Import security audit utilities
+from app.api.v1x.security import record_login_attempt, log_action
 
 logger = logging.getLogger(__name__)
 
@@ -139,16 +141,73 @@ def login(res: Response, request: Request, data: LoginRequest, db: Session = Dep
         else:
             raise HTTPException(status_code=400, detail="Email or username required")
             
-        if not u:
-            logger.debug("Login failed: user not found")
+        if n# Record failed login attempt
+            record_login_attempt(
+                db=db,
+                user_id=0,
+                ip_address=client_ip,
+                user_agent=request.headers.get("User-Agent"),
+                device="unknown",
+                success=False,
+                failure_reason="User not found"
+            )
+            log_action(
+                db=db,
+                user_id=None,
+                action="LOGIN_FAILED",
+                resource_type="user",
+                ip_address=client_ip,
+                details={"reason": "user_not_found"}
+            )
             raise HTTPException(status_code=401, detail="Invalid login")
 
         # Verify password
         if not verify_password(data.password, u.password_hash):
             logger.debug("Login failed: bad password")
+            # Record failed login attempt
+            record_login_attempt(
+                db=db,
+                user_id=u.id,
+                ip_address=client_ip,
+                user_agent=request.headers.get("User-Agent"),
+                device="unknown",
+                success=False,
+                failure_reason="Invalid password"
+            )
+            log_action(
+                db=db,
+                user_id=u.id,
+                action="LOGIN_FAILED",
+                resource_type="user",
+                resource_id=u.id,
+                ip_address=client_ip,
+                details={"reason": "invalid_password"}
+            )
             raise HTTPException(status_code=401, detail="Invalid login")
 
         # Create token
+        token = create_access_token(u.id)
+        logger.debug("Login success: token created")
+        
+        # Record successful login attempt
+        record_login_attempt(
+            db=db,
+            user_id=u.id,
+            ip_address=client_ip,
+            user_agent=request.headers.get("User-Agent"),
+            device="web",
+            success=True
+        )
+        
+        # Log successful login
+        log_action(
+            db=db,
+            user_id=u.id,
+            action="LOGIN_SUCCESS",
+            resource_type="user",
+            resource_id=u.id,
+            ip_address=client_ip
+        
         token = create_access_token(u.id)
         logger.debug("Login success: token created")
 

@@ -107,6 +107,7 @@ class MentorSession(Base):
     mentor = relationship("Mentor", back_populates="sessions")
     # student = relationship("app.models.user.User", foreign_keys=[student_id])
     review = relationship("MentorReview", uselist=False, back_populates="session")
+    feedback = relationship("SessionFeedback", uselist=False, back_populates="session")
     # chat_files = relationship("MentorChatFile", back_populates="session")  # TODO: Define MentorChatFile model
 
     @property
@@ -206,3 +207,35 @@ class MentorReview(Base):
     
     def __repr__(self):
         return f"<MentorReview(id={self.id}, mentor_id={self.mentor_id}, rating={self.rating})>"
+
+
+class SessionFeedback(Base):
+    """
+    Post-session feedback from mentor and student.
+    Stores mentor notes, student feedback, and additional metadata.
+    """
+    __tablename__ = "session_feedback"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(Integer, ForeignKey("mentor_sessions.id", ondelete="CASCADE"), unique=True, nullable=False, index=True)
+    
+    # Feedback Content
+    mentor_feedback = Column(Text, nullable=True)  # Mentor's post-session notes
+    student_notes = Column(Text, nullable=True)  # Student's summary of what they learned
+    recording_url = Column(String, nullable=True)  # Link to session recording/video
+    
+    # Metadata
+    duration_actual = Column(Integer, nullable=True)  # Actual session duration in minutes
+    session_quality_rating = Column(Integer, nullable=True)  # 1-5 rating for session quality
+    key_topics = Column(String, nullable=True)  # Comma-separated topics covered
+    follow_up_required = Column(Boolean, default=False)  # Whether follow-up session needed
+    
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    
+    # Relationships
+    session = relationship("MentorSession", back_populates="feedback")
+    
+    def __repr__(self):
+        return f"<SessionFeedback(id={self.id}, session_id={self.session_id})>"

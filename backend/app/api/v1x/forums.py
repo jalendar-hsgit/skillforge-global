@@ -23,7 +23,7 @@ from app.schemas.badges_forums import (
     ThreadSearchResponse
 )
 
-router = APIRouter(prefix="/api/v1x/forums", tags=["forums"])
+router = APIRouter(prefix="/forums", tags=["forums"])
 
 
 # ============================================================================
@@ -32,11 +32,10 @@ router = APIRouter(prefix="/api/v1x/forums", tags=["forums"])
 
 @router.get("/categories", response_model=List[ForumCategoryResponse])
 async def get_categories(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     """
-    Get all forum categories
+    Get all forum categories (public endpoint - no auth required)
     """
     categories = db.query(ForumCategory).filter(
         ForumCategory.is_active == True
@@ -103,11 +102,10 @@ async def list_threads(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     sort_by: str = Query("recent", pattern="recent|popular|unanswered|viewed"),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     """
-    List threads with optional filtering and sorting
+    List threads with optional filtering and sorting (public endpoint - no auth required for viewing)
     """
     query = db.query(ForumThread)
     

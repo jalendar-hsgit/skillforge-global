@@ -11,6 +11,7 @@ interface ButtonProps {
   onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void
   disabled?: boolean
   type?: 'button' | 'submit' | 'reset'
+  title?: string
 }
 
 export function Button({
@@ -46,3 +47,5 @@ export function Button({
     </motion.button>
   )
 }
+// Default export for backwards compatibility
+export default Button

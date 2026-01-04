@@ -6,6 +6,13 @@ export const ROUTES = {
   career: '/careers',   // matches your existing page: src/pages/careers.tsx
   courses: '/courses',
   mentors: '/mentors',
+  mentorDashboard: '/mentors/dashboard',
+  mentorSessions: '/mentors/dashboard/sessions',
+  mentorEarnings: '/mentors/dashboard/earnings',
+  mentorStudents: '/mentors/dashboard/students',
+  mentorAnalytics: '/mentors/dashboard/analytics',
+  mentorSettings: '/mentors/dashboard/settings',
+  mentorBecome: '/mentors/become',
   ai: '/ai',
   faq: '/faq',
   paths: '/paths',

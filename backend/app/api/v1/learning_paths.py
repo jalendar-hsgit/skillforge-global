@@ -19,6 +19,13 @@ from app.schemas.learning_paths_schemas import (
 )
 from app.api.deps import get_current_user
 
+# Phase 3.5: Real-time event emission
+from app.services.realtime_events import (
+    on_learning_path_enrolled,
+    on_challenge_completed,
+    on_certificate_issued
+)
+
 router = APIRouter(prefix="/learning-paths", tags=["learning-paths"])
 
 
@@ -202,7 +209,7 @@ def remove_challenge_from_path(
 # ==================== USER PROGRESS ====================
 
 @router.post("/enroll", response_model=UserPathProgressResponse, status_code=status.HTTP_201_CREATED)
-def enroll_in_path(
+async def enroll_in_path(
     path_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -241,6 +248,15 @@ def enroll_in_path(
     db.add(progress)
     db.commit()
     db.refresh(progress)
+    
+    # Emit real-time event
+    await on_learning_path_enrolled(
+        user_id=current_user.id,
+        path_id=path_id,
+        path_title=path.title,
+        difficulty=path.difficulty
+    )
+    
     return progress
 
 
@@ -293,7 +309,7 @@ def get_path_progress(
 
 
 @router.post("/{path_id}/complete-challenge")
-def complete_challenge(
+async def complete_challenge(
     path_id: int,
     challenge_data: ChallengeCompletionData,
     current_user: User = Depends(get_current_user),
@@ -326,14 +342,30 @@ def complete_challenge(
     progress.last_accessed_at = datetime.utcnow()
     
     # Check if path is completed
+    is_path_completed = False
     if progress.completed_challenges >= progress.total_challenges:
         progress.is_completed = True
         progress.completed_at = datetime.utcnow()
+        is_path_completed = True
     
     progress.calculate_completion_percentage()
     
     db.commit()
     db.refresh(progress)
+    
+    # Get path info for event
+    path = db.query(LearningPath).filter(LearningPath.id == path_id).first()
+    
+    # Emit real-time event for challenge completion
+    await on_challenge_completed(
+        user_id=current_user.id,
+        path_id=path_id,
+        challenge_id=challenge_data.challenge_id,
+        challenge_name=challenge.name or f"Challenge {challenge_data.challenge_id}",
+        points_earned=challenge.points_value,
+        completion_percentage=progress.completion_percentage,
+        is_path_completed=is_path_completed
+    )
     
     return {
         "completed": True,

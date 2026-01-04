@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
+import type { GetServerSideProps } from 'next';
 import { useAuth } from '@/hooks/useAuth';
 import Link from 'next/link';
 import NotificationItem from '@/components/social/NotificationItem';
+import { requireAuthSSR } from '@/lib/auth';
 
 interface Notification {
   id: number;
@@ -19,6 +21,8 @@ interface Notification {
   isRead: boolean;
   actionUrl: string;
 }
+
+export const getServerSideProps: GetServerSideProps = requireAuthSSR();
 
 export default function NotificationsPage() {
   const router = useRouter();

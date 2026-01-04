@@ -25,7 +25,7 @@ from app.schemas.recommendations import (
     RecommendationsListResponse, SimilarUsersResponse, PersonalizedQueueResponse
 )
 
-router = APIRouter(prefix="/api/v1x/recommendations", tags=["recommendations"])
+router = APIRouter(prefix="/recommendations", tags=["recommendations"])
 
 
 # User Preferences Endpoints

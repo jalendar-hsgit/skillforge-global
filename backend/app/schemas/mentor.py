@@ -245,3 +245,181 @@ class StudentDashboardStats(BaseModel):
     upcoming_sessions: int
     total_spent: float
     favorite_mentors: List[int] = []
+
+# ============ Mentor Verification Schemas ============
+
+class DocumentTypeEnum(str, Enum):
+    GOVERNMENT_ID = "government_id"
+    DEGREE = "degree"
+    CERTIFICATION = "certification"
+    CREDENTIAL = "credential"
+
+
+class VerificationStatusEnum(str, Enum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    EXPIRED = "expired"
+
+
+class MentorVerificationResponse(BaseModel):
+    """Mentor verification document response"""
+    id: int
+    mentor_id: int
+    document_type: str
+    status: str
+    submitted_at: datetime
+    reviewed_at: Optional[datetime]
+    reviewer_notes: Optional[str]
+    expires_at: Optional[datetime]
+    
+    class Config:
+        from_attributes = True
+
+
+class MentorVerificationListResponse(BaseModel):
+    """List of verification documents"""
+    verifications: List[MentorVerificationResponse]
+    total: int
+    status: str  # Overall verification status
+
+
+class AdminVerificationResponse(BaseModel):
+    """Admin view of verification with mentor info"""
+    id: int
+    mentor_id: int
+    mentor_name: str
+    mentor_email: str
+    document_type: str
+    document_url: str
+    document_name: str
+    status: str
+    submitted_at: datetime
+    reviewed_at: Optional[datetime]
+    reviewer_notes: Optional[str]
+    
+    class Config:
+        from_attributes = True
+
+
+class AdminVerificationUpdateRequest(BaseModel):
+    """Admin updates verification status"""
+    status: str = Field(..., description="approved or rejected")
+    reviewer_notes: Optional[str] = Field(None, description="Reason for rejection or additional notes")
+    
+    @validator('status')
+    def validate_status(cls, v):
+        if v not in ['approved', 'rejected']:
+            raise ValueError("Status must be 'approved' or 'rejected'")
+        return v
+
+
+# ============ Feedback Schemas ============
+
+class SessionFeedbackRequest(BaseModel):
+    """Submit feedback for a session"""
+    mentor_feedback: Optional[str] = Field(None, max_length=2000)
+    student_notes: Optional[str] = Field(None, max_length=2000)
+    recording_url: Optional[str] = Field(None, description="URL to session recording")
+    duration_actual: Optional[int] = Field(None, ge=0, le=600, description="Actual session duration in minutes")
+    session_quality_rating: Optional[int] = Field(None, ge=1, le=5, description="1-5 rating for session quality")
+    key_topics: Optional[str] = Field(None, description="Comma-separated topics covered")
+    follow_up_required: Optional[bool] = Field(False)
+
+
+class SessionFeedbackResponse(BaseModel):
+    """Session feedback response"""
+    id: int
+    session_id: int
+    mentor_feedback: Optional[str]
+    student_notes: Optional[str]
+    recording_url: Optional[str]
+    duration_actual: Optional[int]
+    session_quality_rating: Optional[int]
+    key_topics: Optional[str]
+    follow_up_required: bool
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+# ============ Search & Filter Schemas ============
+
+class MentorSearchRequest(BaseModel):
+    """Advanced mentor search filters"""
+    query: Optional[str] = Field(None, max_length=100, description="Text search (name, bio, expertise)")
+    expertise: Optional[str] = Field(None, description="Comma-separated expertise paths to filter")
+    min_rating: Optional[float] = Field(None, ge=0, le=5, description="Minimum average rating")
+    max_price: Optional[float] = Field(None, ge=0, le=500, description="Maximum hourly rate")
+    min_price: Optional[float] = Field(None, ge=0, le=500, description="Minimum hourly rate")
+    availability: Optional[bool] = Field(None, description="Only show mentors with available slots")
+    sort_by: Optional[str] = Field(default="name", description="Sort by: name, rating, price, newest")
+    limit: Optional[int] = Field(default=20, ge=1, le=100)
+    offset: Optional[int] = Field(default=0, ge=0)
+
+
+class MentorSearchResponse(BaseModel):
+    """Search results with pagination"""
+    mentors: List['MentorProfileResponse']
+    total: int
+    limit: int
+    offset: int
+    
+    class Config:
+        from_attributes = True
+
+
+# ============ Calendar & Export Schemas ============
+
+class CalendarEventResponse(BaseModel):
+    """Calendar event for session"""
+    id: int
+    title: str
+    description: str
+    start_time: datetime
+    end_time: datetime
+    mentor_name: str
+    mentor_id: int
+    status: str
+    price: float
+    
+    class Config:
+        from_attributes = True
+
+
+class CalendarExportRequest(BaseModel):
+    """Request calendar export"""
+    format: str = Field(..., description="Export format: 'ical' or 'google'")
+    include_past: Optional[bool] = Field(default=False, description="Include past sessions")
+
+
+class ICalResponse(BaseModel):
+    """iCalendar export response"""
+    ical_data: str = Field(..., description="iCalendar (.ics) content")
+    filename: str = Field(default="mentor-sessions.ics")
+
+
+class GoogleCalendarResponse(BaseModel):
+    """Google Calendar integration response"""
+    auth_url: str = Field(..., description="OAuth authorization URL")
+    calendar_id: Optional[str] = Field(None, description="Google Calendar ID if already linked")
+
+
+# ============ Email Notification Schemas ============
+
+class EmailNotificationRequest(BaseModel):
+    """Email notification trigger"""
+    session_id: int
+    notification_type: str = Field(..., description="Type: confirmation, reminder, review_request")
+    recipient_email: Optional[str] = Field(None, description="Override default recipient")
+
+
+class EmailNotificationResponse(BaseModel):
+    """Email notification response"""
+    success: bool
+    message: str
+    session_id: int
+    notification_type: str
+    sent_at: datetime

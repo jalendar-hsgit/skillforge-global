@@ -16,7 +16,7 @@ from app.modelsx.premium_tiers import (
     TierType, BillingPeriod
 )
 
-router = APIRouter(prefix="/api/v1x/subscriptions", tags=["premium_tiers"])
+router = APIRouter(prefix="/subscriptions", tags=["premium_tiers"])
 
 
 # ===================== Browse Subscription Tiers =====================

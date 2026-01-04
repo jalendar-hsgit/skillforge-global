@@ -16,7 +16,7 @@ from app.schemas.notifications_executor import (
     NotificationPreferenceUpdate, NotificationPreferenceResponse
 )
 
-router = APIRouter(prefix="/api/v1x/notifications", tags=["notifications"])
+router = APIRouter(prefix="/notifications", tags=["notifications"])
 
 
 # ============ NOTIFICATION ENDPOINTS ============

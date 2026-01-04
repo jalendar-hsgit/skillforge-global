@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '@/components/Layout';
-import Card from '@/components/Card';
-import Button from '@/components/Button';
-import Input from '@/components/Input';
-import { apiBase } from '@/lib/apiBase';
+import { Card } from '@/components/Card';
+import { Button } from '@/components/Button';
+import { Input } from '@/components/Input';
+import { API_BASE } from '@/lib/api';
 
 interface Team {
   id: number;
@@ -62,7 +62,7 @@ export default function TeamsPage() {
 
   const fetchUserStats = async () => {
     try {
-      const response = await fetch(`${apiBase}/api/v1x/teams/user/stats`, {
+      const response = await fetch(`${API_BASE}/api/v1x/teams/user/stats`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
@@ -82,7 +82,7 @@ export default function TeamsPage() {
       setLoading(true);
       // For now, show teams via discovery since we don't have a dedicated my-teams endpoint
       // In production, create a specific /my-teams endpoint
-      const response = await fetch(`${apiBase}/api/v1x/teams/discover?page=1&page_size=20`, {
+      const response = await fetch(`${API_BASE}/api/v1x/teams/discover?page=1&page_size=20`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
@@ -102,7 +102,7 @@ export default function TeamsPage() {
   const handleCreateTeam = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch(`${apiBase}/api/v1x/teams/`, {
+      const response = await fetch(`${API_BASE}/api/v1x/teams/`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,

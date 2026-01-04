@@ -16,7 +16,7 @@ from app.modelsx.learning_paths import (
     PathStatus, PathDifficulty, ChallengeStatus
 )
 
-router = APIRouter(prefix="/api/v1x/paths", tags=["learning_paths"])
+router = APIRouter(prefix="/paths", tags=["learning_paths"])
 
 
 # ===================== Learning Paths =====================

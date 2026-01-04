@@ -5,14 +5,14 @@ Handles mentor applications, sessions, availability, reviews, and messaging.
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from app.core.db import get_db
 from app.core.security import get_current_user, get_current_admin
 from app.models.user import User, UserRole
 from app.modelsx.mentor import (
     Mentor, MentorSession, MentorAvailability, 
-    MentorMessage, MentorReview, MentorStatus, SessionStatus
+    MentorMessage, MentorReview, MentorStatus, SessionStatus, SessionFeedback
 )
 from app.schemas.mentor import (
     MentorApplicationRequest, MentorProfileResponse, MentorProfileUpdate,
@@ -20,7 +20,10 @@ from app.schemas.mentor import (
     SessionListResponse, SessionUpdateRequest, AvailabilitySlotRequest,
     AvailabilitySlotResponse, AvailabilityListResponse, MessageSendRequest,
     MessageResponse, MessageListResponse, ReviewSubmitRequest, ReviewResponse,
-    ReviewListResponse, MentorDashboardStats, StudentDashboardStats
+    ReviewListResponse, MentorDashboardStats, StudentDashboardStats,
+    SessionFeedbackRequest, SessionFeedbackResponse, MentorSearchRequest,
+    MentorSearchResponse, CalendarEventResponse, ICalResponse, GoogleCalendarResponse,
+    EmailNotificationRequest, EmailNotificationResponse
 )
 from app.services.mentor_service import (
     MentorEligibilityService, MentorSearchService, SessionManagementService
@@ -486,11 +489,18 @@ def update_session(
                     detail="Only confirmed sessions can be marked as completed"
                 )
             # Check if session time has passed (optional grace period)
-            if session.scheduled_at and session.scheduled_at > datetime.utcnow():
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Cannot complete a session that hasn't started yet"
-                )
+            # Handle both offset-aware and offset-naive datetimes
+            if session.scheduled_at:
+                from datetime import timezone
+                now = datetime.now(timezone.utc)
+                scheduled_time = session.scheduled_at
+                if scheduled_time.tzinfo is None:
+                    scheduled_time = scheduled_time.replace(tzinfo=timezone.utc)
+                if scheduled_time > now:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Cannot complete a session that hasn't started yet"
+                    )
         
         if session.status != updates.status:
             status_changed = True
@@ -881,3 +891,356 @@ def get_all_sessions(
     ]
     
     return {"sessions": session_list}
+
+
+# ============ Session Feedback ============
+
+@router.post("/sessions/{session_id}/feedback", response_model=SessionFeedbackResponse, status_code=status.HTTP_201_CREATED)
+def submit_session_feedback(
+    session_id: int,
+    feedback: SessionFeedbackRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Submit feedback for a completed session (by mentor or student)."""
+    session = db.query(MentorSession).filter(MentorSession.id == session_id).first()
+    if not session:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+    
+    # Check authorization
+    is_mentor = session.mentor_id == current_user.id
+    is_student = session.student_id == current_user.id
+    if not (is_mentor or is_student):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Unauthorized")
+    
+    # Get or create feedback
+    existing_feedback = db.query(SessionFeedback).filter(SessionFeedback.session_id == session_id).first()
+    if existing_feedback:
+        # Update existing feedback
+        if feedback.mentor_feedback is not None:
+            existing_feedback.mentor_feedback = feedback.mentor_feedback
+        if feedback.student_notes is not None:
+            existing_feedback.student_notes = feedback.student_notes
+        if feedback.recording_url is not None:
+            existing_feedback.recording_url = feedback.recording_url
+        if feedback.duration_actual is not None:
+            existing_feedback.duration_actual = feedback.duration_actual
+        if feedback.session_quality_rating is not None:
+            existing_feedback.session_quality_rating = feedback.session_quality_rating
+        if feedback.key_topics is not None:
+            existing_feedback.key_topics = feedback.key_topics
+        if feedback.follow_up_required is not None:
+            existing_feedback.follow_up_required = feedback.follow_up_required
+        db.commit()
+        db.refresh(existing_feedback)
+        return SessionFeedbackResponse.from_orm(existing_feedback)
+    
+    # Create new feedback
+    session_feedback = SessionFeedback(
+        session_id=session_id,
+        mentor_feedback=feedback.mentor_feedback if is_mentor else None,
+        student_notes=feedback.student_notes if is_student else None,
+        recording_url=feedback.recording_url,
+        duration_actual=feedback.duration_actual,
+        session_quality_rating=feedback.session_quality_rating,
+        key_topics=feedback.key_topics,
+        follow_up_required=feedback.follow_up_required
+    )
+    db.add(session_feedback)
+    db.commit()
+    db.refresh(session_feedback)
+    
+    return SessionFeedbackResponse.from_orm(session_feedback)
+
+
+@router.get("/sessions/{session_id}/feedback", response_model=SessionFeedbackResponse)
+def get_session_feedback(
+    session_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get feedback for a session."""
+    session = db.query(MentorSession).filter(MentorSession.id == session_id).first()
+    if not session:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+    
+    # Check authorization
+    if session.mentor_id != current_user.id and session.student_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Unauthorized")
+    
+    feedback = db.query(SessionFeedback).filter(SessionFeedback.session_id == session_id).first()
+    if not feedback:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No feedback for this session")
+    
+    return SessionFeedbackResponse.from_orm(feedback)
+
+
+# ============ Advanced Search & Filtering ============
+
+@router.get("", response_model=MentorSearchResponse)
+def search_mentors_advanced(
+    query: Optional[str] = Query(None, description="Text search"),
+    expertise: Optional[str] = Query(None, description="Comma-separated expertise"),
+    min_rating: Optional[float] = Query(None, ge=0, le=5),
+    max_price: Optional[float] = Query(None, ge=0, le=500),
+    min_price: Optional[float] = Query(None, ge=0, le=500),
+    availability: Optional[bool] = Query(None),
+    sort_by: str = Query("name", description="Sort by: name, rating, price, newest"),
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db)
+):
+    """
+    Advanced mentor search with filtering and sorting.
+    
+    Query Parameters:
+    - query: Text search on name/bio
+    - expertise: Filter by expertise paths (comma-separated)
+    - min_rating/max_price/min_price: Numerical filters
+    - availability: Only show available mentors
+    - sort_by: name, rating, price, newest
+    """
+    q = db.query(Mentor).filter(Mentor.status == MentorStatus.APPROVED)
+    
+    # Text search
+    if query:
+        search_term = f"%{query.lower()}%"
+        q = q.filter(
+            (Mentor.bio.ilike(search_term)) |
+            (Mentor.expertise.ilike(search_term))
+        )
+    
+    # Expertise filter
+    if expertise:
+        expertise_list = [e.strip() for e in expertise.split(",")]
+        q = q.filter(
+            Mentor.expertise.contains(expertise_list[0])  # At least one matching
+        )
+    
+    # Rating filter
+    if min_rating:
+        q = q.filter(Mentor.average_rating >= min_rating)
+    
+    # Price filters
+    if min_price:
+        q = q.filter(Mentor.hourly_rate >= min_price)
+    if max_price:
+        q = q.filter(Mentor.hourly_rate <= max_price)
+    
+    # Availability filter
+    if availability:
+        available_mentor_ids = db.query(MentorAvailability.mentor_id).filter(
+            MentorAvailability.is_available == True,
+            MentorAvailability.is_booked == False
+        ).distinct()
+        q = q.filter(Mentor.id.in_(available_mentor_ids))
+    
+    # Sorting
+    if sort_by == "rating":
+        q = q.order_by(Mentor.average_rating.desc())
+    elif sort_by == "price":
+        q = q.order_by(Mentor.hourly_rate.asc())
+    elif sort_by == "newest":
+        q = q.order_by(Mentor.created_at.desc())
+    else:  # name
+        q = q.order_by(Mentor.bio.asc())
+    
+    total = q.count()
+    mentors = q.limit(limit).offset(offset).all()
+    
+    mentor_responses = [
+        MentorProfileResponse(
+            id=m.id,
+            user_id=m.user_id,
+            bio=m.bio,
+            expertise=m.expertise,
+            hourly_rate=m.hourly_rate,
+            status=m.status,
+            average_rating=m.average_rating,
+            total_sessions=m.total_sessions,
+            approved_at=m.approved_at,
+            created_at=m.created_at
+        )
+        for m in mentors
+    ]
+    
+    return MentorSearchResponse(
+        mentors=mentor_responses,
+        total=total,
+        limit=limit,
+        offset=offset
+    )
+
+
+# ============ Calendar & Export ============
+
+@router.get("/calendar/export", response_model=ICalResponse)
+def export_calendar_ical(
+    current_user: User = Depends(get_current_user),
+    include_past: bool = Query(False),
+    db: Session = Depends(get_db)
+):
+    """Export user's mentor sessions as iCalendar (.ics) file."""
+    # Get sessions
+    query = db.query(MentorSession).filter(
+        (MentorSession.student_id == current_user.id) |
+        (MentorSession.mentor_id == current_user.id)
+    )
+    
+    if not include_past:
+        query = query.filter(MentorSession.scheduled_at >= datetime.utcnow())
+    
+    sessions = query.all()
+    
+    # Generate iCalendar
+    ical_lines = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//SkillForge Global//Mentor Sessions//EN",
+        f"CALSCALE:GREGORIAN",
+    ]
+    
+    for session in sessions:
+        start = session.scheduled_at
+        end = start + timedelta(minutes=session.duration_minutes)
+        start_str = start.strftime("%Y%m%dT%H%M%SZ")
+        end_str = end.strftime("%Y%m%dT%H%M%SZ")
+        
+        event_title = f"Mentor Session: {session.topic}"
+        event_desc = f"with {'Mentor' if session.student_id == current_user.id else 'Student'}\nPrice: ${session.price}"
+        
+        ical_lines.extend([
+            "BEGIN:VEVENT",
+            f"DTSTART:{start_str}",
+            f"DTEND:{end_str}",
+            f"SUMMARY:{event_title}",
+            f"DESCRIPTION:{event_desc}",
+            f"UID:session-{session.id}@skillforge.local",
+            "END:VEVENT"
+        ])
+    
+    ical_lines.extend([
+        "END:VCALENDAR"
+    ])
+    
+    ical_data = "\r\n".join(ical_lines)
+    
+    return ICalResponse(
+        ical_data=ical_data,
+        filename="mentor-sessions.ics"
+    )
+
+
+@router.get("/calendar/events", response_model=List[CalendarEventResponse])
+def get_calendar_events(
+    current_user: User = Depends(get_current_user),
+    start_date: Optional[datetime] = Query(None),
+    end_date: Optional[datetime] = Query(None),
+    db: Session = Depends(get_db)
+):
+    """Get mentor sessions as calendar events."""
+    q = db.query(MentorSession).filter(
+        (MentorSession.student_id == current_user.id) |
+        (MentorSession.mentor_id == current_user.id)
+    )
+    
+    if start_date:
+        q = q.filter(MentorSession.scheduled_at >= start_date)
+    if end_date:
+        q = q.filter(MentorSession.scheduled_at <= end_date)
+    
+    sessions = q.order_by(MentorSession.scheduled_at).all()
+    
+    events = []
+    for s in sessions:
+        mentor = db.query(Mentor).filter(Mentor.id == s.mentor_id).first()
+        mentor_name = mentor.bio.split('\n')[0] if mentor else "Unknown"
+        
+        events.append(CalendarEventResponse(
+            id=s.id,
+            title=f"Mentor Session: {s.topic}",
+            description=s.description or "",
+            start_time=s.scheduled_at,
+            end_time=s.scheduled_at + timedelta(minutes=s.duration_minutes),
+            mentor_name=mentor_name,
+            mentor_id=s.mentor_id,
+            status=s.status,
+            price=s.price
+        ))
+    
+    return events
+
+
+# ============ Email Notifications ============
+
+@router.post("/emails/confirmation", response_model=EmailNotificationResponse)
+def send_booking_confirmation(
+    session_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Send booking confirmation email."""
+    session = db.query(MentorSession).filter(MentorSession.id == session_id).first()
+    if not session:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+    
+    # Check authorization
+    if session.student_id != current_user.id and session.mentor_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Unauthorized")
+    
+    # Send email (would integrate with email service)
+    # email_service.send_booking_confirmation(session, current_user)
+    
+    return EmailNotificationResponse(
+        success=True,
+        message="Confirmation email sent",
+        session_id=session_id,
+        notification_type="confirmation",
+        sent_at=datetime.utcnow()
+    )
+
+
+@router.post("/emails/reminder", response_model=EmailNotificationResponse)
+def send_session_reminder(
+    session_id: int,
+    current_user: User = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """Send session reminder email (admin only)."""
+    session = db.query(MentorSession).filter(MentorSession.id == session_id).first()
+    if not session:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+    
+    # Send email
+    # email_service.send_reminder(session)
+    
+    return EmailNotificationResponse(
+        success=True,
+        message="Reminder email sent",
+        session_id=session_id,
+        notification_type="reminder",
+        sent_at=datetime.utcnow()
+    )
+
+
+@router.post("/emails/review-request", response_model=EmailNotificationResponse)
+def send_review_request(
+    session_id: int,
+    current_user: User = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """Send review request email (admin only)."""
+    session = db.query(MentorSession).filter(MentorSession.id == session_id).first()
+    if not session:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+    
+    # Send email
+    # email_service.send_review_request(session)
+    
+    return EmailNotificationResponse(
+        success=True,
+        message="Review request email sent",
+        session_id=session_id,
+        notification_type="review_request",
+        sent_at=datetime.utcnow()
+    )

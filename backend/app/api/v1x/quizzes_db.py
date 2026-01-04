@@ -4,6 +4,11 @@ from sqlalchemy import text
 from typing import Dict, Any, List
 from app.core.db import SessionLocal
 from app.core.security import get_current_user
+from app.services.realtime_events import (
+    on_quiz_started,
+    on_quiz_submitted,
+    on_quiz_graded,
+)
 
 router = APIRouter(prefix="/quizzes-db", tags=["quizzes-db"])
 
@@ -59,7 +64,7 @@ class AttemptIn(BaseModel):
     answers: Dict[str, str]  # question_id -> selected option text
 
 @router.post("/attempt")
-def attempt_quiz(data: AttemptIn, user = Depends(get_current_user)):
+async def attempt_quiz(data: AttemptIn, user = Depends(get_current_user)):
     db = SessionLocal()
     try:
         rows = db.execute(text("""
@@ -87,6 +92,18 @@ def attempt_quiz(data: AttemptIn, user = Depends(get_current_user)):
                 "is_correct": is_ok,
             })
 
+        await on_quiz_submitted(
+            user.id,
+            data.quiz_id,
+            total_questions=total,
+            answered=len(data.answers),
+        )
+        await on_quiz_graded(
+            user.id,
+            data.quiz_id,
+            score=correct,
+            total_questions=total,
+        )
         return {"ok": True, "score": correct, "total": total, "details": details}
     finally:
         db.close()
@@ -106,7 +123,7 @@ class AttemptWithTimingIn(BaseModel):
     question_times: Dict[str, int]  # question_id -> time_in_seconds
     
 @router.post("/attempt-with-timing")
-def attempt_quiz_with_timing(data: AttemptWithTimingIn, user=Depends(get_current_user)):
+async def attempt_quiz_with_timing(data: AttemptWithTimingIn, user=Depends(get_current_user)):
     """
     Submit quiz attempt with detailed time tracking.
     Stores time spent per question for analytics.
@@ -116,6 +133,8 @@ def attempt_quiz_with_timing(data: AttemptWithTimingIn, user=Depends(get_current
         user_id = user.id
         
         # Parse timestamps
+        start = None
+        end = None
         try:
             start = datetime.fromisoformat(data.started_at.replace('Z', '+00:00'))
             end = datetime.fromisoformat(data.completed_at.replace('Z', '+00:00'))
@@ -178,7 +197,22 @@ def attempt_quiz_with_timing(data: AttemptWithTimingIn, user=Depends(get_current
         except Exception as e:
             # If table doesn't support new columns, just continue
             db.rollback()
-        
+
+        await on_quiz_started(user_id, data.quiz_id, started_at=start)
+        await on_quiz_submitted(
+            user_id,
+            data.quiz_id,
+            total_questions=total,
+            answered=len(data.answers),
+            submitted_at=end,
+        )
+        await on_quiz_graded(
+            user_id,
+            data.quiz_id,
+            score=score,
+            total_questions=total,
+        )
+
         return {
             "ok": True,
             "score": score,

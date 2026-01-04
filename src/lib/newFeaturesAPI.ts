@@ -297,10 +297,68 @@ export const adminMetricsAPI = {
   },
 }
 
-// Export all APIs
+// Export all APIs with nested namespaces
 export const newFeaturesAPI = {
   quiz: quizAPI,
   ats: atsAPI,
   leaderboard: leaderboardAPI,
   admin: adminMetricsAPI,
+
+  // Convenience methods for hooks (flat access)
+  getAllLeaderboards: async () => {
+    const [globalCoins, globalAchievements, weeklyCoins, coding, quizzes] = await Promise.all([
+      leaderboardAPI.getGlobalCoins(),
+      leaderboardAPI.getGlobalAchievements(),
+      leaderboardAPI.getWeeklyCoins(),
+      leaderboardAPI.getCodingLeaderboard(),
+      leaderboardAPI.getQuizzesLeaderboard(),
+    ])
+    return {
+      global_coins: globalCoins,
+      global_achievements: globalAchievements,
+      weekly_coins: weeklyCoins,
+      coding: coding,
+      quizzes: quizzes,
+    }
+  },
+
+  getQuizTimingAnalytics: async (attemptId: number) => {
+    return quizAPI.getAttemptDetails(attemptId)
+  },
+
+  getAdminMetrics: async (periodDays: number = 30) => {
+    return adminMetricsAPI.getDashboardSummary()
+  },
+
+  getUserGrowth: async (periodDays: number = 30) => {
+    return adminMetricsAPI.getUserGrowth(periodDays)
+  },
+
+  getSystemHealth: async () => {
+    return adminMetricsAPI.getSystemHealth()
+  },
+
+  getQuizHistory: async (limit: number = 20, offset: number = 0) => {
+    return quizAPI.getUserHistory(limit, offset)
+  },
+
+  getATSScoreHistory: async (resumeId: number) => {
+    return atsAPI.getScoringHistory()
+  },
+
+  getATSImprovements: async (resumeId: number) => {
+    return atsAPI.getImprovements(resumeId)
+  },
+
+  getUserRank: async (userId: string) => {
+    return leaderboardAPI.getUserRank(parseInt(userId))
+  },
+
+  getMyRank: async () => {
+    return leaderboardAPI.getMyRank()
+  },
+
+  compareResumes: async (resumeIds: number[]) => {
+    return atsAPI.compareResumes(resumeIds)
+  },
 }

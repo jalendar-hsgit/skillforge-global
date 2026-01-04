@@ -4,23 +4,26 @@ import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import ProfileForm from '@/components/ProfileForm'
+import { useProtectedPage } from '@/lib/useProtectedPage'
 
 export default function EditProfilePage() {
   const router = useRouter()
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const { user, loading: authLoading } = useProtectedPage()
   const [loading, setLoading] = useState(true)
 
+  // Security: Redirect if not authenticated
   useEffect(() => {
-    const token = localStorage.getItem('token')
-    if (!token) {
-      router.push('/login')
-    } else {
-      setIsAuthenticated(true)
-      setLoading(false)
+    if (!authLoading) {
+      if (!user) {
+        router.push('/login?redirect=' + encodeURIComponent(router.asPath))
+      } else {
+        setLoading(false)
+      }
     }
-  }, [router])
+  }, [user, authLoading, router])
 
-  if (loading) {
+  // Security: Show loading while checking auth
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -31,7 +34,8 @@ export default function EditProfilePage() {
     )
   }
 
-  if (!isAuthenticated) {
+  // Security: Don't render if not authenticated
+  if (!user) {
     return null
   }
 
