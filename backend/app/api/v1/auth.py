@@ -141,7 +141,8 @@ def login(res: Response, request: Request, data: LoginRequest, db: Session = Dep
         else:
             raise HTTPException(status_code=400, detail="Email or username required")
             
-        if n# Record failed login attempt
+        if not u:
+            # Record failed login attempt
             record_login_attempt(
                 db=db,
                 user_id=0,
@@ -207,6 +208,7 @@ def login(res: Response, request: Request, data: LoginRequest, db: Session = Dep
             resource_type="user",
             resource_id=u.id,
             ip_address=client_ip
+        )
         
         token = create_access_token(u.id)
         logger.debug("Login success: token created")
