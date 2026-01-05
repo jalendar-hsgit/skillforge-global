@@ -14,7 +14,7 @@ class LoginHistory(Base):
     __tablename__ = "login_history"
     
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("user.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     ip_address = Column(String(45), nullable=True)  # IPv4 or IPv6
     user_agent = Column(String(500), nullable=True)
     device = Column(String(100), nullable=True)  # e.g., "Chrome on Windows", "Safari on iOS"
@@ -36,7 +36,7 @@ class AuditLog(Base):
     __tablename__ = "audit_log"
     
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("user.id", ondelete="SET NULL"), nullable=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     action = Column(String(100), nullable=False, index=True)  # e.g., "USER_CREATED", "PASSWORD_CHANGED", "ADMIN_PANEL_ACCESS"
     resource_type = Column(String(50), nullable=False, index=True)  # e.g., "user", "course", "mentor", "admin_setting"
     resource_id = Column(Integer, nullable=True, index=True)  # ID of the resource affected
@@ -60,9 +60,9 @@ class SessionRevocation(Base):
     
     id = Column(Integer, primary_key=True)
     login_history_id = Column(Integer, ForeignKey("login_history.id", ondelete="CASCADE"), nullable=False, index=True)
-    user_id = Column(Integer, ForeignKey("user.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     revoked_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    revoked_by_user_id = Column(Integer, ForeignKey("user.id"), nullable=True)  # Admin who revoked it
+    revoked_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # Admin who revoked it
     reason = Column(String(255), nullable=True)  # Why it was revoked
     
     # Relationships
