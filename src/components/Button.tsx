@@ -1,17 +1,14 @@
 import { cn } from './utils'
 import { motion } from 'framer-motion'
 import React from 'react'
+import type { MotionProps } from 'framer-motion'
 
-interface ButtonProps {
+interface ButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'className'> {
   variant?: 'primary' | 'secondary' | 'ghost' | 'outline'
   size?: 'sm' | 'md' | 'lg'
   loading?: boolean
   className?: string
   children?: React.ReactNode
-  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void
-  disabled?: boolean
-  type?: 'button' | 'submit' | 'reset'
-  title?: string
 }
 
 export function Button({
@@ -41,7 +38,7 @@ export function Button({
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       className={cn(base, sizes, styles, className)}
-      {...props}
+      {...(props as MotionProps & React.ButtonHTMLAttributes<HTMLButtonElement>)}
     >
       {children}
     </motion.button>
