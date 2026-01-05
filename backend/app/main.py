@@ -213,7 +213,7 @@ except Exception as e:
     print(f"Failed to import admin router: {e}")
 
 try:
-    from app.api.v1x.payments_stub import router as payments
+    from app.api.v1x.payments import router as payments
 except Exception as e:
     print(f"Failed to import payments: {e}")
 
