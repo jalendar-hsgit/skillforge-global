@@ -5,13 +5,13 @@
   "installCommand": "npm install",
   "framework": "nextjs",
   "public": true,
-  "env": {
-    "NEXT_PUBLIC_API_BASE": {
-      "description": "Backend API base URL",
-      "default": "http://localhost:8001",
-      "required": true
+  "env": [
+    {
+      "key": "NEXT_PUBLIC_API_BASE",
+      "value": "https://prasadreddy147-backend.up.railway.app",
+      "target": ["production", "preview", "development"]
     }
-  },
+  ],
   "git": {
     "deploymentEnabled": {
       "main": true,
