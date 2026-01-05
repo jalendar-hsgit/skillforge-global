@@ -664,13 +664,13 @@ except Exception as e:
     session = None
     print(f"Failed to import session: {e}")
 
-# Temporarily disabled to debug startup crash
-# try:
-#     if session:  # session was imported at the top
-#         app.include_router(session, prefix="/api")
-#         print("Session router mounted at /api/session")
-# except Exception as e:
-#     print(f"Failed to mount session router at /api/session: {e}")
+# Mount session router for /api/session endpoints
+try:
+    if session:  # session was imported at the top
+        app.include_router(session, prefix="/api")
+        print("Session router mounted at /api/session")
+except Exception as e:
+    print(f"Failed to mount session router at /api/session: {e}")
 
 from fastapi import APIRouter
 

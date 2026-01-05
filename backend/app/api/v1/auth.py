@@ -209,9 +209,6 @@ def login(res: Response, request: Request, data: LoginRequest, db: Session = Dep
             resource_id=u.id,
             ip_address=client_ip
         )
-        
-        token = create_access_token(u.id)
-        logger.debug("Login success: token created")
 
         # Cookie flags: HttpOnly + SameSite=Lax always; Secure only when frontend origin is https
         try:
