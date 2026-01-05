@@ -408,6 +408,69 @@ class EmailService:
         
         return await self.send_email(to_email, subject, html_content)
     
+    async def send_payment_failed_email(
+        self,
+        to_email: str,
+        student_name: str,
+        session_id: int
+    ) -> bool:
+        """Send payment failed notification email."""
+        subject = f"Payment Failed - Session #{session_id}"
+        
+        html_content = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h2 style="color: #dc2626;">Payment Failed ✗</h2>
+                
+                <p>Hi {student_name},</p>
+                
+                <p>Unfortunately, your payment for Session #{session_id} could not be processed.</p>
+                
+                <div style="background: #fee2e2; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc2626;">
+                    <h3 style="margin-top: 0; color: #991b1b;">What Happened?</h3>
+                    <p>Your payment method was declined. This could be due to:</p>
+                    <ul style="margin: 10px 0; padding-left: 20px;">
+                        <li>Insufficient funds</li>
+                        <li>Card expired or invalid</li>
+                        <li>Bank security restrictions</li>
+                        <li>Billing address mismatch</li>
+                    </ul>
+                </div>
+                
+                <p style="margin-top: 20px;">
+                    <strong>Next Steps:</strong>
+                </p>
+                <ol style="margin: 10px 0; padding-left: 20px;">
+                    <li>Check your payment method and card details</li>
+                    <li>Try again with a different payment method</li>
+                    <li>Contact your bank if the issue persists</li>
+                </ol>
+                
+                <p>
+                    <a href="{settings.FRONTEND_ORIGIN}/dashboard/sessions/{session_id}" 
+                       style="display: inline-block; background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 0;">
+                        Retry Payment
+                    </a>
+                </p>
+                
+                <p style="color: #6b7280; font-size: 14px;">
+                    Your session is temporarily on hold. Once payment is successful, your session will be confirmed.
+                </p>
+                
+                <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+                
+                <p style="color: #6b7280; font-size: 12px;">
+                    Need help? Contact our support team at support@skillforge.global<br>
+                    SkillForge Global - Empowering Your Learning Journey
+                </p>
+            </div>
+        </body>
+        </html>
+        """
+        
+        return await self.send_email(to_email, subject, html_content)
+    
     async def send_mentor_approved(
         self,
         to_email: str,
@@ -785,6 +848,65 @@ class EmailService:
                 <p style="color: #6b7280; font-size: 12px;">
                     This is an automated reference check request from SkillForge Global.<br>
                     If you have questions or concerns, please contact hr@skillforge.global
+                </p>
+            </div>
+        </body>
+        </html>
+        """
+        
+        return await self.send_email(to_email, subject, html_content)
+    
+    async def send_order_confirmation(
+        self,
+        to_email: str,
+        user_name: str,
+        course_title: str,
+        order_id: int,
+        order_number: str,
+        amount: float,
+        order_date: datetime
+    ) -> bool:
+        """Send order confirmation email."""
+        subject = f"Order Confirmation - {order_number}"
+        
+        html_content = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h2 style="color: #059669;">Order Confirmed ✓</h2>
+                
+                <p>Hi {user_name},</p>
+                
+                <p>Thank you for your purchase! Your order has been successfully created and is being processed.</p>
+                
+                <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <h3 style="margin-top: 0; color: #1f2937;">Order Details</h3>
+                    <p><strong>Order Number:</strong> {order_number}</p>
+                    <p><strong>Order ID:</strong> #{order_id}</p>
+                    <p><strong>Course:</strong> {course_title}</p>
+                    <p><strong>Amount Paid:</strong> ${amount:.2f}</p>
+                    <p><strong>Order Date:</strong> {order_date.strftime('%B %d, %Y at %I:%M %p')}</p>
+                </div>
+                
+                <p><strong>Next Steps:</strong></p>
+                <ol style="margin: 10px 0; padding-left: 20px;">
+                    <li>You will receive another email when the order is delivered</li>
+                    <li>Access your course materials on the dashboard</li>
+                    <li>Start learning and track your progress</li>
+                </ol>
+                
+                <p>
+                    <a href="{settings.FRONTEND_ORIGIN}/dashboard" 
+                       style="display: inline-block; background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 0;">
+                        Go to Dashboard
+                    </a>
+                </p>
+                
+                <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+                
+                <p style="color: #6b7280; font-size: 12px;">
+                    Questions about your order? Contact support at support@skillforge.global<br>
+                    SkillForge Global - Empowering Your Learning Journey
                 </p>
             </div>
         </body>

@@ -18,6 +18,7 @@ from app.modelsx.order import Order, CartItem, Coupon
 from app.modelsx.video import Video
 from app.modelsx.coins import CoinLedger
 from app.modelsx.marketplace import DigitalProduct, ProductStatus, SellerAccount, ProductPurchase
+from app.services.email_service import email_service
 from pydantic import BaseModel, Field
 from decimal import Decimal
 
@@ -456,6 +457,24 @@ async def checkout(
     
     db.commit()
     db.refresh(order)
+    
+    # Send order confirmation email
+    if current_user and current_user.email and course:
+        try:
+            import asyncio
+            asyncio.create_task(
+                email_service.send_order_confirmation(
+                    to_email=current_user.email,
+                    user_name=current_user.name,
+                    course_title=course.title if course else "Course",
+                    order_id=order.id,
+                    order_number=order.order_number,
+                    amount=float(order.amount),
+                    order_date=order.created_at
+                )
+            )
+        except Exception as e:
+            print(f"Failed to send order confirmation email: {e}")
     
     return OrderResponse(
         id=order.id,

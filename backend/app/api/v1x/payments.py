@@ -225,7 +225,8 @@ def cancel_payment(
 @router.post("/webhook")
 async def stripe_webhook(
     request: Request,
-    stripe_signature: str = Header(None, alias="stripe-signature")
+    stripe_signature: str = Header(None, alias="stripe-signature"),
+    db: Session = Depends(get_db)
 ):
     """
     Handle Stripe webhook events
@@ -241,25 +242,44 @@ async def stripe_webhook(
         if event['type'] == 'payment_intent.succeeded':
             # Payment confirmed
             payment_intent = event['data']['object']
-            session_id = payment_intent['metadata'].get('session_id')
+            session_id = payment_intent.get('metadata', {}).get('session_id')
             
             if session_id:
-                db = next(get_db())
                 session = db.query(MentorSession).filter(
                     MentorSession.id == int(session_id)
                 ).first()
                 
                 if session:
                     session.payment_status = "succeeded"
+                    session.status = "confirmed"
                     db.commit()
+                    
+                    # Send payment receipt email
+                    student_user = db.query(User).filter(User.id == session.student_id).first()
+                    from app.modelsx.mentor import Mentor
+                    mentor = db.query(Mentor).filter(Mentor.id == session.mentor_id).first()
+                    mentor_user = db.query(User).filter(User.id == mentor.user_id).first()
+                    
+                    if student_user and student_user.email:
+                        try:
+                            await email_service.send_payment_receipt(
+                                to_email=student_user.email,
+                                student_name=student_user.name,
+                                mentor_name=mentor_user.name if mentor_user else "Mentor",
+                                amount=session.price,
+                                session_date=session.scheduled_at,
+                                session_id=session.id,
+                                payment_intent_id=session.payment_intent_id
+                            )
+                        except Exception as email_err:
+                            print(f"Failed to send receipt email: {email_err}")
         
         elif event['type'] == 'payment_intent.payment_failed':
             # Payment failed
             payment_intent = event['data']['object']
-            session_id = payment_intent['metadata'].get('session_id')
+            session_id = payment_intent.get('metadata', {}).get('session_id')
             
             if session_id:
-                db = next(get_db())
                 session = db.query(MentorSession).filter(
                     MentorSession.id == int(session_id)
                 ).first()
@@ -267,10 +287,23 @@ async def stripe_webhook(
                 if session:
                     session.payment_status = "failed"
                     db.commit()
+                    
+                    # Send payment failed email
+                    student_user = db.query(User).filter(User.id == session.student_id).first()
+                    if student_user and student_user.email:
+                        try:
+                            await email_service.send_payment_failed_email(
+                                to_email=student_user.email,
+                                student_name=student_user.name,
+                                session_id=session.id
+                            )
+                        except Exception as email_err:
+                            print(f"Failed to send payment failed email: {email_err}")
         
-        return {"success": True}
+        return {"received": True}
     
     except Exception as e:
+        print(f"Webhook processing error: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
 
 

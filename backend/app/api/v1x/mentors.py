@@ -353,10 +353,11 @@ def book_session(
     db.commit()
     db.refresh(session)
     
-    # Send booking notification to mentor
+    # Send booking notification to mentor and student
     mentor_user = db.query(User).filter(User.id == mentor.user_id).first()
+    
+    # Send confirmation to mentor
     if mentor_user and mentor_user.email:
-        # Note: In production, send this asynchronously using Celery/background tasks
         try:
             import asyncio
             asyncio.create_task(
@@ -372,7 +373,26 @@ def book_session(
             )
         except Exception as e:
             # Log error but don't fail the booking
-            print(f"Failed to send email: {e}")
+            print(f"Failed to send confirmation email to mentor: {e}")
+    
+    # Send confirmation to student as well
+    if current_user and current_user.email:
+        try:
+            import asyncio
+            asyncio.create_task(
+                email_service.send_session_confirmation(
+                    to_email=current_user.email,
+                    mentor_name=mentor_user.name if mentor_user else "Your Mentor",
+                    student_name=current_user.name,
+                    session_date=session.scheduled_at,
+                    session_duration=session.duration_minutes,
+                    meeting_url=session.meeting_url or "TBD (will be provided when confirmed)",
+                    session_id=session.id
+                )
+            )
+        except Exception as e:
+            # Log error but don't fail the booking
+            print(f"Failed to send confirmation email to student: {e}")
     
     return SessionResponse(
         id=session.id,
