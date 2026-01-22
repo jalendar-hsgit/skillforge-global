@@ -141,44 +141,6 @@ class ProductPurchase(Base):
     )
 
 
-class ProductReview(Base):
-    """
-    Reviews and ratings for digital products
-    """
-    __tablename__ = "product_reviews"
-
-    id = Column(Integer, primary_key=True, index=True)
-    product_id = Column(Integer, ForeignKey("digital_products.id", ondelete="CASCADE"), nullable=False, index=True)
-    reviewer_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    
-    # Review content
-    title = Column(String(200), nullable=False)
-    content = Column(Text, nullable=False)
-    
-    # Rating
-    overall_rating = Column(Float, nullable=False)  # 1-5
-    quality_rating = Column(Float, nullable=True)
-    value_rating = Column(Float, nullable=True)
-    support_rating = Column(Float, nullable=True)
-    
-    # Review status
-    is_verified = Column(Boolean, default=False)  # Verified purchaser
-    is_featured = Column(Boolean, default=False)
-    helpful_count = Column(Integer, default=0)
-    
-    # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    # Relationships
-    product = relationship("DigitalProduct", foreign_keys=[product_id])
-    reviewer = relationship("User", foreign_keys=[reviewer_id])
-    
-    __table_args__ = (
-        Index("ix_product_review_product", "product_id", "created_at"),
-    )
-
-
 class SellerAccount(Base):
     """
     Seller account management and verification

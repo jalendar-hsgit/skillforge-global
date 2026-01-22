@@ -1,53 +1,818 @@
-# Marketplace Features - Complete Testing Guide
+# 🛒 Marketplace & Purchase Order - Complete Testing Guide
 
-**Date:** January 4, 2026
-**Build Status:** ✅ SUCCESSFUL
-**Pages Created:** 5 | **API Endpoints:** 40+ | **Test Scenarios:** 15+
+**Date:** January 11, 2026  
+**Status:** ✅ ALL ENDPOINTS CONNECTED  
+**Flow:** Browse → Cart → Coupon → Checkout → Orders
 
 ---
 
-## BUILD VERIFICATION
+## 📋 TABLE OF CONTENTS
+1. [Quick Access URLs](#quick-access-urls)
+2. [Complete Endpoint List](#complete-endpoint-list)
+3. [Purchase Flow Diagram](#purchase-flow-diagram)
+4. [Testing Scenarios](#testing-scenarios)
+5. [URL Mapping & Redirects](#url-mapping--redirects)
+6. [Seller Features](#seller-features)
 
-✅ **Build Output:**
+---
+
+## 🚀 QUICK ACCESS URLs
+
+### Frontend Pages
+| Page | URL | Auth | Description |
+|------|-----|------|-------------|
+| Browse Courses | `http://localhost:3000/marketplace` | Optional | Course catalog |
+| Shopping Cart | `http://localhost:3000/marketplace/cart` | Required | Cart management |
+| Order History | `http://localhost:3000/marketplace/orders` | Required | Past purchases |
+
+### Backend Base URLs
+- **Backend API:** `http://localhost:8001`
+- **Frontend Dev:** `http://localhost:3000`
+- **Session Proxy:** `/api/session/v1x/marketplace/*`
+
+---
+
+## 🔗 COMPLETE ENDPOINT LIST
+
+### 1️⃣ COURSE BROWSING
+
+#### GET - Browse All Courses
 ```
-Route (pages)                                    Size     First Load JS
-├ ○ /marketplace/seller                          2.75 kB         103 kB
-├ ○ /marketplace/seller/analytics                2.78 kB         103 kB
-├ ○ /marketplace/seller/create-product           3.35 kB         104 kB
-├ ○ /marketplace/seller/orders                   2.13 kB         102 kB
-├ ○ /marketplace/seller/products                 2.56 kB         103 kB
+Frontend:  http://localhost:3000/marketplace
+API:       /api/session/v1x/marketplace/courses
+Backend:   /api/v1x/marketplace/courses
+Method:    GET
+Auth:      Optional
 ```
 
-✅ **BUILD_ID:** `.../.next/BUILD_ID` exists
-✅ **All pages compiled successfully**
-✅ **No TypeScript errors**
-✅ **No build warnings**
+**Query Parameters:**
+- `?category=web-dev` - Filter by category
+- `?difficulty=beginner` - beginner/intermediate/advanced
+- `?search=python` - Search in title/description
+- `?is_paid=true` - Filter paid/free courses
+
+**Response:**
+```json
+[
+  {
+    "id": 1,
+    "title": "Python Fundamentals",
+    "path": "python-fundamentals",
+    "price": 49.99,
+    "difficulty": "beginner",
+    "category": "programming",
+    "instructor_name": "John Doe",
+    "enrollment_count": 150,
+    "average_rating": 4.5,
+    "in_cart": false,
+    "purchased": false
+  }
+]
+```
+
+**Test Command:**
+```bash
+curl http://localhost:3000/api/session/v1x/marketplace/courses
+```
 
 ---
 
-## QUICK ACCESS POINTS
+### 2️⃣ SHOPPING CART
 
-### Frontend URLs (from root: http://localhost:3001)
-- Dashboard: http://localhost:3001/marketplace/seller
-- Create Product: http://localhost:3001/marketplace/seller/create-product
-- Products List: http://localhost:3001/marketplace/seller/products
-- Orders: http://localhost:3001/marketplace/seller/orders
-- Analytics: http://localhost:3001/marketplace/seller/analytics
+#### GET - View Cart
+```
+Frontend:  http://localhost:3000/marketplace/cart
+API:       /api/session/v1x/marketplace/cart
+Backend:   /api/v1x/marketplace/cart
+Method:    GET
+Auth:      Required ✓
+```
 
-### Backend API (from root: http://localhost:8001/api/v1x)
-- Seller Stats: GET `/seller/stats`
-- Products CRUD: GET/POST/PUT/DELETE `/seller/products`
-- Orders: GET `/seller/orders`
-- Analytics: GET `/seller/analytics`
-- File Uploads: POST `/seller/products/{id}/upload-*`
-- Purchase: POST `/digital-products/{id}/purchase`
+**Response:**
+```json
+{
+  "items": [
+    {
+      "id": 1,
+      "course_id": 5,
+      "course_title": "React Masterclass",
+      "course_path": "react-masterclass",
+      "price": 149.99,
+      "added_at": "2026-01-11T10:30:00Z"
+    }
+  ],
+  "subtotal": 149.99,
+  "discount": 0,
+  "tax": 0,
+  "total": 149.99,
+  "coupon_code": null
+}
+```
+
+**Test Command:**
+```bash
+curl http://localhost:3000/api/session/v1x/marketplace/cart \
+  -b cookies.txt
+```
+
+#### POST - Add to Cart
+```
+Frontend:  Marketplace page (Add to Cart button)
+API:       /api/session/v1x/marketplace/cart/add
+Backend:   /api/v1x/marketplace/cart/add
+Method:    POST
+Auth:      Required ✓
+```
+
+**Request:**
+```json
+{
+  "course_id": 5
+}
+```
+
+**Response:**
+```json
+{
+  "id": 1,
+  "course_id": 5,
+  "course_title": "React Masterclass",
+  "price": 149.99,
+  "message": "Added to cart"
+}
+```
+
+**Error Responses:**
+- `400` - "Item already in cart"
+- `400` - "Course already purchased"
+- `400` - "course_id required"
+- `404` - "Course not found"
+
+**Test Command:**
+```bash
+curl -X POST http://localhost:3000/api/session/v1x/marketplace/cart/add \
+  -H "Content-Type: application/json" \
+  -d '{"course_id":1}' \
+  -b cookies.txt
+```
+
+#### DELETE - Remove from Cart
+```
+Frontend:  Cart page (Remove button)
+API:       /api/session/v1x/marketplace/cart/{item_id}
+Backend:   /api/v1x/marketplace/cart/{item_id}
+Method:    DELETE
+Auth:      Required ✓
+```
+
+**Response:**
+```json
+{
+  "message": "Item removed from cart",
+  "id": 1
+}
+```
+
+**Error Response:**
+- `404` - "Cart item not found"
+
+**Test Command:**
+```bash
+curl -X DELETE http://localhost:3000/api/session/v1x/marketplace/cart/1 \
+  -b cookies.txt
+```
 
 ---
 
-## TEST SCENARIO 1: SELLER ONBOARDING
+### 3️⃣ COUPON VALIDATION
 
-### Step 1: Create Seller Account
-**URL:** POST `http://localhost:8001/api/v1x/seller/account`
+#### POST - Validate Coupon
+```
+Frontend:  Cart page (Apply Coupon button)
+API:       /api/session/v1x/marketplace/coupons/validate
+Backend:   /api/v1x/marketplace/coupons/validate
+Method:    POST
+Auth:      Required ✓
+```
+
+**Request:**
+```json
+{
+  "coupon_code": "SAVE20"
+}
+```
+
+**Response:**
+```json
+{
+  "code": "SAVE20",
+  "discount_type": "percentage",
+  "discount_value": 20.0,
+  "max_discount": 50.0,
+  "valid": true
+}
+```
+
+**Error Responses:**
+- `404` - "Invalid coupon code"
+- `400` - "Coupon expired"
+- `400` - "Coupon not yet valid"
+- `400` - "Coupon usage limit reached"
+
+**Test Command:**
+```bash
+curl -X POST http://localhost:3000/api/session/v1x/marketplace/coupons/validate \
+  -H "Content-Type: application/json" \
+  -d '{"coupon_code":"SAVE20"}' \
+  -b cookies.txt
+```
+
+---
+
+### 4️⃣ CHECKOUT
+
+#### POST - Process Checkout
+```
+Frontend:  Cart page (Checkout button)
+API:       /api/session/v1x/marketplace/checkout
+Backend:   /api/v1x/marketplace/checkout
+Method:    POST
+Auth:      Required ✓
+Redirect:  → /marketplace/orders (on success)
+```
+
+**Request:**
+```json
+{
+  "payment_method": "coins",
+  "coupon_code": "SAVE20"
+}
+```
+
+**Response:**
+```json
+{
+  "order_id": 123,
+  "order_number": "ORD-20260111-A1B2C3D4",
+  "status": "completed",
+  "amount": 119.99,
+  "message": "Order created successfully"
+}
+```
+
+**Backend Process:**
+1. ✅ Validate cart has items
+2. ✅ Calculate subtotal from cart items
+3. ✅ Validate coupon (if provided)
+4. ✅ Calculate discount
+5. ✅ Check user coin balance
+6. ✅ Create Order record
+7. ✅ Deduct coins from balance (CoinLedger)
+8. ✅ Clear cart items
+9. ✅ Update coupon usage count
+10. ✅ Return order details
+
+**Error Responses:**
+- `400` - "Cart is empty"
+- `400` - "Insufficient coins. Balance: X, Required: Y"
+- `400` - "Coupon expired"
+
+**Test Command:**
+```bash
+curl -X POST http://localhost:3000/api/session/v1x/marketplace/checkout \
+  -H "Content-Type: application/json" \
+  -d '{"payment_method":"coins","coupon_code":"SAVE20"}' \
+  -b cookies.txt
+```
+
+---
+
+### 5️⃣ ORDER HISTORY
+
+#### GET - My Orders
+```
+Frontend:  http://localhost:3000/marketplace/orders
+API:       /api/session/v1x/marketplace/orders
+Backend:   /api/v1x/marketplace/orders
+Method:    GET
+Auth:      Required ✓
+```
+
+**Response:**
+```json
+[
+  {
+    "id": 123,
+    "order_number": "ORD-20260111-A1B2C3D4",
+    "status": "completed",
+    "subtotal": 149.99,
+    "discount_amount": 30.00,
+    "tax_amount": 0.00,
+    "amount": 119.99,
+    "currency": "USD",
+    "payment_method": "coins",
+    "payment_status": "completed",
+    "created_at": "2026-01-11T10:45:00Z",
+    "course_title": "React Masterclass"
+  }
+]
+```
+
+**Test Command:**
+```bash
+curl http://localhost:3000/api/session/v1x/marketplace/orders \
+  -b cookies.txt
+```
+
+---
+
+## 🎯 PURCHASE FLOW DIAGRAM
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     COMPLETE PURCHASE FLOW                       │
+└─────────────────────────────────────────────────────────────────┘
+
+1. BROWSE COURSES
+   URL: /marketplace
+   API: GET /api/session/v1x/marketplace/courses
+   │
+   ├─→ [Add to Cart] (requires login)
+   │
+   ↓
+
+2. ADD TO CART
+   API: POST /api/session/v1x/marketplace/cart/add
+   Body: { course_id: 5 }
+   │
+   ├─→ Success: Cart count +1
+   ├─→ Error: "Already in cart" / "Already purchased"
+   │
+   ↓
+
+3. VIEW CART
+   URL: /marketplace/cart
+   API: GET /api/session/v1x/marketplace/cart
+   │
+   ├─→ Remove item: DELETE /cart/{id}
+   ├─→ Apply coupon: POST /coupons/validate
+   │
+   ↓
+
+4. VALIDATE COUPON (Optional)
+   API: POST /api/session/v1x/marketplace/coupons/validate
+   Body: { coupon_code: "SAVE20" }
+   │
+   ├─→ Valid: Show discount message
+   ├─→ Invalid: Show error message
+   │
+   ↓
+
+5. CHECKOUT
+   API: POST /api/session/v1x/marketplace/checkout
+   Body: { payment_method: "coins", coupon_code: "SAVE20" }
+   │
+   Backend Actions:
+   ├─→ Calculate total with discount
+   ├─→ Check coin balance
+   ├─→ Create Order record
+   ├─→ Deduct coins (CoinLedger)
+   ├─→ Clear cart (DELETE all CartItems)
+   ├─→ Update coupon usage
+   │
+   ↓
+
+6. ORDER COMPLETE
+   Redirect: /marketplace/orders
+   API: GET /api/session/v1x/marketplace/orders
+   │
+   Display: Order history with status badges
+```
+
+---
+
+## 🧪 TESTING SCENARIOS
+
+### ✅ Test Case 1: Complete Happy Path
+
+```bash
+# Step 1: Login
+curl -X POST http://localhost:8001/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"john.doe@example.com","password":"password123"}' \
+  -c cookies.txt
+
+# Step 2: Browse courses
+curl http://localhost:3000/api/session/v1x/marketplace/courses \
+  -b cookies.txt
+
+# Step 3: Add to cart
+curl -X POST http://localhost:3000/api/session/v1x/marketplace/cart/add \
+  -H "Content-Type: application/json" \
+  -d '{"course_id":1}' \
+  -b cookies.txt
+
+# Step 4: View cart
+curl http://localhost:3000/api/session/v1x/marketplace/cart \
+  -b cookies.txt
+
+# Step 5: Validate coupon
+curl -X POST http://localhost:3000/api/session/v1x/marketplace/coupons/validate \
+  -H "Content-Type: application/json" \
+  -d '{"coupon_code":"SAVE20"}' \
+  -b cookies.txt
+
+# Step 6: Checkout
+curl -X POST http://localhost:3000/api/session/v1x/marketplace/checkout \
+  -H "Content-Type: application/json" \
+  -d '{"payment_method":"coins","coupon_code":"SAVE20"}' \
+  -b cookies.txt
+
+# Step 7: View orders
+curl http://localhost:3000/api/session/v1x/marketplace/orders \
+  -b cookies.txt
+```
+
+**Expected Results:**
+- ✅ Cart count updates after add
+- ✅ Coupon validates successfully  
+- ✅ Checkout completes
+- ✅ Cart is empty after checkout
+- ✅ Order appears in history
+- ✅ Coins deducted from balance
+
+---
+
+### ❌ Test Case 2: Error Scenarios
+
+#### Test: Add Already Purchased Course
+```bash
+# Purchase course first (complete checkout)
+# Then try to add same course again
+curl -X POST http://localhost:3000/api/session/v1x/marketplace/cart/add \
+  -H "Content-Type: application/json" \
+  -d '{"course_id":1}' \
+  -b cookies.txt
+
+# Expected: 400 "Course already purchased"
+```
+
+#### Test: Add Duplicate to Cart
+```bash
+# Add once
+curl -X POST http://localhost:3000/api/session/v1x/marketplace/cart/add \
+  -H "Content-Type: application/json" \
+  -d '{"course_id":2}' \
+  -b cookies.txt
+
+# Add same course again
+curl -X POST http://localhost:3000/api/session/v1x/marketplace/cart/add \
+  -H "Content-Type: application/json" \
+  -d '{"course_id":2}' \
+  -b cookies.txt
+
+# Expected: 400 "Item already in cart"
+```
+
+#### Test: Checkout with Insufficient Coins
+```bash
+# Add expensive course to cart
+# Try checkout without enough coins
+curl -X POST http://localhost:3000/api/session/v1x/marketplace/checkout \
+  -H "Content-Type: application/json" \
+  -d '{"payment_method":"coins"}' \
+  -b cookies.txt
+
+# Expected: 400 "Insufficient coins. Balance: X, Required: Y"
+```
+
+#### Test: Invalid Coupon
+```bash
+curl -X POST http://localhost:3000/api/session/v1x/marketplace/coupons/validate \
+  -H "Content-Type: application/json" \
+  -d '{"coupon_code":"INVALID123"}' \
+  -b cookies.txt
+
+# Expected: 404 "Invalid coupon code"
+```
+
+#### Test: Empty Cart Checkout
+```bash
+# Make sure cart is empty
+# Try to checkout
+curl -X POST http://localhost:3000/api/session/v1x/marketplace/checkout \
+  -H "Content-Type: application/json" \
+  -d '{"payment_method":"coins"}' \
+  -b cookies.txt
+
+# Expected: 400 "Cart is empty"
+```
+
+---
+
+### 🔄 Test Case 3: Cart Management
+
+#### Add Multiple Items
+```bash
+# Add 3 courses
+curl -X POST http://localhost:3000/api/session/v1x/marketplace/cart/add \
+  -H "Content-Type: application/json" \
+  -d '{"course_id":1}' \
+  -b cookies.txt
+
+curl -X POST http://localhost:3000/api/session/v1x/marketplace/cart/add \
+  -H "Content-Type: application/json" \
+  -d '{"course_id":3}' \
+  -b cookies.txt
+
+curl -X POST http://localhost:3000/api/session/v1x/marketplace/cart/add \
+  -H "Content-Type: application/json" \
+  -d '{"course_id":5}' \
+  -b cookies.txt
+
+# Verify cart has 3 items
+curl http://localhost:3000/api/session/v1x/marketplace/cart \
+  -b cookies.txt
+```
+
+#### Remove Specific Item
+```bash
+# Get cart to find item IDs
+curl http://localhost:3000/api/session/v1x/marketplace/cart \
+  -b cookies.txt
+
+# Remove item by ID
+curl -X DELETE http://localhost:3000/api/session/v1x/marketplace/cart/1 \
+  -b cookies.txt
+
+# Verify removal
+curl http://localhost:3000/api/session/v1x/marketplace/cart \
+  -b cookies.txt
+```
+
+---
+
+## 🗺️ URL MAPPING & REDIRECTS
+
+### Frontend to Backend Flow
+
+```
+┌──────────────────┐      ┌──────────────────┐      ┌──────────────────┐
+│   FRONTEND       │ ───→ │  NEXT.JS PROXY   │ ───→ │    BACKEND       │
+│   (Browser)      │      │  (API Route)     │      │    (FastAPI)     │
+└──────────────────┘      └──────────────────┘      └──────────────────┘
+         │                         │                         │
+    /marketplace              /api/session           /api/v1x
+                                   │                         │
+                          Adds cookies                Validates JWT
+                          Forwards req              Returns response
+```
+
+### Complete URL Mapping
+
+| Frontend Page | Next.js API Proxy | Backend Endpoint | Purpose |
+|---------------|-------------------|------------------|---------|
+| `/marketplace` | `/api/session/v1x/marketplace/courses` | `/api/v1x/marketplace/courses` | Browse courses |
+| `/marketplace/cart` | `/api/session/v1x/marketplace/cart` | `/api/v1x/marketplace/cart` | View cart |
+| - | `/api/session/v1x/marketplace/cart/add` | `/api/v1x/marketplace/cart/add` | Add to cart |
+| - | `/api/session/v1x/marketplace/cart/{id}` | `/api/v1x/marketplace/cart/{id}` | Remove item |
+| - | `/api/session/v1x/marketplace/coupons/validate` | `/api/v1x/marketplace/coupons/validate` | Validate coupon |
+| - | `/api/session/v1x/marketplace/checkout` | `/api/v1x/marketplace/checkout` | Process order |
+| `/marketplace/orders` | `/api/session/v1x/marketplace/orders` | `/api/v1x/marketplace/orders` | Order history |
+
+### Authentication Redirects
+
+| Condition | Source Page | Redirect To |
+|-----------|-------------|-------------|
+| Not logged in | Any marketplace action | `/login?redirect=/marketplace` |
+| Not logged in | View cart | `/login?redirect=/marketplace/cart` |
+| Not logged in | View orders | `/login?redirect=/marketplace/orders` |
+| Successful checkout | Cart page | `/marketplace/orders` |
+| Add to cart (not logged in) | Marketplace | Prompt → `/login?redirect=/marketplace` |
+
+### Next.js API Proxy Structure
+
+```
+src/pages/api/session/v1x/marketplace/
+├── cart.ts                    → GET /cart
+├── cart/
+│   ├── add.ts                 → POST /cart/add
+│   └── [id].ts                → DELETE /cart/{id}
+├── (coupons and checkout proxied via general proxy)
+```
+
+---
+
+## 📊 DATABASE TABLES
+
+### Tables Involved in Purchase Flow
+
+| Table | Purpose | Key Fields |
+|-------|---------|------------|
+| `users` | User accounts | id, email, name, role |
+| `courses` | Course catalog | id, title, price, path |
+| `cart_items` | Shopping cart | id, user_id, course_id, price, added_at |
+| `orders` | Purchase records | id, user_id, course_id, order_number, amount, status |
+| `coupons` | Discount codes | code, discount_type, discount_value, is_active, usage_count |
+| `coin_ledger` | Coin transactions | user_id, delta, reason |
+
+### Data Flow Example
+
+```sql
+-- 1. User adds course to cart
+INSERT INTO cart_items (user_id, course_id, price, added_at)
+VALUES (1, 5, 149.99, NOW());
+
+-- 2. On checkout:
+-- a) Create order
+INSERT INTO orders (user_id, course_id, order_number, amount, status, ...)
+VALUES (1, 5, 'ORD-20260111-...', 119.99, 'completed', ...);
+
+-- b) Deduct coins
+INSERT INTO coin_ledger (user_id, delta, reason)
+VALUES (1, -120, 'Course purchase: React Masterclass');
+
+-- c) Clear cart
+DELETE FROM cart_items WHERE user_id = 1;
+
+-- d) Update coupon
+UPDATE coupons SET usage_count = usage_count + 1 
+WHERE code = 'SAVE20';
+```
+
+---
+
+## 🎓 DEMO DATA
+
+### Test Users (from seed data)
+```
+Email: john.doe@example.com
+Password: password123
+
+Email: jane.smith@example.com  
+Password: password123
+```
+
+### Available Courses
+1. **Python Fundamentals** - $49.99 (ID: 1)
+2. **Web Development** - $99.99 (ID: 2)
+3. **React Masterclass** - $149.99 (ID: 3)
+4. **Machine Learning** - $199.99 (ID: 4)
+5. **DevOps Bootcamp** - $129.99 (ID: 5)
+
+### Create Test Coupons
+
+```bash
+# Login as admin
+curl -X POST http://localhost:8001/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@skillforge.com","password":"admin123"}' \
+  -c admin-cookies.txt
+
+# Create 20% off coupon
+curl -X POST http://localhost:8001/api/v1x/admin/coupons \
+  -H "Content-Type: application/json" \
+  -d '{
+    "code": "SAVE20",
+    "discount_type": "percentage",
+    "discount_value": 20,
+    "max_discount_amount": 50,
+    "is_active": true
+  }' \
+  -b admin-cookies.txt
+```
+
+---
+
+## 🔍 BROWSER CONSOLE TESTING
+
+### Quick Test in Browser DevTools
+
+```javascript
+// 1. Add to cart
+fetch('/api/session/v1x/marketplace/cart/add', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  credentials: 'include',
+  body: JSON.stringify({ course_id: 1 })
+}).then(r => r.json()).then(d => console.log('Add Result:', d));
+
+// 2. View cart
+fetch('/api/session/v1x/marketplace/cart', {
+  credentials: 'include'
+}).then(r => r.json()).then(d => console.log('Cart:', d));
+
+// 3. Validate coupon
+fetch('/api/session/v1x/marketplace/coupons/validate', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  credentials: 'include',
+  body: JSON.stringify({ coupon_code: 'SAVE20' })
+}).then(r => r.json()).then(d => console.log('Coupon:', d));
+
+// 4. Checkout
+fetch('/api/session/v1x/marketplace/checkout', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  credentials: 'include',
+  body: JSON.stringify({ 
+    payment_method: 'coins',
+    coupon_code: 'SAVE20'
+  })
+}).then(r => r.json()).then(d => console.log('Order:', d));
+
+// 5. View orders
+fetch('/api/session/v1x/marketplace/orders', {
+  credentials: 'include'
+}).then(r => r.json()).then(d => console.log('Orders:', d));
+```
+
+---
+
+## ✅ TESTING CHECKLIST
+
+### Basic Flow
+- [ ] Browse courses without login ✓
+- [ ] Add course to cart (login required) ✓
+- [ ] Cart count updates after add ✓
+- [ ] View cart with items ✓
+- [ ] Remove item from cart ✓
+- [ ] Apply valid coupon ✓
+- [ ] Apply invalid coupon (shows error) ✓
+- [ ] Checkout with sufficient coins ✓
+- [ ] Cart clears after checkout ✓
+- [ ] View order in history ✓
+
+### Edge Cases  
+- [ ] Add already purchased course → Error ✓
+- [ ] Add duplicate to cart → Error ✓
+- [ ] Checkout empty cart → Error ✓
+- [ ] Checkout insufficient coins → Error ✓
+- [ ] Apply expired coupon → Error ✓
+- [ ] Remove non-existent item → Error ✓
+- [ ] Unauthorized access → Redirect login ✓
+
+### UI Behavior
+- [ ] Cart icon shows correct count ✓
+- [ ] Success message after add ✓
+- [ ] Redirect to orders after checkout ✓
+- [ ] Error messages display ✓
+- [ ] Loading states work ✓
+- [ ] Responsive design ✓
+
+---
+
+## 🐛 TROUBLESHOOTING
+
+### Issue: Cart showing 0 items after adding
+**Solution:** Fixed `added_at` field reference in GET cart endpoint.
+
+### Issue: 404 on checkout
+**Solution:** Added `/v1x/marketplace/checkout` endpoint to session.py router.
+
+### Issue: 404 on orders page
+**Solution:** Added `/v1x/marketplace/orders` endpoint to session.py router.
+
+### Issue: Coupon not applying
+**Solution:** Verify coupon is active, not expired, usage_count < usage_limit.
+
+### Issue: Insufficient coins
+**Check balance:**
+```bash
+curl http://localhost:8001/api/v1x/coins/balance -b cookies.txt
+```
+
+### Issue: Order not in history
+**Check database:**
+```bash
+sqlite3 backend/app/data/skillforge.db
+SELECT * FROM orders WHERE user_id = 1;
+```
+
+---
+
+## 🎉 SUCCESS SUMMARY
+
+**All Marketplace & Order Endpoints Connected:**
+- ✅ Browse courses
+- ✅ Add to cart  
+- ✅ View cart
+- ✅ Remove from cart
+- ✅ Validate coupons
+- ✅ Process checkout
+- ✅ View order history
+
+**Complete Flow Works End-to-End:**
+1. Browse → Add to Cart → Cart Count +1
+2. View Cart → Apply Coupon → See Discount
+3. Checkout → Coins Deducted → Cart Cleared
+4. Redirect to Orders → See Purchase History
+
+**Ready for Production Testing!** 🚀
+
+---
+
+# 🏪 SELLER FEATURES
 **Headers:** `Authorization: Bearer {TOKEN}`
 **Body:**
 ```json

@@ -203,6 +203,7 @@ function SkillForm({ resumeId, onClose, onSave }: SkillFormProps) {
     name: '',
     category: 'technical' as 'technical' | 'soft' | 'language' | 'tool',
     proficiency: 'intermediate' as 'beginner' | 'intermediate' | 'advanced' | 'expert',
+    description: '',
   });
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
@@ -311,6 +312,24 @@ function SkillForm({ resumeId, onClose, onSave }: SkillFormProps) {
                 {label}
               </button>
             ))}
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Description (Optional)
+          </label>
+          <textarea
+            value={formData.description}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+              setFormData({ ...formData, description: e.target.value })
+            }
+            placeholder="Add details about this skill, experience level, or projects where you used it..."
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500 resize-none"
+            rows={4}
+          />
+          <div className="text-xs text-gray-500 mt-1">
+            {formData.description.length} characters
           </div>
         </div>
 

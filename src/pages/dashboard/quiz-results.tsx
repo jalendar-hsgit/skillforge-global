@@ -31,7 +31,8 @@ export default function QuizResultsPage() {
 
   async function loadQuizResults() {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/api/v1x/student/dashboard/quiz-results`, {
+      // Use Next.js proxy to properly handle authentication
+      const res = await fetch(`/api/session/v1x/student/dashboard/quiz-results`, {
         credentials: 'include'
       })
 

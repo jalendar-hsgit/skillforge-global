@@ -180,6 +180,8 @@ class ResumeUpdate(BaseModel):
     professional_summary: Optional[str] = None  # Alias for summary
     is_primary: Optional[bool] = None
     is_public: Optional[bool] = None
+    # Extra content field
+    extra_content: Optional[str] = None
     # Customization fields (optional)
     font_family: Optional[str] = None
     color_theme: Optional[str] = None
@@ -211,6 +213,11 @@ class ResumeOut(ResumeBase):
     version: int
     created_at: datetime
     updated_at: datetime
+    
+    # Extra content field
+    extra_content: Optional[str] = None
+    style_settings_updated_at: Optional[datetime] = None
+    style_settings_history: Optional[Dict[str, Any]] = None
     
     # Customization fields
     font_family: Optional[str] = None

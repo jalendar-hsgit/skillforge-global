@@ -4,7 +4,8 @@
     "path": "python-ai",
     "title": "Python Full Course",
     "youtubeId": "rfscVS0vtbw",
-    "duration": "4h"
+    "duration": "4h",
+    "featured": true
   },
   {
     "id": "py-002",
@@ -18,7 +19,8 @@
     "path": "fullstack",
     "title": "React in 100 Minutes",
     "youtubeId": "bMknfKXIFA8",
-    "duration": "1h40m"
+    "duration": "1h40m",
+    "featured": true
   },
   {
     "id": "aws-001",
@@ -173,5 +175,12 @@
     "title": "API Test Course",
     "youtubeId": "TESTID",
     "duration": null
+  },
+  {
+    "id": "course-1767911226006",
+    "path": "html-boostrap",
+    "title": "html",
+    "youtubeId": "G3e-cpL7ofc",
+    "duration": ""
   }
 ]

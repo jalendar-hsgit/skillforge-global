@@ -372,9 +372,81 @@ All 5 course paths have quizzes with questions you can answer
 
 ---
 
+## 🎯 NEW - Test Recently Implemented Endpoints (Jan 10, 2026)
+
+**8 NEW ENDPOINTS JUST BUILT** - Seller Portal, Checkout, & Notification Management
+
+### Quick Test: Get Auth Token
+```bash
+curl -X POST http://localhost:8001/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"john.doe@example.com","password":"password"}'
+```
+
+Save the access_token returned:
+```bash
+export TOKEN="your_token_here"
+```
+
+### Test New Seller Portal Endpoints
+```bash
+# 1. Seller Dashboard
+curl http://localhost:8001/api/v1x/seller/dashboard \
+  -H "Authorization: Bearer $TOKEN"
+
+# 2. Seller Orders
+curl http://localhost:8001/api/v1x/seller/orders \
+  -H "Authorization: Bearer $TOKEN"
+
+# 3. Seller Analytics - Timeline
+curl http://localhost:8001/api/v1x/seller/analytics/timeline?days=30 \
+  -H "Authorization: Bearer $TOKEN"
+
+# 4. Seller Analytics - Products  
+curl http://localhost:8001/api/v1x/seller/analytics/products \
+  -H "Authorization: Bearer $TOKEN"
+
+# 5. Request Payout
+curl -X POST http://localhost:8001/api/v1x/seller/request-payout \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"amount":100.00,"reason":"Monthly earnings"}'
+```
+
+### Test New Marketplace Checkout
+```bash
+# Full checkout with product(s)
+curl -X POST http://localhost:8001/api/v1x/marketplace/checkout \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "product_ids": [1],
+    "coupon_code": null,
+    "payment_method": "stripe"
+  }'
+```
+
+### Test Notification Management
+```bash
+# Mark notification as read
+curl -X POST http://localhost:8001/api/v1x/notifications/1/read \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### Expected Results
+✅ All should return HTTP 200 (or 404 if product/notification doesn't exist)  
+✅ Seller endpoints return JSON with metrics/data  
+✅ Checkout creates order and updates product stats  
+✅ Notification returns success message  
+
+**Full Details**: See [IMPLEMENTATION_COMPLETE_SELLER_ENDPOINTS.md](IMPLEMENTATION_COMPLETE_SELLER_ENDPOINTS.md)
+
+---
+
 **Status**: ✅ **READY TO TEST**  
 **Backend**: ✅ Running and operational  
 **All 10+ features**: ✅ Implemented and verified  
 **Resume duplicate**: ✅ **Verified to return 200 with correct response**
+**NEW SELLER FEATURES**: ✅ **8 endpoints just implemented (Jan 10, 2026)**
 
 Start with the smoke test, then try manual curl commands. Everything works!

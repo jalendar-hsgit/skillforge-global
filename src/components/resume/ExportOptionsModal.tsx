@@ -42,9 +42,8 @@ export default function ExportOptionsModal({ isOpen, onClose, resume, resumeId }
       console.log(`[PDF Export] Successfully exported with custom settings`)
     } catch (error) {
       console.error('[PDF Export] Exception:', error)
-      alert('PDF export failed. Falling back to server export options.')
+      alert('PDF export failed. Please check the console for details.')
       setExportingPdf(false)
-      setShowExportOptions(true)
     } finally {
       setExportingPdf(false)
     }

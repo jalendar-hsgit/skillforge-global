@@ -170,7 +170,7 @@ const ResumePreview = (props: ResumePreviewProps) => {
     );
 
   return (
-    <div className="bg-white text-gray-900 rounded-lg overflow-hidden border shadow" style={{ fontFamily }}>
+    <div className="bg-white text-gray-900 overflow-hidden" style={{ fontFamily, maxWidth: '100%', width: '100%' }}>
       {/* Header */}
       <div className={headerClass} style={headerStyle}>
         {headerContent}
@@ -181,13 +181,13 @@ const ResumePreview = (props: ResumePreviewProps) => {
       {/* Unique layouts */}
       {isSidebar ? (
         <div className="flex">
-          <aside className="w-1/3 bg-gray-50 p-4 border-r" style={{ borderColor: accent }}>
+          <aside className="w-1/3 bg-gray-50 p-4 border-r overflow-y-auto" style={{ borderColor: accent, maxHeight: '100%' }}>
             {/* Sidebar: skills, contact, certificates */}
             {Array.isArray(resume.skills) && resume.skills.length > 0 && (
               <section>
                 <h3 className="font-semibold mb-1" style={{ color: accent }}>Skills</h3>
                 <div className="flex flex-wrap gap-1">
-                  {resume.skills.slice(0, 8).map((s: any, idx: number) => (
+                  {resume.skills.map((s: any, idx: number) => (
                     <span key={idx} className="px-2 py-0.5 rounded-full text-xs border" style={{ borderColor: `${accent}55`, backgroundColor: `${accent}0d` }}>{s.name || 'Skill'}</span>
                   ))}
                 </div>
@@ -197,14 +197,14 @@ const ResumePreview = (props: ResumePreviewProps) => {
               <section>
                 <h3 className="font-semibold mb-1" style={{ color: accent }}>Certificates</h3>
                 <ul className="space-y-1">
-                  {resume.certificates.slice(0, 2).map((c: any, idx: number) => (
+                  {resume.certificates.map((c: any, idx: number) => (
                     <li key={idx}><div className="font-medium text-[11px]">{c.name || 'Certificate'}</div></li>
                   ))}
                 </ul>
               </section>
             )}
           </aside>
-          <main className="flex-1 p-4">
+          <main className="flex-1 p-4 overflow-y-auto" style={{ maxHeight: '100%', boxSizing: 'border-box' }}>
             {/* Main: summary, experience, projects, education */}
             {resume.professional_summary && (
               <section>
@@ -215,9 +215,13 @@ const ResumePreview = (props: ResumePreviewProps) => {
             {Array.isArray(resume.work_experiences) && resume.work_experiences.length > 0 && (
               <section>
                 <h3 className="font-semibold mb-1" style={{ color: accent }}>Experience</h3>
-                <ul className="space-y-1">
-                  {resume.work_experiences.slice(0, 2).map((exp: any, idx: number) => (
-                    <li key={idx}><div className="font-medium">{exp.position || 'Role'} • {exp.company || 'Company'}</div></li>
+                <ul className="space-y-2">
+                  {resume.work_experiences.map((exp: any, idx: number) => (
+                    <li key={idx} className="break-inside-avoid">
+                      <div className="font-medium text-sm">{exp.position || 'Role'} • {exp.company || 'Company'}</div>
+                      {exp.start_date && <div className="text-xs text-gray-600 mb-1">{exp.start_date}{exp.end_date ? ` - ${exp.end_date}` : ''}</div>}
+                      {exp.description && <p className="text-xs text-gray-700">{exp.description}</p>}
+                    </li>
                   ))}
                 </ul>
               </section>
@@ -321,9 +325,9 @@ const ResumePreview = (props: ResumePreviewProps) => {
         </div>
       ) : (
         // Default: two-column or single-column
-        <div className={`p-4 ${isTwoCol ? 'grid grid-cols-3 gap-4' : 'space-y-3'}`} style={{ fontSize: baseFontSize }}>
+        <div className={`p-4 ${isTwoCol ? 'grid grid-cols-3 gap-4' : 'space-y-3'}`} style={{ fontSize: baseFontSize, width: '100%', boxSizing: 'border-box' }}>
           {/* Left/Main column */}
-          <div className={isTwoCol ? 'col-span-2 space-y-3' : ''}>
+          <div className={isTwoCol ? 'col-span-2 space-y-3' : ''} style={{ width: '100%', boxSizing: 'border-box' }}>
             {resume.professional_summary && (
               <section>
                 <h3 className={`font-semibold mb-1 ${layout.includes('center') || layout.includes('beginner') ? 'text-center pb-1 border-b-2' : ''}`} style={{ color: accent, borderColor: layout.includes('center') || layout.includes('beginner') ? accent : 'transparent' }}>Summary</h3>
@@ -333,14 +337,15 @@ const ResumePreview = (props: ResumePreviewProps) => {
             {Array.isArray(resume.work_experiences) && resume.work_experiences.length > 0 && (
               <section>
                 <h3 className={`font-semibold mb-1 ${layout.includes('center') || layout.includes('beginner') ? 'text-center pb-1 border-b-2' : ''}`} style={{ color: accent, borderColor: layout.includes('center') || layout.includes('beginner') ? accent : 'transparent' }}>Experience</h3>
-                <ul className={`space-y-1 ${layout.includes('center') || layout.includes('beginner') ? 'text-center' : ''}`}>
-                  {resume.work_experiences.slice(0, 2).map((exp: any, idx: number) => (
-                    <li key={idx}>
-                      <div className="font-medium">{exp.position || 'Role'} • {exp.company || 'Company'}</div>
+                <ul className={`space-y-2 ${layout.includes('center') || layout.includes('beginner') ? 'text-center' : ''}`}>
+                  {resume.work_experiences.map((exp: any, idx: number) => (
+                    <li key={idx} className="break-inside-avoid">
+                      <div className="font-medium text-sm">{exp.position || 'Role'} • {exp.company || 'Company'}</div>
+                      {exp.start_date && <div className="text-xs text-gray-600 mb-1">{exp.start_date}{exp.end_date ? ` - ${exp.end_date}` : ''}</div>}
                       {((exp.responsibilities && exp.responsibilities.length) || (exp.bullet_points && exp.bullet_points.length)) && (
                         <ul className={`list-disc ${layout.includes('center') || layout.includes('beginner') ? 'list-none' : 'pl-5'}`}>
-                          {(exp.responsibilities || exp.bullet_points || []).slice(0, 2).map((r: string, i: number) => (
-                            <li key={i} className="text-[11px]">{r}</li>
+                          {(exp.responsibilities || exp.bullet_points || []).map((r: string, i: number) => (
+                            <li key={i} className="text-[11px] text-gray-700">{r}</li>
                           ))}
                         </ul>
                       )}
@@ -353,7 +358,7 @@ const ResumePreview = (props: ResumePreviewProps) => {
               <section>
                 <h3 className={`font-semibold mb-1 ${layout.includes('center') || layout.includes('beginner') ? 'text-center pb-1 border-b-2' : ''}`} style={{ color: accent, borderColor: layout.includes('center') || layout.includes('beginner') ? accent : 'transparent' }}>Projects</h3>
                 <ul className={`space-y-1 ${layout.includes('center') || layout.includes('beginner') ? 'text-center' : ''}`}>
-                  {resume.projects.slice(0, 2).map((p: any, idx: number) => (
+                  {resume.projects.map((p: any, idx: number) => (
                     <li key={idx}>
                       <div className="font-medium">{p.title || p.name || 'Project'}</div>
                       {p.description && <p className="text-[11px] text-gray-600">{p.description}</p>}
@@ -364,12 +369,12 @@ const ResumePreview = (props: ResumePreviewProps) => {
             )}
           </div>
           {/* Right/Sidebar column */}
-          <div className={isTwoCol ? 'space-y-3' : ''}>
+          <div className={isTwoCol ? 'space-y-3' : ''} style={{ width: '100%', boxSizing: 'border-box' }}>
             {Array.isArray(resume.skills) && resume.skills.length > 0 && (
               <section>
                 <h3 className={`font-semibold mb-1 ${layout.includes('center') || layout.includes('beginner') ? 'text-center pb-1 border-b-2' : ''}`} style={{ color: accent, borderColor: layout.includes('center') || layout.includes('beginner') ? accent : 'transparent' }}>Skills</h3>
                 <div className={`flex flex-wrap gap-1 ${layout.includes('center') || layout.includes('beginner') ? 'justify-center' : ''}`}>
-                  {resume.skills.slice(0, 8).map((s: any, idx: number) => (
+                  {resume.skills.map((s: any, idx: number) => (
                     <span key={idx} className={`px-2 py-0.5 rounded-full text-xs border`} style={{ borderColor: `${accent}55`, backgroundColor: `${accent}0d` }}>{s.name || 'Skill'}</span>
                   ))}
                 </div>
@@ -379,7 +384,7 @@ const ResumePreview = (props: ResumePreviewProps) => {
               <section>
                 <h3 className={`font-semibold mb-1 ${layout.includes('center') || layout.includes('beginner') ? 'text-center pb-1 border-b-2' : ''}`} style={{ color: accent, borderColor: layout.includes('center') || layout.includes('beginner') ? accent : 'transparent' }}>Education</h3>
                 <ul className={`space-y-1 ${layout.includes('center') || layout.includes('beginner') ? 'text-center' : ''}`}>
-                  {resume.education.slice(0, 2).map((edu: any, idx: number) => (
+                  {resume.education.map((edu: any, idx: number) => (
                     <li key={idx}>
                       <div className="font-medium text-[11px]">{edu.degree || 'Degree'} in {edu.field_of_study || 'Field'} • {edu.institution || edu.school || 'Institution'}</div>
                     </li>
@@ -391,7 +396,7 @@ const ResumePreview = (props: ResumePreviewProps) => {
               <section>
                 <h3 className={`font-semibold mb-1 ${layout.includes('center') || layout.includes('beginner') ? 'text-center pb-1 border-b-2' : ''}`} style={{ color: accent, borderColor: layout.includes('center') || layout.includes('beginner') ? accent : 'transparent' }}>Certificates</h3>
                 <ul className={`space-y-1 ${layout.includes('center') || layout.includes('beginner') ? 'text-center' : ''}`}>
-                  {resume.certificates.slice(0, 2).map((c: any, idx: number) => (
+                  {resume.certificates.map((c: any, idx: number) => (
                     <li key={idx}>
                       <div className="font-medium text-[11px]">{c.name || 'Certificate'}</div>
                       <div className="text-[10px] text-gray-600">{c.issuing_organization || c.issuer || 'Issuer'}{(c.issue_date || c.date) ? ` • ${c.issue_date || c.date}` : ''}</div>
@@ -404,7 +409,7 @@ const ResumePreview = (props: ResumePreviewProps) => {
               <section>
                 <h3 className={`font-semibold mb-1 ${layout.includes('center') || layout.includes('beginner') ? 'text-center pb-1 border-b-2' : ''}`} style={{ color: accent, borderColor: layout.includes('center') || layout.includes('beginner') ? accent : 'transparent' }}>Achievements</h3>
                 <ul className={`space-y-1 ${layout.includes('center') || layout.includes('beginner') ? 'list-none text-center' : 'list-disc pl-5'}`}>
-                  {resume.achievements.slice(0, 3).map((a: any, idx: number) => (
+                  {resume.achievements.map((a: any, idx: number) => (
                     <li key={idx} className="text-[11px]">
                       <strong>{a.title}</strong>{a.date ? ` (${a.date})` : ''}{a.issuer ? ` • ${a.issuer}` : ''}{a.description ? `: ${a.description}` : ''}
                     </li>

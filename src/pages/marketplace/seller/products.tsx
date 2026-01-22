@@ -36,19 +36,13 @@ export default function SellerProducts() {
 
   const fetchProducts = async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        router.push('/login?redirect=/marketplace/seller/products');
-        return;
-      }
-
-      const url = new URL(`${process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8001'}/api/v1x/seller/products`);
+      const url = new URL(`/api/session/v1x/seller/products`);
       if (filterStatus !== 'all') {
         url.searchParams.append('status', filterStatus);
       }
 
       const res = await fetch(url.toString(), {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
 
       if (res.ok) {
@@ -67,12 +61,11 @@ export default function SellerProducts() {
 
   const deleteProduct = async (id: number) => {
     try {
-      const token = localStorage.getItem('token');
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8001'}/api/v1x/seller/products/${id}`,
+        `/api/session/v1x/seller/products/${id}`,
         {
           method: 'DELETE',
-          headers: { Authorization: `Bearer ${token}` },
+          credentials: 'include',
         }
       );
 

@@ -47,7 +47,7 @@ def is_admin(user: User) -> bool:
 
 @router.get("/applications", response_model=List[MentorApplicationResponse])
 def get_mentor_applications(
-    status: Optional[str] = Query(None, description="Filter by status"),
+    status_filter: Optional[str] = Query(None, description="Filter by status"),
     limit: int = Query(100, ge=1, le=500),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -64,8 +64,8 @@ def get_mentor_applications(
     
     query = db.query(Mentor)
     
-    if status:
-        query = query.filter(Mentor.status == status)
+    if status_filter:
+        query = query.filter(Mentor.status == status_filter)
     
     applications = query.order_by(Mentor.created_at.desc()).limit(limit).all()
     

@@ -33,6 +33,9 @@ class SignupRequest(BaseModel):
     full_name: str | None = None  # Optional field from frontend
     # Note: role is NOT allowed in public signup - users always start as 'user'
     # Only superadmins can promote users via admin panel
+    
+    class Config:
+        extra = 'ignore'  # Ignore extra fields like confirm_password from frontend
 
 class LoginRequest(BaseModel):
     email: EmailStr | None = None
@@ -91,12 +94,17 @@ async def signup(
     if not settings.E2E_TEST_MODE:
         rate_limit(ip_hash, "auth:signup", limit=100, window_seconds=3600)
     
+    
     if db.query(User).filter(User.email == data.email).first():
         raise HTTPException(status_code=400, detail="Email already exists")
     
     # All public signups are regular users by default
     # Only superadmins can promote users to admin/superadmin roles
-    user = User(email=data.email, password_hash=get_password_hash(data.password))
+    user = User(
+        email=data.email,
+        password_hash=get_password_hash(data.password),
+        name=data.full_name  # Store the full_name in the name field
+    )
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -133,13 +141,11 @@ def login(res: Response, request: Request, data: LoginRequest, db: Session = Dep
         if not settings.E2E_TEST_MODE:
             rate_limit(ip_hash, "auth:login", limit=10, window_seconds=300)
 
-        # Lookup user by email or username
-        if data.email:
-            u = db.query(User).filter(User.email == data.email).first()
-        elif data.username:
-            u = db.query(User).filter(User.username == data.username).first()
-        else:
-            raise HTTPException(status_code=400, detail="Email or username required")
+        # Lookup user by email (username not supported in current schema)
+        if not data.email:
+            raise HTTPException(status_code=400, detail="Email required")
+        
+        u = db.query(User).filter(User.email == data.email).first()
             
         if not u:
             # Record failed login attempt

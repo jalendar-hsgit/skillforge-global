@@ -34,17 +34,12 @@ export default function SellerAnalytics() {
   const fetchAnalytics = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      if (!token) {
-        router.push('/login?redirect=/marketplace/seller/analytics');
-        return;
-      }
 
-      const url = new URL(`${process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8001'}/api/v1x/seller/analytics`);
+      const url = new URL(`/api/session/v1x/seller/analytics`);
       url.searchParams.append('period', period);
 
       const res = await fetch(url.toString(), {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
 
       if (res.ok) {

@@ -1,10 +1,20 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
 from starlette.middleware.base import BaseHTTPMiddleware
 from sqlalchemy import text
+import logging
 
 from app.core.config import settings
 from app.core.db import Base, engine
+from app.middleware.error_handlers import (
+    StandardizedErrorHandlingMiddleware,
+    validation_exception_handler,
+    http_exception_handler
+)
+
+# Setup logger
+logger = logging.getLogger(__name__)
 
 # import models so tables are registered on Base
 from app.models import User, Progress as LegacyProgress, QuizAttempt, CreditLedger, Subscriber
@@ -15,8 +25,10 @@ from app.modelsx.coins import CoinLedger
 from app.modelsx.quiz_template import GeneratedQuiz, QuizSession
 # import mentor models
 from app.modelsx.mentor import Mentor, MentorSession, MentorAvailability, MentorMessage, MentorReview, SessionFeedback
+from app.modelsx.mentor_documents import MentorDocument, MentorApproval  # Phase 3A
 from app.modelsx.mentor_verification import MentorVerification
 from app.modelsx.payout import MentorPayout, MentorEarning
+from app.modelsx.payment_method import PaymentMethod, PayoutRequest
 from app.modelsx.admin_log import AdminLog
 from app.modelsx.subscription import Subscription, PlanFeature, SubscriptionEvent
 from app.modelsx.stripe_connect import MentorStripeAccount
@@ -96,9 +108,13 @@ from app.modelsx.referral import (
 )
 # import Marketplace models
 from app.modelsx.marketplace import (
-    DigitalProduct, ProductPurchase, ProductReview, SellerAccount,
+    DigitalProduct, ProductPurchase, SellerAccount,
     ProductBundle, SellerPayout, MarketplaceAnalytics
 )
+# import Wishlist models
+from app.modelsx.wishlist import Wishlist
+# import Review models
+from app.modelsx.product_review import ProductReview, ReviewHelpfulVote
 # import Security audit models
 from app.modelsx.security_audit import LoginHistory, AuditLog, SessionRevocation
 
@@ -139,6 +155,14 @@ from app.api.v1 import recommendations as v1_recommendations
 # Phase 3.5 routers
 from app.api.v1 import websocket
 
+# Auth v1x router (for /api/v1x/auth/* endpoints)
+auth_v1x = None
+try:
+    from app.api.v1x.auth import router as auth_v1x
+except Exception as e:
+    auth_v1x = None
+    print(f"Failed to import v1x auth router: {e}")
+
 # Security routers
 security_router = None
 try:
@@ -166,6 +190,12 @@ try:
 except Exception as e:
     print(f"Failed to import courses_db: {e}")
     courses_router = None
+
+try:
+    from app.api.v1x.orders_db import router as orders_db
+except Exception as e:
+    print(f"Failed to import orders_db: {e}")
+    orders_db = None
 
 try:
     from app.api.v1x.progress_db_stub import router as progress_db
@@ -199,6 +229,12 @@ except Exception as e:
     print(f"Failed to import mentor_verification: {e}")
 
 try:
+    from app.api.v1x.mentor_documents import router as mentor_documents
+except Exception as e:
+    mentor_documents = None
+    print(f"Failed to import mentor_documents: {e}")
+
+try:
     from app.api.v1x.account import router as account
 except Exception as e:
     account = None
@@ -226,6 +262,12 @@ try:
     from app.api.v1x.payouts import router as payouts
 except Exception as e:
     print(f"Failed to import payouts: {e}")
+
+try:
+    from app.api.v1x.admin_payouts import router as admin_payouts
+except Exception as e:
+    print(f"Failed to import admin_payouts: {e}")
+    admin_payouts = None
 
 try:
     from app.api.v1x.subscriptions import router as subscriptions
@@ -300,6 +342,42 @@ try:
     from app.api.v1x.marketplace import router as marketplace
 except Exception as e:
     print(f"Failed to import marketplace: {e}")
+
+try:
+    from app.api.v1x.marketplace_checkout import router as marketplace_checkout
+except Exception as e:
+    marketplace_checkout = None
+    print(f"Failed to import marketplace_checkout: {e}")
+
+try:
+    from app.api.v1x.seller import router as seller
+except Exception as e:
+    seller = None
+    print(f"Failed to import seller: {e}")
+
+try:
+    from app.api.v1x.admin_marketplace import router as admin_marketplace
+except Exception as e:
+    admin_marketplace = None
+    print(f"Failed to import admin_marketplace: {e}")
+
+try:
+    from app.api.v1x.payments_integration import router as payments_integration
+except Exception as e:
+    payments_integration = None
+    print(f"Failed to import payments_integration: {e}")
+
+try:
+    from app.api.v1x.wishlist import router as wishlist
+except Exception as e:
+    wishlist = None
+    print(f"Failed to import wishlist: {e}")
+
+try:
+    from app.api.v1x.reviews import router as reviews
+except Exception as e:
+    reviews = None
+    print(f"Failed to import reviews: {e}")
 
 try:
     from app.api.v1x.job_applications import router as job_applications
@@ -570,25 +648,46 @@ except Exception as e:
 # ============================================================
 # CREATE ALL DATABASE TABLES - MUST BE AFTER ALL MODEL IMPORTS
 # ============================================================
-print(f"[Init] Creating database tables...")
-print(f"[Init] Models registered: {len(Base.metadata.tables)}")
+print(f"\n[Init] Creating database tables...")
+print(f"[Init] Models registered: {len(Base.metadata.tables)} tables")
 
 try:
-    # For SQLite, we can disable foreign key constraints temporarily
     if "sqlite" in str(engine.url).lower():
+        # SQLite: Create with proper settings (WAL mode for concurrency)
+        logger.info("[Init] SQLite database - configuring for concurrent access")
         with engine.begin() as conn:
-            conn.execute(text("PRAGMA foreign_keys=OFF"))
-            Base.metadata.create_all(bind=conn)
+            # Enable Write-Ahead Logging (prevents database locks)
+            conn.execute(text("PRAGMA journal_mode=WAL"))
+            conn.execute(text("PRAGMA synchronous=NORMAL"))
+            # Enable foreign key constraints for data integrity
             conn.execute(text("PRAGMA foreign_keys=ON"))
+            # Create all tables
+            Base.metadata.create_all(bind=conn)
+        print(f"[Init] [OK] SQLite database initialized with WAL mode")
+        logger.info("[Init] [OK] SQLite database ready with WAL + foreign keys enabled")
     else:
-        # For other databases, just create normally
+        # PostgreSQL/MySQL: Create normally
+        logger.info("[Init] Production database - creating tables normally")
         Base.metadata.create_all(bind=engine)
+        print(f"[Init] [OK] Production database initialized")
+        logger.info("[Init] [OK] Production database ready")
     
-    print(f"[Init] OK Database initialized with {len(Base.metadata.tables)} tables")
+    # Verify tables were created
+    table_count = len(Base.metadata.tables)
+    print(f"[Init] [OK] Database initialized with {table_count} tables")
+    print(f"[Init] Tables: {', '.join(sorted(Base.metadata.tables.keys())[:10])}...")
+    logger.info(f"[Init] ✅ Database ready with {table_count} tables")
+    
 except Exception as e:
-    print(f"[Init] ERROR creating tables: {e}")
+    print(f"\n[Init] ❌ CRITICAL ERROR creating database tables")
+    print(f"[Init] Error: {str(e)}")
     import traceback
+    print(f"[Init] Traceback:")
     traceback.print_exc()
+    logger.error(f"[Init] ❌ Database initialization failed: {str(e)}")
+    logger.error(f"[Init] Traceback: {traceback.format_exc()}")
+    # Don't hide the error - let it crash with details
+    raise
 
 # Configure error logging and exception handlers
 from app.core.logging_middleware import setup_logging
@@ -598,6 +697,12 @@ app = FastAPI(title=getattr(settings, "APP_NAME", "SkillForge Global"))
 
 # Setup logging after app is created
 setup_logging(app)
+
+# Add error handling middleware and exception handlers
+from fastapi.exceptions import HTTPException
+app.add_middleware(StandardizedErrorHandlingMiddleware)
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
+app.add_exception_handler(HTTPException, http_exception_handler)
 
 # Add maintenance mode middleware (before CORS)
 app.add_middleware(MaintenanceModeMiddleware)
@@ -697,7 +802,7 @@ def _mount_v1x_export(obj):
 # Mount all v1x exports (modules or routers)
 # Filter out None values to handle failed imports gracefully
 # Note: session is mounted separately at /api/session, not included here
-_exports = [x for x in (security_router, courses_db, courses_router, progress_db, quizzes_db, youtube_sync, coins_db, mentors, mentor_verification, account, payments, chat_files, payouts, subscriptions, connect, student_dashboard, mentor_portal, recordings, resumes, resume_ai, cover_letter, resume_comparison, linkedin_import, hiring, resume_import, marketplace, job_applications, job_notifications, job_calendar, resume_export, resume_templates, resume_analytics_events, resume_scoring, leaderboard, admin_metrics, admin_analytics, coding_practice, code_snippets, solution_sharing, user_profiles, solution_comments, social, learning_paths, premium_tiers, github_integration, advanced_dashboard, ai_hints, pwa, contests, notifications_v1x, code_executor, activity, badges, forums, recommendations, teams, search, interview, referral, admin_router, verification_router, analytics_router, payments_router_phase23, video_router, messaging_router, forum_router, payments_integrated_router, notifications_websocket) if x is not None]
+_exports = [x for x in (auth_v1x, security_router, courses_db, courses_router, orders_db, progress_db, quizzes_db, youtube_sync, coins_db, mentors, mentor_documents, mentor_verification, account, payments, chat_files, payouts, admin_payouts, subscriptions, connect, student_dashboard, mentor_portal, recordings, resumes, resume_ai, cover_letter, resume_comparison, linkedin_import, hiring, resume_import, marketplace, seller, marketplace_checkout, admin_marketplace, payments_integration, wishlist, reviews, job_applications, job_notifications, job_calendar, resume_export, resume_templates, resume_analytics_events, resume_scoring, leaderboard, admin_metrics, admin_analytics, coding_practice, code_snippets, solution_sharing, user_profiles, solution_comments, social, learning_paths, premium_tiers, github_integration, advanced_dashboard, ai_hints, pwa, contests, notifications_v1x, code_executor, activity, badges, forums, recommendations, teams, search, interview, referral, admin_router, verification_router, analytics_router, payments_router_phase23, video_router, messaging_router, forum_router, payments_integrated_router, notifications_websocket) if x is not None]
 for _export in _exports:
     _mount_v1x_export(_export)
 

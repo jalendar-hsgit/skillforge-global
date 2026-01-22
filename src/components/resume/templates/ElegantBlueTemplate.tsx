@@ -5,8 +5,8 @@ export default function ElegantBlueTemplate({ resume }: { resume: Resume }) {
   const primaryBlue = '#1e3a8a'; // Blue-900
   const accentBlue = resume.accent_color || '#3b82f6'; // Blue-500
   return (
-    <div className="elegant-blue-template bg-white overflow-hidden" style={{ minHeight: '297mm', width: '210mm' }}>
-      <div className="p-12 text-white relative" style={{ background: `linear-gradient(135deg, ${primaryBlue} 0%, ${accentBlue} 100%)` }}>
+    <div className="elegant-blue-template bg-white mx-auto" style={{ minHeight: '297mm', width: '210mm', maxWidth: '100%', boxSizing: 'border-box', overflow: 'hidden' }}>
+      <div className="text-white relative" style={{ background: `linear-gradient(135deg, ${primaryBlue} 0%, ${accentBlue} 100%)`, padding: '32px 28px', boxSizing: 'border-box' }}>
         <div className="absolute inset-0 opacity-5" style={{
           backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)',
           backgroundSize: '32px 32px'
@@ -22,8 +22,8 @@ export default function ElegantBlueTemplate({ resume }: { resume: Resume }) {
           </div>
         </div>
       </div>
-      <div className="p-10 grid grid-cols-3 gap-10">
-        <div className="col-span-2 space-y-8">
+      <div className="grid grid-cols-3 gap-0" style={{ padding: '28px', boxSizing: 'border-box' }}>
+        <div className="col-span-2 space-y-8" style={{ paddingRight: '16px', boxSizing: 'border-box' }}>
           {resume.professional_summary && (
             <section>
               <h3 className="font-bold text-2xl uppercase tracking-wide pb-3 mb-4 border-b-4" style={{ color: primaryBlue, borderColor: accentBlue }}>

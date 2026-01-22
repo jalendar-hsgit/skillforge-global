@@ -17,12 +17,17 @@ interface RevenueData {
 
 export default function RevenueAnalyticsPage() {
   const router = useRouter();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const [data, setData] = useState<RevenueData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
+    // Wait for auth to finish loading
+    if (isLoading) {
+      return;
+    }
+
     if (!isAuthenticated) {
       router.push('/login');
       return;
@@ -36,18 +41,14 @@ export default function RevenueAnalyticsPage() {
     if (isAuthenticated && user?.id) {
       fetchRevenueData();
     }
-  }, [isAuthenticated, user?.id, user?.role]);
+  }, [isLoading, isAuthenticated, user?.id, user?.role]);
 
   const fetchRevenueData = async () => {
     try {
       setLoading(true);
       setError('');
-      const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8001';
-      const token = localStorage.getItem('token');
 
-      const response = await fetch(`${apiBase}/api/v1x/admin/analytics/revenue`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await fetch(`/api/session/v1x/admin/analytics/revenue`);
 
       if (!response.ok) throw new Error('Failed to fetch revenue data');
       const revenueData = await response.json();
@@ -60,7 +61,7 @@ export default function RevenueAnalyticsPage() {
     }
   };
 
-  if (loading) {
+  if (loading || isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">

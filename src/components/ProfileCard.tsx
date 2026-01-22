@@ -11,7 +11,7 @@ interface UserProfile {
   avatar_url?: string
   phone?: string
   location?: string
-  skills: string[]
+  skills?: string[]
 }
 
 export default function ProfileCard() {
@@ -30,11 +30,14 @@ export default function ProfileCard() {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       if (res.ok) {
-        setProfile(await res.json())
+        const data = await res.json()
+        console.log('Profile data:', data)
+        setProfile(data)
       } else {
         setError('Failed to load profile')
       }
     } catch (err) {
+      console.error('Error loading profile:', err)
       setError('Error loading profile')
     } finally {
       setLoading(false)
@@ -42,63 +45,64 @@ export default function ProfileCard() {
   }
 
   if (loading) {
-    return <div className="text-center py-8">Loading profile...</div>
+    return (
+      <div className="bg-gradient-to-br from-white/10 to-white/5 rounded-xl border border-white/10 backdrop-blur-sm p-8 text-center">
+        <div className="text-white/60">Loading profile...</div>
+      </div>
+    )
   }
 
   if (!profile) {
     return (
-      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center gap-2">
-        <AlertCircle className="w-5 h-5" />
-        {error}
+      <div className="bg-gradient-to-br from-red-500/10 to-red-600/5 rounded-xl border border-red-500/20 backdrop-blur-sm p-6 flex items-center gap-3">
+        <AlertCircle className="w-5 h-5 text-red-400" />
+        <div className="text-red-300">{error || 'Failed to load profile'}</div>
       </div>
     )
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+    <div className="bg-gradient-to-br from-white/10 to-white/5 rounded-xl border border-white/10 backdrop-blur-sm overflow-hidden">
       {/* Header with Edit Button */}
-      <div className="flex items-center justify-between p-6 border-b border-gray-200">
-        <h2 className="text-2xl font-bold">Profile</h2>
+      <div className="flex items-center justify-between p-6 border-b border-white/10">
+        <h2 className="text-2xl font-bold text-white">Profile</h2>
         <Link href="/profile/edit">
-          <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+          <button className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-4 py-2 rounded-lg transition-all font-medium shadow-lg shadow-blue-500/20">
             <Edit className="w-4 h-4" />
-            Edit Profile
+            Edit
           </button>
         </Link>
       </div>
 
-      <div className="p-6">
+      <div className="p-8">
         {/* Avatar & Name Section */}
-        <div className="flex items-start gap-6 mb-8 pb-8 border-b border-gray-200">
+        <div className="flex items-start gap-6 mb-8 pb-8 border-b border-white/10">
           {profile.avatar_url ? (
             <img
               src={profile.avatar_url}
               alt={profile.name}
-              className="w-24 h-24 rounded-full object-cover border-4 border-blue-100"
+              className="w-24 h-24 rounded-full object-cover border-2 border-blue-500/50 shadow-lg shadow-blue-500/20"
             />
           ) : (
-            <div className="w-24 h-24 rounded-full bg-blue-100 flex items-center justify-center">
-              <User className="w-12 h-12 text-blue-600" />
+            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center border border-white/10">
+              <User className="w-12 h-12 text-white/60" />
             </div>
           )}
           <div className="flex-1">
-            <h3 className="text-3xl font-bold text-gray-900">
+            <h3 className="text-3xl font-bold text-white mb-1">
               {profile.name || 'User'}
             </h3>
+            <p className="text-white/60 text-sm font-medium">{profile.email}</p>
             <div className="mt-4 space-y-2">
-              <div className="flex items-center gap-2 text-gray-600">
-                <Mail className="w-5 h-5" />
-                <span>{profile.email}</span>
-              </div>
               {profile.phone && (
-                <div className="flex items-center gap-2 text-gray-600">
-                  <Phone className="w-5 h-5" />
+                <div className="flex items-center gap-2 text-white/70">
+                  <Phone className="w-5 h-5 text-blue-400" />
                   <span>{profile.phone}</span>
                 </div>
               )}
               {profile.location && (
-                <div className="flex items-center gap-2 text-gray-600">
-                  <MapPin className="w-5 h-5" />
+                <div className="flex items-center gap-2 text-white/70">
+                  <MapPin className="w-5 h-5 text-blue-400" />
                   <span>{profile.location}</span>
                 </div>
               )}
@@ -108,25 +112,25 @@ export default function ProfileCard() {
 
         {/* Bio Section */}
         {profile.bio && (
-          <div className="mb-8 pb-8 border-b border-gray-200">
-            <h4 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
+          <div className="mb-8 pb-8 border-b border-white/10">
+            <h4 className="text-xs font-bold text-white/70 mb-3 uppercase tracking-wider">
               About
             </h4>
-            <p className="text-gray-700 leading-relaxed">{profile.bio}</p>
+            <p className="text-white/80 leading-relaxed">{profile.bio}</p>
           </div>
         )}
 
         {/* Skills Section */}
         {profile.skills && profile.skills.length > 0 && (
           <div>
-            <h4 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
+            <h4 className="text-xs font-bold text-white/70 mb-4 uppercase tracking-wider">
               Skills
             </h4>
             <div className="flex flex-wrap gap-2">
               {profile.skills.map((skill) => (
                 <span
                   key={skill}
-                  className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium"
+                  className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-blue-300 px-3 py-1 rounded-full text-sm font-medium border border-blue-500/30 hover:border-blue-500/50 transition-all"
                 >
                   {skill}
                 </span>

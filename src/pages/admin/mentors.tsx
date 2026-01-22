@@ -59,11 +59,11 @@ export default function MentorAdminPage({ me }: AdminSSRProps) {
       // Fetch both applications and stats in parallel
       const [appRes, statsRes] = await Promise.all([
         fetch(
-          `${API_BASE}/api/v1x/mentors/admin/applications?status=${filter === 'all' ? '' : filter}`,
+          `${API_BASE}/api/v1x/admin/mentors/applications?status_filter=${filter === 'all' ? '' : filter}`,
           { credentials: 'include' }
         ),
         fetch(
-          `${API_BASE}/api/v1x/mentors/admin/analytics`,
+          `${API_BASE}/api/v1x/admin/analytics?timeframe=30d`,
           { credentials: 'include' }
         )
       ]);
@@ -103,7 +103,7 @@ export default function MentorAdminPage({ me }: AdminSSRProps) {
       setSuccess('');
 
       const response = await fetch(
-        `${API_BASE}/api/v1x/mentors/admin/{{id}}/status`.replace('{{id}}', mentorId.toString()),
+        `${API_BASE}/api/v1x/admin/mentors/${mentorId}/status`,
         {
           method: 'PATCH',
           headers: {

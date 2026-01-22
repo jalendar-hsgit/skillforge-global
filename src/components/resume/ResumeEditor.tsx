@@ -1180,16 +1180,16 @@ export default function ResumeEditor({ resumeId }: ResumeEditorProps) {
               />
             </div>
           ) : (
-            <div className="p-6">
+            <div className="p-6 h-full flex flex-col">
               <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/10">
                 <h3 className="text-xs font-black text-white uppercase tracking-[0.15em] flex items-center gap-2" data-testid="editor-live-preview" style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
                   <Eye className="w-4 h-4 text-neuralBlue" />
                   Live Preview
                 </h3>
               </div>
-              <div className="bg-gradient-to-br from-white/5 to-white/10 rounded-2xl p-4 border border-white/20 shadow-2xl overflow-auto">
-                <div className="flex justify-center">
-                  <div ref={previewRef} className="bg-white rounded-xl shadow-2xl overflow-hidden" style={{ transform: 'scale(0.72)', transformOrigin: 'top left', width: '100%', maxWidth: '900px' }}>
+              <div className="bg-gradient-to-br from-white/5 to-white/10 rounded-2xl p-4 border border-white/20 shadow-2xl overflow-auto flex-1">
+                <div className="flex justify-center w-full h-full">
+                  <div ref={previewRef} className="bg-white rounded-xl shadow-2xl overflow-hidden flex-shrink-0" style={{ transform: 'scale(0.65)', transformOrigin: 'top center', width: '210mm', height: 'auto', minHeight: '297mm' }}>
                     <ResumePreview resume={resume} />
                   </div>
                 </div>

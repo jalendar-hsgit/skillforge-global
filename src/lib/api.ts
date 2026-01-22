@@ -1,4 +1,4 @@
-const RAW_BASE = process.env.NEXT_PUBLIC_API_BASE?.trim() || "http://127.0.0.1:8002";
+const RAW_BASE = process.env.NEXT_PUBLIC_API_BASE?.trim() || "http://localhost:8001";
 export const API_BASE = RAW_BASE.replace(/\/+$/, "");
 
 function buildUrl(path: string) {

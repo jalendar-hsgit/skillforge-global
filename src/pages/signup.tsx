@@ -67,10 +67,11 @@ export default function SignupPage() {
     setLoading(true)
 
     try {
-      const response = await fetch('/api/v1/auth/signup', {
+      // Route through /api/session/signup (Next.js proxy) to properly handle HttpOnly cookies
+      const response = await fetch('/api/session/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, confirm_password: confirmPassword })
+        body: JSON.stringify({ email, password, full_name: name })
       })
       
       if (!response.ok) {

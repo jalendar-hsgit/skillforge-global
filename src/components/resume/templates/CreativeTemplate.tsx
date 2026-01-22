@@ -4,8 +4,8 @@ import { Resume } from '../types';
 export default function CreativeTemplate({ resume }: { resume: Resume }) {
   const accent = resume.accent_color || '#8b5cf6';
   return (
-    <div className="creative-template bg-white overflow-hidden" style={{ minHeight: '297mm', width: '210mm' }}>
-      <div className="p-12 bg-gradient-to-r from-purple-600 via-indigo-500 to-pink-500 text-white relative overflow-hidden">
+    <div className="creative-template bg-white mx-auto" style={{ minHeight: '297mm', width: '210mm', maxWidth: '100%', boxSizing: 'border-box', overflow: 'hidden' }}>
+      <div className="p-8 bg-gradient-to-r from-purple-600 via-indigo-500 to-pink-500 text-white relative overflow-hidden" style={{ boxSizing: 'border-box' }}>
         {/* Background pattern */}
         <div className="absolute inset-0 opacity-10" style={{ 
           backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,.1) 10px, rgba(255,255,255,.1) 20px)' 
@@ -22,7 +22,7 @@ export default function CreativeTemplate({ resume }: { resume: Resume }) {
         </p>
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-10 p-10">
+      <div className="grid grid-cols-3 gap-0" style={{ padding: '28px', boxSizing: 'border-box' }}>
         <div className="col-span-2 space-y-8">
           {resume.professional_summary && (
             <section>

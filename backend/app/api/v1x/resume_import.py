@@ -366,6 +366,54 @@ async def upload_resume(
         db.commit()
         db.refresh(resume)
         
+        # Extract and add related data (work experience, education, skills)
+        text = parsed_data.get("raw_text", "")
+        
+        # Add work experiences
+        work_experiences = extract_work_experience(text)
+        if work_experiences:
+            from app.modelsx.resume import WorkExperience
+            for exp in work_experiences:
+                work_exp = WorkExperience(
+                    resume_id=resume.id,
+                    position=exp.get("position", ""),
+                    company=exp.get("company", ""),
+                    start_date=exp.get("start_date"),
+                    end_date=exp.get("end_date"),
+                    description=exp.get("description", "")
+                )
+                db.add(work_exp)
+        
+        # Add education
+        education_entries = extract_education(text)
+        if education_entries:
+            from app.modelsx.resume import Education
+            for edu in education_entries:
+                education = Education(
+                    resume_id=resume.id,
+                    degree=edu.get("degree", ""),
+                    institution=edu.get("institution", ""),
+                    graduation_date=edu.get("graduation_date"),
+                    gpa=edu.get("gpa")
+                )
+                db.add(education)
+        
+        # Add skills
+        skills = extract_skills(text)
+        if skills:
+            from app.modelsx.resume import ResumeSkill
+            for skill in skills:
+                skill_entry = ResumeSkill(
+                    resume_id=resume.id,
+                    name=skill.get("name") if isinstance(skill, dict) else skill,
+                    category=skill.get("category") if isinstance(skill, dict) else "Technical",
+                    level=skill.get("level") if isinstance(skill, dict) else "Intermediate"
+                )
+                db.add(skill_entry)
+        
+        db.commit()
+        db.refresh(resume)
+        
         return resume
         
     finally:

@@ -24,7 +24,8 @@ export default function AchievementsPage() {
 
   async function loadAchievements() {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/api/v1x/student/dashboard/achievements`, {
+      // Use Next.js proxy to properly handle authentication
+      const res = await fetch(`/api/session/v1x/student/dashboard/achievements`, {
         credentials: 'include'
       })
 

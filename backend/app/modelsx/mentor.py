@@ -55,6 +55,8 @@ class Mentor(Base):
     sessions = relationship("MentorSession", back_populates="mentor", cascade="all, delete-orphan")
     availability = relationship("MentorAvailability", back_populates="mentor", cascade="all, delete-orphan")
     reviews = relationship("MentorReview", back_populates="mentor", cascade="all, delete-orphan")
+    documents = relationship("MentorDocument", back_populates="mentor", cascade="all, delete-orphan")  # Phase 3A
+    # Note: payment_methods and payout_requests will load via lazy importing
     
     def __repr__(self):
         return f"<Mentor(id={self.id}, user_id={self.user_id}, status={self.status})>"

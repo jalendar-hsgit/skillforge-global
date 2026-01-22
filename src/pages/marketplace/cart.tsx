@@ -39,7 +39,7 @@ export default function CartPage() {
   const fetchCart = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/session/v1x/marketplace/cart`, {
+      const response = await fetch(`${API_BASE}/api/session/v1x/marketplace/cart`, {
         credentials: 'include'
       });
 
@@ -58,16 +58,58 @@ export default function CartPage() {
 
   const removeItem = async (itemId: number) => {
     try {
-      const response = await fetch(`/api/session/v1x/marketplace/cart/${itemId}`, {
+      console.log(`[Remove Item] Starting removal of cart item ${itemId}`);
+      console.log(`[Remove Item] Calling DELETE /api/session/v1x/marketplace/cart/${itemId}`);
+      console.log(`[Remove Item] Current cart before deletion:`, cart?.items.map(i => ({ id: i.id, courseId: i.course_id })));
+      
+      const response = await fetch(`${API_BASE}/api/session/v1x/marketplace/cart/${itemId}`, {
         method: 'DELETE',
         credentials: 'include'
       });
 
+      console.log(`[Remove Item] Response status: ${response.status}, statusText: ${response.statusText}`);
+
       if (response.ok) {
-        fetchCart();
+        // Success - refresh cart
+        console.log(`[Remove Item] Successfully removed item ${itemId}`);
+        await fetchCart();
+        console.log(`[Remove Item] Cart refreshed after deletion`);
+      } else {
+        // Log error details
+        let errorMessage = 'Unknown error';
+        try {
+          const error = await response.json();
+          errorMessage = error.detail || JSON.stringify(error);
+          console.error('[Remove Item] 400+ error:', { 
+            status: response.status, 
+            statusText: response.statusText,
+            itemId,
+            error 
+          });
+          
+          // Show specific error based on status code
+          if (response.status === 404) {
+            alert(`Item not found (ID: ${itemId}). It may have been already removed. Refreshing cart...`);
+            await fetchCart();
+          } else if (response.status === 403) {
+            alert(`You don't have permission to remove this item.`);
+          } else {
+            alert(`Failed to remove item: ${errorMessage}`);
+          }
+        } catch (jsonError) {
+          const text = await response.text();
+          console.error('[Remove Item] Non-JSON error response:', { 
+            status: response.status,
+            statusText: response.statusText,
+            itemId,
+            text 
+          });
+          alert(`Failed to remove item: Status ${response.status} - ${response.statusText}`);
+        }
       }
     } catch (error) {
-      console.error('Error removing item:', error);
+      console.error('[Remove Item] Exception:', error);
+      alert('Failed to remove item: Network error - ' + (error instanceof Error ? error.message : String(error)));
     }
   };
 
@@ -75,7 +117,7 @@ export default function CartPage() {
     if (!couponCode.trim()) return;
 
     try {
-      const response = await fetch(`/api/session/v1x/marketplace/coupons/validate`, {
+      const response = await fetch(`${API_BASE}/api/session/v1x/marketplace/coupons/validate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -99,7 +141,7 @@ export default function CartPage() {
   const handleCheckout = async () => {
     setProcessing(true);
     try {
-      const response = await fetch(`/api/session/v1x/marketplace/checkout`, {
+      const response = await fetch(`${API_BASE}/api/session/v1x/marketplace/checkout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

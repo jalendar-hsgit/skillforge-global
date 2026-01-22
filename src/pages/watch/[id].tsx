@@ -5,6 +5,7 @@ import Layout from '@/components/Layout'
 import Link from 'next/link'
 import { useMe } from '@/hooks/useMe'
 import { Play, CheckCircle2, Clock } from 'lucide-react'
+import VideoProgressBar from '@/components/VideoProgressBar'
 
 interface VideoData {
   id: string
@@ -252,14 +253,14 @@ export default function WatchPage() {
                 </div>
                 
                 {me && (
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-32 rounded-full bg-white/10 overflow-hidden">
-                      <div 
-                        className="h-full bg-gradient-to-r from-forgePurple to-neuralBlue"
-                        style={{ width: `${progress}%` }}
-                      />
-                    </div>
-                    <span className="text-xs text-techGray">{progress}%</span>
+                  <div className="flex-1">
+                    <VideoProgressBar 
+                      progress={progress}
+                      isCompleted={isCompleted}
+                      showLabel={false}
+                      height="sm"
+                      className="w-full"
+                    />
                   </div>
                 )}
               </div>

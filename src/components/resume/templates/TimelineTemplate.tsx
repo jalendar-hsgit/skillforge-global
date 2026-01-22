@@ -4,7 +4,7 @@ import { Resume } from '../types';
 export default function TimelineTemplate({ resume }: { resume: Resume }) {
   const accent = resume.accent_color || '#0ea5e9';
   return (
-    <div className="timeline-template bg-white rounded-xl shadow border p-8">
+    <div className="timeline-template bg-white mx-auto" style={{ minHeight: '297mm', width: '210mm', maxWidth: '100%', boxSizing: 'border-box', overflow: 'hidden', padding: '32px' }}>
       <header className="mb-8 text-center">
         <h1 className="text-3xl font-bold" style={{ color: accent }}>{resume.full_name}</h1>
         {resume.title && <p className="text-sm text-gray-600 mt-1">{resume.title}</p>}

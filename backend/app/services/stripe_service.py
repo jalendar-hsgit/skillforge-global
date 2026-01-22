@@ -74,6 +74,37 @@ class StripeService:
             raise Exception(f"Payment failed: {str(e)}")
     
     @staticmethod
+    def retrieve_payment_intent(payment_intent_id: str) -> Dict:
+        """
+        Retrieve payment intent details from Stripe
+        
+        Args:
+            payment_intent_id: The PaymentIntent ID
+        
+        Returns:
+            Dict with payment intent details
+        """
+        if not stripe.api_key:
+            raise ValueError("Stripe is not configured. Set STRIPE_SECRET_KEY in environment.")
+        
+        try:
+            intent = stripe.PaymentIntent.retrieve(payment_intent_id)
+            
+            return {
+                'id': intent.id,
+                'client_secret': intent.client_secret,
+                'amount': intent.amount / 100,  # Convert from cents
+                'currency': intent.currency,
+                'status': intent.status,
+                'created': intent.created,
+                'metadata': intent.metadata
+            }
+        
+        except stripe.error.StripeError as e:
+            print(f"Stripe error: {e}")
+            raise Exception(f"Failed to retrieve payment intent: {str(e)}")
+    
+    @staticmethod
     def capture_payment(payment_intent_id: str) -> bool:
         """
         Capture/complete a payment after session is completed

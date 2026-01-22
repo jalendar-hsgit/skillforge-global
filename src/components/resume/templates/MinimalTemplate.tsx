@@ -3,9 +3,9 @@ import { Resume } from '../types';
 
 export default function MinimalTemplate({ resume }: { resume: Resume }) {
   return (
-    <div className="minimal-template p-8 bg-white rounded-xl shadow grid grid-cols-3 gap-8">
+    <div className="minimal-template bg-white grid grid-cols-3 gap-0 mx-auto" style={{ minHeight: '297mm', width: '210mm', maxWidth: '100%', boxSizing: 'border-box', overflow: 'hidden' }}>
       {/* Sidebar */}
-      <div className="col-span-1 flex flex-col items-center bg-gray-900 text-white rounded-xl p-6">
+      <div className="col-span-1 flex flex-col items-center bg-gray-900 text-white p-6" style={{ boxSizing: 'border-box' }}>
         <h1 className="text-3xl font-bold mb-2">{resume.full_name}</h1>
         <h2 className="text-lg font-semibold mb-4">{resume.title}</h2>
         <div className="mb-6">
@@ -28,7 +28,7 @@ export default function MinimalTemplate({ resume }: { resume: Resume }) {
         </div>
       </div>
       {/* Main Content */}
-      <div className="col-span-2 p-6">
+      <div className="col-span-2" style={{ padding: '28px 28px', boxSizing: 'border-box' }}>
         {resume.professional_summary && (
           <section className="mb-6">
             <h3 className="font-bold text-lg text-gray-900 mb-2">Profile</h3>

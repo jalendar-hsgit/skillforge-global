@@ -3,6 +3,7 @@ export const ROUTES = {
   login: '/login',
   signup: '/signup',
   dashboard: '/dashboard',
+  settings: '/settings',
   career: '/careers',   // matches your existing page: src/pages/careers.tsx
   courses: '/courses',
   mentors: '/mentors',
@@ -18,6 +19,7 @@ export const ROUTES = {
   paths: '/paths',
   pricing: '/pricing',
   logout: '/logout',
+  profile: '/profile',
   resumeNew: '/resumes/new',
   resumes: '/resumes',
   quiz: (slug?: string | null) => slug ? `/quiz/${slug}` : '/paths',

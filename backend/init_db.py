@@ -15,6 +15,47 @@ from sqlalchemy import text, inspect
 from app.core.db import Base, engine
 from app.core.config import settings
 
+# Import all models to register them with Base before create_all
+# This must happen before any create_all() calls
+try:
+    from app.models import User, Progress as LegacyProgress, QuizAttempt, CreditLedger, Subscriber
+    from app.modelsx import Course, Video, Quiz, QuizQuestion, VideoProgress, coins
+    from app.modelsx.coins import CoinLedger
+    from app.modelsx.quiz_template import GeneratedQuiz, QuizSession
+    from app.modelsx.mentor import Mentor, MentorSession, MentorAvailability, MentorMessage, MentorReview, SessionFeedback
+    from app.modelsx.mentor_documents import MentorDocument, MentorApproval
+    from app.modelsx.mentor_verification import MentorVerification
+    from app.modelsx.payout import MentorPayout, MentorEarning
+    from app.modelsx.admin_log import AdminLog
+    from app.modelsx.subscription import Subscription, PlanFeature, SubscriptionEvent
+    from app.modelsx.stripe_connect import MentorStripeAccount
+    from app.modelsx.chat_file import MentorChatFile
+    from app.modelsx.resume import Resume, WorkExperience, Education, ResumeProject, ResumeSkill, ResumeCertificate, ResumeAchievement, ResumeTemplate, AIProjectTemplate, ATSReport
+    from app.modelsx.resume_analytics import ResumeAnalytics
+    from app.modelsx.resume_comparison import ResumeVersion, ResumeComparison
+    from app.modelsx.job_application import JobApplication as JobApplicationTracker
+    from app.modelsx.order import Order, Coupon, CartItem
+    from app.modelsx.platform_settings import PlatformSetting
+    from app.modelsx.coding_practice import CodingChallenge, CodingSubmission, SimulatorEnvironment, PracticeSession, CloudLabScenario, ChallengeHint
+    from app.modelsx.code_snippets import CodeSnippet, SnippetVote, SnippetCopy
+    from app.modelsx.solution_sharing import ChallengeSolution, SolutionVote, SolutionComment, SolutionBookmark
+    from app.modelsx.user_profiles import UserProfile, UserActivity, UserPreferences, UserStatistics
+    from app.modelsx.social import UserFollow, Conversation, Message, SocialFeedItem
+    from app.modelsx.learning_paths import LearningPath, PathChallenge, UserPathProgress, Certificate, SkillValidation, PathRecommendation
+    from app.modelsx.premium_tiers import SubscriptionTier, FeatureBenefit, UserSubscription, SubscriptionHistory, PromoCode
+    from app.modelsx.github_integration import GitHubAccount, GitHubRepository, GitHubContribution, GitHubStats
+    from app.modelsx.advanced_dashboard import DashboardWidget, UserDashboardWidget, DashboardLayout, DashboardMetric, UserAnalytics, DashboardInsight
+    from app.modelsx.ai_hints import AIHint, AIHintUsage, HintFeedback, HintTemplate, UserHintQuota
+    from app.modelsx.pwa import ServiceWorkerConfig, OfflineSyncQueue, OfflineCache, PWANotificationPreference, PWAAnalytics
+    from app.modelsx.badges import Badge, UserBadge, BadgeProgress, Leaderboard, Achievement as BadgeAchievement, UserAchievement
+    from app.modelsx.phase_2_3_models import (
+        MentorVerificationDocument, AnalyticsMetric, MentorAnalyticsSummary,
+        SessionPayment, VideoSession, SessionRecording, SessionChatMessage
+    )
+except ImportError as e:
+    print(f"[Init] Warning: Could not import some models: {e}")
+    print(f"[Init] Proceeding with available models...")
+
 def init_database():
     """Initialize the database with all tables"""
     print(f"[Init] Starting database initialization...")

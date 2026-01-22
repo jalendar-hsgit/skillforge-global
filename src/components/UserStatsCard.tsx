@@ -41,27 +41,30 @@ export default function UserStatsCard() {
   }
 
   if (loading) {
-    return <div className="text-center py-8">Loading statistics...</div>
+    return (
+      <div className="bg-gradient-to-br from-white/10 to-white/5 rounded-lg border border-white/10 p-8 text-center backdrop-blur-sm">
+        <div className="text-white/60">Loading statistics...</div>
+      </div>
+    )
   }
-
   if (!stats) {
     return (
-      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center gap-2">
-        <AlertCircle className="w-5 h-5" />
-        {error}
+      <div className="bg-gradient-to-br from-red-500/10 to-red-600/5 rounded-lg border border-red-500/20 px-4 py-3 backdrop-blur-sm flex items-center gap-2">
+        <AlertCircle className="w-5 h-5 text-red-400" />
+        <div className="text-red-300">Failed to load statistics</div>
       </div>
     )
   }
 
   const StatItem = ({ icon: Icon, label, value, unit = '' }: any) => (
-    <div className="bg-white rounded-lg border border-gray-200 p-4">
+    <div className="bg-gradient-to-br from-white/10 to-white/5 rounded-lg border border-white/10 p-4 backdrop-blur-sm">
       <div className="flex items-center gap-3 mb-2">
-        <Icon className="w-5 h-5 text-blue-600" />
-        <span className="text-sm text-gray-600">{label}</span>
+        <Icon className="w-5 h-5 text-blue-400" />
+        <span className="text-xs text-white/60 font-medium uppercase tracking-wider">{label}</span>
       </div>
-      <p className="text-2xl font-bold">
+      <p className="text-3xl font-bold text-white">
         {value}
-        <span className="text-lg text-gray-500 ml-1">{unit}</span>
+        <span className="text-lg text-white/50 ml-1">{unit}</span>
       </p>
     </div>
   )
@@ -96,19 +99,19 @@ export default function UserStatsCard() {
 
       {/* Recent Sessions */}
       {stats.recent_sessions && stats.recent_sessions.length > 0 && (
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h3 className="text-lg font-bold mb-4">Recent Sessions</h3>
+        <div className="bg-gradient-to-br from-white/10 to-white/5 rounded-lg border border-white/10 p-6 backdrop-blur-sm">
+          <h3 className="text-lg font-bold text-white mb-4">Recent Sessions</h3>
           <div className="space-y-3">
             {stats.recent_sessions.map((session) => (
               <div
                 key={session.id}
-                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 transition-colors"
               >
                 <div>
-                  <p className="font-medium text-gray-900">{session.title}</p>
-                  <p className="text-sm text-gray-500">{session.date}</p>
+                  <p className="font-medium text-white">{session.title}</p>
+                  <p className="text-sm text-white/60">{session.date}</p>
                 </div>
-                <button className="text-blue-600 hover:text-blue-800 font-medium text-sm">
+                <button className="text-blue-400 hover:text-blue-300 font-medium text-sm">
                   View Details →
                 </button>
               </div>
@@ -119,9 +122,9 @@ export default function UserStatsCard() {
 
       {/* Empty State */}
       {(!stats.recent_sessions || stats.recent_sessions.length === 0) && (
-        <div className="bg-gray-50 rounded-lg border border-gray-200 p-6 text-center">
-          <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-          <p className="text-gray-600">No sessions yet. Start learning to build your stats!</p>
+        <div className="bg-gradient-to-br from-white/10 to-white/5 rounded-lg border border-white/10 p-6 text-center backdrop-blur-sm">
+          <BookOpen className="w-12 h-12 text-white/30 mx-auto mb-3" />
+          <p className="text-white/60">No sessions yet. Start learning to build your stats!</p>
         </div>
       )}
     </div>

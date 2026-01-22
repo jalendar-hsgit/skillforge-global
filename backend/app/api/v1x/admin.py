@@ -16,7 +16,7 @@ from pydantic import BaseModel
 from app.core.db import get_db
 from app.core.security import get_current_admin, get_current_superadmin
 from app.models.user import User, UserRole
-from app.modelsx.mentor import Mentor, MentorSession, MentorStatus, SessionStatus
+from app.modelsx.mentor import Mentor, MentorSession, MentorStatus, SessionStatus, MentorReview
 from app.modelsx.admin_log import AdminLog
 from app.modelsx.platform_settings import PlatformSetting
 from app.schemas.admin import (
@@ -236,14 +236,14 @@ def delete_user(
 
 @router.get("/mentors/applications", response_model=dict)
 def get_mentor_applications(
-    status: Optional[str] = Query(None),
+    status_filter: Optional[str] = Query(None, description="Filter by status"),
     admin_user: User = Depends(get_current_admin),
     db: Session = Depends(get_db)
 ):
     """List mentor applications with optional status filtering (admin only)"""
     query = db.query(Mentor)
-    if status and status in [s.value for s in MentorStatus]:
-        query = query.filter(Mentor.status == status)
+    if status_filter and status_filter in [s.value for s in MentorStatus]:
+        query = query.filter(Mentor.status == status_filter)
 
     mentors = query.order_by(Mentor.created_at.desc()).all()
 
@@ -581,12 +581,14 @@ def get_analytics(
         Mentor.user_id,
         User.email,
         func.count(MentorSession.id).label("total_sessions"),
-        func.avg(MentorSession.rating).label("avg_rating"),
-        func.sum(MentorSession.price_paid).label("total_earnings")
+        func.avg(MentorReview.rating).label("avg_rating"),
+        func.sum(MentorSession.price).label("total_earnings")
     ).join(
         User, Mentor.user_id == User.id
     ).join(
         MentorSession, MentorSession.mentor_id == Mentor.id
+    ).outerjoin(
+        MentorReview, MentorReview.session_id == MentorSession.id
     ).filter(
         MentorSession.scheduled_at >= start_date
     ).group_by(
@@ -1044,23 +1046,25 @@ def get_mentor_earnings(
     earnings = db.query(
         Mentor.user_id,
         User.email,
-        func.sum(MentorSession.price_paid).label("total_earnings"),
+        func.sum(MentorSession.price).label("total_earnings"),
         func.count(MentorSession.id).label("session_count"),
-        func.avg(MentorSession.rating).label("avg_rating")
+        func.avg(MentorReview.rating).label("avg_rating")
     ).join(
         User, Mentor.user_id == User.id
     ).join(
         MentorSession, MentorSession.mentor_id == Mentor.id
+    ).outerjoin(
+        MentorReview, MentorReview.session_id == MentorSession.id
     ).filter(
         and_(
             MentorSession.status == SessionStatus.COMPLETED,
             MentorSession.completed_at >= start_date,
-            MentorSession.price_paid.isnot(None)
+            MentorSession.price.isnot(None)
         )
     ).group_by(
         Mentor.user_id, User.email
     ).order_by(
-        func.sum(MentorSession.price_paid).desc()
+        func.sum(MentorSession.price).desc()
     ).limit(limit).all()
     
     result = []
@@ -1620,11 +1624,13 @@ def get_popular_content(
         Mentor.user_id,
         User.email,
         func.count(MentorSession.id).label("session_count"),
-        func.avg(MentorSession.rating).label("avg_rating")
+        func.avg(MentorReview.rating).label("avg_rating")
     ).join(
         User, Mentor.user_id == User.id
     ).join(
         MentorSession, MentorSession.mentor_id == Mentor.id
+    ).outerjoin(
+        MentorReview, MentorReview.session_id == MentorSession.id
     ).filter(
         MentorSession.scheduled_at >= start_date
     ).group_by(

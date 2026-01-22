@@ -207,10 +207,10 @@ export default function LiveTemplatePreview({
 
       {/* Preview Content */}
       <div 
-        className={`${isExpanded ? 'overflow-auto h-[calc(100vh-56px)]' : 'overflow-y-auto'} bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-6`}
+        className={`${isExpanded ? 'overflow-auto h-[calc(100vh-56px)]' : 'overflow-y-auto flex-1'} bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-6 flex flex-col items-center justify-center`}
         style={{ maxHeight: isExpanded ? 'calc(100vh - 56px)' : '100%' }}
       >
-        <div className="bg-gradient-to-br from-white/5 to-white/10 rounded-2xl p-4 border border-white/20 shadow-2xl flex justify-center w-full overflow-x-auto">
+        <div className="bg-gradient-to-br from-white/5 to-white/10 rounded-2xl p-4 border border-white/20 shadow-2xl flex justify-center items-center w-full overflow-x-auto">
           <div 
             ref={previewRef}
             className={`bg-white rounded-xl shadow-2xl overflow-hidden transition-all duration-300 flex-shrink-0 ${
@@ -219,10 +219,9 @@ export default function LiveTemplatePreview({
             style={{ 
               transform: `scale(${displayScale})`, 
               transformOrigin: 'top center',
-              width: '8.5in',
+              width: '210mm',
               height: 'auto',
-              minHeight: '11in',
-              margin: '0 auto'
+              minHeight: '297mm'
             }}
           >
             <ResumePreview resume={resume} />

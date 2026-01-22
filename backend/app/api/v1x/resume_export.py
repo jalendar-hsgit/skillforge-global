@@ -325,9 +325,17 @@ def _generate_resume_html(resume: Resume) -> str:
         .container {{
             width: 210mm;
             height: 297mm;
-            margin: 0;
+            margin: 0 auto;
             padding: {resume.page_margins.get('top', 20) if resume.page_margins else 20}mm {resume.page_margins.get('right', 20) if resume.page_margins else 20}mm {resume.page_margins.get('bottom', 20) if resume.page_margins else 20}mm {resume.page_margins.get('left', 20) if resume.page_margins else 20}mm;
             background: white;
+            box-sizing: border-box;
+            overflow: hidden;
+        }}
+        body {{
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
         }}
         .header {{
             text-align: {"center" if "center" in layout or "beginner" in layout else "left"};

@@ -26,7 +26,8 @@ export default function DashboardLayout({
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/v1/auth/logout', { method: 'POST', credentials: 'include' })
+      // Use /api/session/logout (Next.js proxy) to properly handle HttpOnly cookies
+      await fetch('/api/session/logout', { method: 'POST', credentials: 'include' })
       router.push('/login')
     } catch (err) {
       console.error('Logout failed:', err)

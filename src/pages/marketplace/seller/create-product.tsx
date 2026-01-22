@@ -126,15 +126,14 @@ export default function CreateProduct() {
     try {
       // First, create the product if it doesn't exist
       if (!router.query.productId) {
-        const token = localStorage.getItem('token');
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8001'}/api/v1x/seller/products`,
+          `/api/session/v1x/seller/products`,
           {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
             },
+            credentials: 'include',
             body: JSON.stringify(formData),
           }
         );
@@ -151,14 +150,11 @@ export default function CreateProduct() {
       const formDataUpload = new FormData();
       formDataUpload.append('file', file);
 
-      const uploadUrl = `${process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8001'}/api/v1x/seller/products/${router.query.productId}/upload-${fileType}`;
-      const token = localStorage.getItem('token');
+      const uploadUrl = `/api/session/v1x/seller/products/${router.query.productId}/upload-${fileType}`;
 
       const uploadRes = await fetch(uploadUrl, {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        credentials: 'include',
         body: formDataUpload,
       });
 
@@ -188,12 +184,6 @@ export default function CreateProduct() {
     setSuccess('');
 
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        router.push('/login?redirect=/marketplace/seller/create-product');
-        return;
-      }
-
       const submitData = {
         ...formData,
         thumbnail_url: uploadedFiles.thumbnail,
@@ -202,15 +192,15 @@ export default function CreateProduct() {
       };
 
       const url = router.query.productId
-        ? `${process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8001'}/api/v1x/seller/products/${router.query.productId}`
-        : `${process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8001'}/api/v1x/seller/products`;
+        ? `/api/session/v1x/seller/products/${router.query.productId}`
+        : `/api/session/v1x/seller/products`;
 
       const res = await fetch(url, {
         method: router.query.productId ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
+        credentials: 'include',
         body: JSON.stringify(submitData),
       });
 

@@ -39,18 +39,12 @@ export default function SellerDashboard() {
 
   const fetchSellerStats = async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        router.push('/login?redirect=/marketplace/seller');
-        return;
-      }
-
       const [statsRes, ordersRes] = await Promise.all([
-        fetch(`${process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8001'}/api/v1x/seller/stats`, {
-          headers: { Authorization: `Bearer ${token}` },
+        fetch(`/api/session/v1x/seller/stats`, {
+          credentials: 'include',
         }),
-        fetch(`${process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8001'}/api/v1x/seller/orders?limit=5`, {
-          headers: { Authorization: `Bearer ${token}` },
+        fetch(`/api/session/v1x/seller/orders?limit=5`, {
+          credentials: 'include',
         }),
       ]);
 

@@ -4,7 +4,7 @@ import { Resume } from '../types';
 export default function ModernTemplate({ resume }: { resume: Resume }) {
   const accent = resume.accent_color || '#1e40af'; // Blue-700
   return (
-    <div className="modern-template bg-white grid grid-cols-3 gap-0" style={{ minHeight: '297mm', width: '210mm' }}>
+    <div className="modern-template bg-white grid grid-cols-3 gap-0 mx-auto" style={{ minHeight: '297mm', width: '210mm', maxWidth: '100%', boxSizing: 'border-box', overflow: 'hidden' }}>
       {/* Left Column */}
       <div
         className="col-span-1 flex flex-col bg-gradient-to-b from-gray-800 to-gray-600 text-white p-8"
@@ -107,7 +107,7 @@ export default function ModernTemplate({ resume }: { resume: Resume }) {
       </div>
 
       {/* Right Column */}
-      <div className="col-span-2 p-10">
+      <div className="col-span-2" style={{ padding: '32px 28px', boxSizing: 'border-box' }}>
         <div className="mb-8">
           <h1 className="text-5xl font-extrabold mb-2" style={{ color: accent }}>
             {resume.full_name || 'Your Name'}

@@ -38,8 +38,19 @@ class User(Base):
     bio_visibility = Column(String, default="public")  # public, private, friends_only
     receive_notifications = Column(String, default="all")  # all, important, none
     
+    # Settings (for settings page)
+    email_notifications = Column(Integer, default=1)  # Boolean: 1=True, 0=False
+    push_notifications = Column(Integer, default=1)
+    two_factor_enabled = Column(Integer, default=0)
+    theme = Column(String, default="auto")  # auto, dark, light
+    language = Column(String, default="en")
+    timezone = Column(String, default="UTC")
+    profile_visibility = Column(String, default="public")  # public, private, friends
+    activity_status = Column(Integer, default=1)
+    
     # Timestamps
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
 
-    # Note: Relationships to Mentor and Subscription models are defined in those models
-    # to avoid circular import issues (those models are in modelsx/, not models/)
+    # Note: Relationships to Wishlist, ProductReview, Mentor and Subscription models 
+    # are defined in those models (via back_populates) to avoid circular import issues 
+    # (those models are in modelsx/, not models/)

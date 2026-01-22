@@ -384,3 +384,127 @@ def delete_saved_search(
     db.commit()
     
     return {"message": "Saved search deleted", "saved_search_id": saved_search_id}
+
+
+# ============================================================
+# MARKETPLACE SEARCH ENDPOINTS
+# ============================================================
+
+from app.modelsx.marketplace import DigitalProduct, ProductStatus
+from pydantic import BaseModel, Field
+
+
+class MarketplaceProductResponse(BaseModel):
+    """Product response for marketplace search"""
+    id: int
+    name: str
+    slug: str
+    description: str
+    price: float
+    category: str
+    product_type: str
+    seller_name: Optional[str] = None
+    average_rating: float
+    review_count: int
+    sales_count: int
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class MarketplaceSearchResponse(BaseModel):
+    """Marketplace search results"""
+    products: List[MarketplaceProductResponse]
+    total: int
+    skip: int
+    limit: int
+    query: str
+
+
+@router.get("/marketplace", response_model=MarketplaceSearchResponse)
+def search_marketplace(
+    q: str = Query(..., min_length=1, max_length=200, description="Search query"),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, gt=0, le=100),
+    category: Optional[str] = Query(None),
+    price_min: Optional[float] = Query(None, ge=0),
+    price_max: Optional[float] = Query(None, ge=0),
+    rating_min: Optional[float] = Query(None, ge=0, le=5),
+    product_type: Optional[str] = Query(None),
+    sort_by: str = Query("relevance", description="relevance, price_low, price_high, newest, popular, rating"),
+    verified_only: bool = Query(False),
+    db: Session = Depends(get_db)
+):
+    """Search marketplace products with filtering and sorting"""
+    query = db.query(DigitalProduct).filter(
+        DigitalProduct.status == ProductStatus.PUBLISHED
+    )
+    
+    # Search filter
+    search_term = f"%{q}%"
+    query = query.filter(
+        or_(
+            DigitalProduct.name.ilike(search_term),
+            DigitalProduct.description.ilike(search_term),
+            DigitalProduct.category.ilike(search_term)
+        )
+    )
+    
+    # Apply filters
+    if category:
+        query = query.filter(DigitalProduct.category.ilike(f"%{category}%"))
+    if price_min is not None:
+        query = query.filter(DigitalProduct.price >= price_min)
+    if price_max is not None:
+        query = query.filter(DigitalProduct.price <= price_max)
+    if rating_min is not None:
+        query = query.filter(DigitalProduct.average_rating >= rating_min)
+    if product_type:
+        query = query.filter(DigitalProduct.product_type == product_type)
+    if verified_only:
+        query = query.filter(DigitalProduct.review_count > 0)
+    
+    total = query.count()
+    
+    # Sorting
+    if sort_by == "price_low":
+        query = query.order_by(DigitalProduct.price.asc())
+    elif sort_by == "price_high":
+        query = query.order_by(DigitalProduct.price.desc())
+    elif sort_by == "newest":
+        query = query.order_by(desc(DigitalProduct.created_at))
+    elif sort_by == "popular":
+        query = query.order_by(desc(DigitalProduct.sales_count))
+    elif sort_by == "rating":
+        query = query.order_by(desc(DigitalProduct.average_rating))
+    else:
+        query = query.order_by(desc(DigitalProduct.sales_count))
+    
+    products = query.offset(skip).limit(limit).all()
+    
+    product_responses = [
+        MarketplaceProductResponse(
+            id=p.id,
+            name=p.name,
+            slug=p.slug,
+            description=p.description[:200] if p.description else "",
+            price=p.price,
+            category=p.category,
+            product_type=p.product_type,
+            seller_name=p.seller.name if p.seller else None,
+            average_rating=p.average_rating,
+            review_count=p.review_count,
+            sales_count=p.sales_count,
+            created_at=p.created_at
+        )
+        for p in products
+    ]
+    
+    return MarketplaceSearchResponse(
+        products=product_responses,
+        total=total,
+        skip=skip,
+        limit=limit,
+        query=q
+    )

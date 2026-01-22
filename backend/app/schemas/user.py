@@ -72,3 +72,32 @@ class UserPublicProfile(BaseModel):
     
     class Config:
         from_attributes = True
+
+
+# ============ User Settings Schemas ============
+
+class UserSettingsResponse(BaseModel):
+    """User settings and preferences"""
+    email_notifications: bool = True
+    push_notifications: bool = True
+    two_factor_enabled: bool = False
+    theme: str = "auto"  # auto, dark, light
+    language: str = "en"
+    timezone: str = "UTC"
+    profile_visibility: str = "public"  # public, private, friends
+    activity_status: bool = True
+    
+    class Config:
+        from_attributes = True
+
+
+class UserSettingsUpdate(BaseModel):
+    """Update user settings"""
+    email_notifications: Optional[bool] = None
+    push_notifications: Optional[bool] = None
+    two_factor_enabled: Optional[bool] = None
+    theme: Optional[str] = Field(None, pattern="^(auto|dark|light)$")
+    language: Optional[str] = Field(None, pattern="^[a-z]{2}$")
+    timezone: Optional[str] = Field(None, max_length=50)
+    profile_visibility: Optional[str] = Field(None, pattern="^(public|private|friends)$")
+    activity_status: Optional[bool] = None

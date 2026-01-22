@@ -33,19 +33,13 @@ export default function SellerOrders() {
 
   const fetchOrders = async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        router.push('/login?redirect=/marketplace/seller/orders');
-        return;
-      }
-
-      const url = new URL(`${process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8001'}/api/v1x/seller/orders`);
+      const url = new URL(`/api/session/v1x/seller/orders`);
       if (filterStatus !== 'all') {
         url.searchParams.append('status', filterStatus);
       }
 
       const res = await fetch(url.toString(), {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
 
       if (res.ok) {

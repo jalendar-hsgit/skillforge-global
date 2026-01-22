@@ -14,6 +14,7 @@ interface Course {
   price: number | null;
   video_count: number;
   is_purchased: boolean;
+  is_in_cart: boolean;
   rating?: number;
 }
 
@@ -68,6 +69,8 @@ export default function MarketplacePage() {
       if (response.ok) {
         const data = await response.json();
         setCourses(data);
+      } else {
+        console.error('Failed to fetch courses:', response.status);
       }
     } catch (error) {
       console.error('Error fetching courses:', error);
@@ -139,7 +142,23 @@ export default function MarketplacePage() {
       } else if (response.status === 400) {
         const error = await response.json();
         console.log('[Add to Cart] 400 error:', error);
-        alert(error.detail || 'Failed to add to cart. Please try again.');
+        
+        // Show specific error messages
+        let message = error.detail || 'Cannot add to cart. Please check your selection.';
+        if (error.detail === 'Course already in cart') {
+          message = 'This course is already in your cart. Check your cart to proceed to checkout.';
+        } else if (error.detail === 'Course already purchased') {
+          message = 'You already purchased this course. Go to your courses to continue.';
+        } else if (error.detail === 'Free courses cannot be added to cart') {
+          message = 'This free course can be accessed directly without adding to cart.';
+        }
+        
+        alert(message);
+        // Refresh course list to update button states in case something changed
+        fetchCourses();
+      } else if (response.status >= 500) {
+        console.log('[Add to Cart] Server error:', response.status);
+        alert('Server error. Please try again later.');
       } else {
         const error = await response.json();
         console.log('[Add to Cart] Error:', error);
@@ -299,6 +318,10 @@ export default function MarketplacePage() {
                       {course.is_purchased ? (
                         <Link href={`/courses/${course.path}`} className="inline-flex items-center justify-center px-3 py-1.5 text-sm font-medium rounded-lg bg-deepTech-700 text-techGray-200 hover:bg-deepTech-600 transition-colors">
                           View Course
+                        </Link>
+                      ) : course.is_in_cart ? (
+                        <Link href="/marketplace/cart" className="inline-flex items-center justify-center px-3 py-1.5 text-sm font-medium rounded-lg bg-neuralBlue/50 text-neuralBlue border border-neuralBlue hover:bg-neuralBlue/70 transition-colors">
+                          In Cart
                         </Link>
                       ) : course.is_paid ? (
                         <Button

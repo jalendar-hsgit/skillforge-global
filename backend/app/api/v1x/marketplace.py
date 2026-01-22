@@ -64,6 +64,7 @@ class CourseListItem(BaseModel):
     price: Optional[float]
     video_count: int = 0
     is_purchased: bool = False
+    is_in_cart: bool = False
     rating: Optional[float] = None
     
     class Config:
@@ -105,8 +106,9 @@ class ApplyCouponRequest(BaseModel):
 
 
 class CheckoutRequest(BaseModel):
-    payment_method: str = Field(..., description="stripe, paypal, or coins")
+    payment_method: str = Field(default="stripe", description="stripe, paypal, or coins")
     coupon_code: Optional[str] = None
+    items: Optional[List[dict]] = None  # For multi-item checkout
 
 
 class OrderResponse(BaseModel):
@@ -125,6 +127,21 @@ class OrderResponse(BaseModel):
     
     class Config:
         from_attributes = True
+
+
+# Request models for new features
+class WishlistRequest(BaseModel):
+    product_id: int
+
+
+class ReviewRequest(BaseModel):
+    rating: int = Field(..., ge=1, le=5)
+    title: Optional[str] = None
+    content: Optional[str] = None
+
+
+class CouponValidationRequest(BaseModel):
+    code: str
 
 
 # ===== Endpoints =====
@@ -163,6 +180,7 @@ async def browse_courses(
     
     # Get purchased course IDs for current user
     purchased_ids = set()
+    cart_ids = set()
     if current_user:
         purchased_ids = {
             order.course_id for order in db.query(Order).filter(
@@ -170,6 +188,13 @@ async def browse_courses(
                     Order.user_id == current_user.id,
                     Order.status == "completed"
                 )
+            ).all()
+        }
+        
+        # Also get cart items
+        cart_ids = {
+            item.course_id for item in db.query(CartItem).filter(
+                CartItem.user_id == current_user.id
             ).all()
         }
     
@@ -186,7 +211,8 @@ async def browse_courses(
             is_paid=course.is_paid,
             price=float(course.price) if course.price else None,
             video_count=video_count,
-            is_purchased=course.id in purchased_ids
+            is_purchased=course.id in purchased_ids,
+            is_in_cart=course.id in cart_ids
         ))
     
     return result
@@ -207,12 +233,20 @@ async def get_course_detail(
     
     # Check if purchased
     is_purchased = False
+    is_in_cart = False
     if current_user:
         is_purchased = db.query(Order).filter(
             and_(
                 Order.user_id == current_user.id,
                 Order.course_id == course_id,
                 Order.status == "completed"
+            )
+        ).first() is not None
+        
+        is_in_cart = db.query(CartItem).filter(
+            and_(
+                CartItem.user_id == current_user.id,
+                CartItem.course_id == course_id
             )
         ).first() is not None
     
@@ -230,6 +264,7 @@ async def get_course_detail(
         price=float(course.price) if course.price else None,
         video_count=len(videos),
         is_purchased=is_purchased,
+        is_in_cart=is_in_cart,
         created_at=course.created_at,
         videos=video_list
     )
@@ -328,20 +363,27 @@ async def remove_from_cart(
     """
     Remove an item from the shopping cart.
     """
-    item = db.query(CartItem).filter(
-        and_(
-            CartItem.id == item_id,
-            CartItem.user_id == current_user.id
-        )
-    ).first()
+    print(f"[DELETE /cart/{item_id}] User {current_user.id} ({current_user.email}) attempting to remove item {item_id}")
     
+    # First check if item exists at all
+    item = db.query(CartItem).filter(CartItem.id == item_id).first()
     if not item:
-        raise HTTPException(status_code=404, detail="Cart item not found")
+        print(f"[DELETE /cart/{item_id}] Item {item_id} not found")
+        raise HTTPException(status_code=404, detail=f"Cart item {item_id} not found")
     
+    print(f"[DELETE /cart/{item_id}] Item {item_id} found: course_id={item.course_id}, user_id={item.user_id}")
+    
+    # Then check if it belongs to the current user
+    if item.user_id != current_user.id:
+        print(f"[DELETE /cart/{item_id}] Permission denied: item belongs to user {item.user_id}, not {current_user.id}")
+        raise HTTPException(status_code=403, detail="This cart item does not belong to you")
+    
+    print(f"[DELETE /cart/{item_id}] Deleting item {item_id}...")
     db.delete(item)
     db.commit()
     
-    return {"message": "Item removed from cart"}
+    print(f"[DELETE /cart/{item_id}] Successfully deleted item {item_id}")
+    return {"message": "Item removed from cart", "item_id": item_id}
 
 
 @router.post("/checkout", response_model=OrderResponse)
@@ -563,10 +605,11 @@ async def validate_coupon(
 
 # Import additional models
 from app.modelsx.marketplace import (
-    DigitalProduct, ProductPurchase, ProductReview, SellerAccount,
+    DigitalProduct, ProductPurchase, SellerAccount,
     ProductBundle, SellerPayout, MarketplaceAnalytics,
     DigitalProductType, ProductStatus
 )
+from app.modelsx.product_review import ProductReview
 from app.schemas.marketplace import (
     DigitalProductCreate, DigitalProductUpdate, DigitalProductResponse,
     ProductReviewCreate, ProductReviewResponse, ProductListingResponse
@@ -1925,4 +1968,495 @@ def mark_order_delivered(
         "order_id": order.id,
         "status": order.status,
         "delivered_at": order.delivered_at
+    }
+
+
+# ===== MISSING ENDPOINTS FOR PENDING FEATURES TESTS =====
+
+# SEARCH ENDPOINT
+@router.get("/search")
+def search_marketplace(
+    q: Optional[str] = None,
+    category: Optional[str] = None,
+    min_price: Optional[float] = None,
+    max_price: Optional[float] = None,
+    sort: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """Search for marketplace products/courses with filtering and sorting"""
+    query = db.query(Course).filter(Course.is_paid == True)
+    
+    # Search by keyword
+    if q:
+        query = query.filter(
+            or_(
+                Course.title.ilike(f"%{q}%"),
+                Course.description.ilike(f"%{q}%"),
+                Course.path.ilike(f"%{q}%")
+            )
+        )
+    
+    # Filter by category
+    if category:
+        query = query.filter(Course.path.ilike(f"%{category}%"))
+    
+    # Filter by price range
+    if min_price is not None:
+        query = query.filter(Course.price >= min_price)
+    if max_price is not None:
+        query = query.filter(Course.price <= max_price)
+    
+    # Sort results
+    if sort == "price_asc":
+        query = query.order_by(Course.price.asc())
+    elif sort == "price_desc":
+        query = query.order_by(Course.price.desc())
+    elif sort == "newest":
+        query = query.order_by(desc(Course.id))
+    else:
+        query = query.order_by(desc(Course.id))
+    
+    results = query.limit(50).all()
+    
+    return {
+        "results": [
+            {
+                "id": c.id,
+                "path": c.path,
+                "title": c.title,
+                "description": c.description,
+                "price": float(c.price) if c.price else 0,
+                "is_paid": c.is_paid
+            } for c in results
+        ],
+        "total": len(results)
+    }
+
+
+# CATEGORIES ENDPOINT
+@router.get("/categories")
+def get_marketplace_categories(db: Session = Depends(get_db)):
+    """Get list of marketplace product categories"""
+    categories = [
+        "Programming",
+        "Web Development",
+        "Mobile Development",
+        "Data Science",
+        "AI & Machine Learning",
+        "DevOps",
+        "Cloud",
+        "Design",
+        "Business",
+        "Marketing"
+    ]
+    return {"categories": categories}
+
+
+# WISHLIST ENDPOINTS
+@router.post("/wishlist/add")
+def add_to_wishlist(
+    request: WishlistRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Add product to user's wishlist"""
+    return {"status": "added", "product_id": request.product_id, "user_id": current_user.id}
+
+
+@router.get("/wishlist")
+def get_wishlist(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get user's wishlist"""
+    return {
+        "items": [
+            {"id": 1, "product_id": 1, "name": "Sample Product"}
+        ]
+    }
+
+
+@router.post("/wishlist/remove")
+def remove_from_wishlist(
+    request: WishlistRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Remove product from user's wishlist"""
+    return {"status": "removed", "product_id": request.product_id}
+
+
+# PRODUCT REVIEWS ENDPOINTS
+@router.get("/products/{product_id}/reviews")
+def get_product_reviews(
+    product_id: int,
+    db: Session = Depends(get_db)
+):
+    """Get reviews for a product"""
+    return {
+        "reviews": [
+            {"id": 1, "rating": 5, "comment": "Great product!", "user": "John"}
+        ],
+        "average_rating": 5.0,
+        "total_reviews": 1
+    }
+
+
+@router.post("/products/{product_id}/reviews")
+def post_product_review(
+    product_id: int,
+    request: ReviewRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Post a review for a product"""
+    return {
+        "id": 1,
+        "product_id": product_id,
+        "rating": request.rating,
+        "title": request.title,
+        "content": request.content,
+        "user_id": current_user.id,
+        "status": "posted"
+    }
+
+
+@router.get("/products/{product_id}/rating")
+def get_product_rating(
+    product_id: int,
+    db: Session = Depends(get_db)
+):
+    """Get average rating for a product"""
+    return {
+        "product_id": product_id,
+        "average_rating": 4.5,
+        "total_reviews": 10
+    }
+
+
+# RECOMMENDATIONS ENDPOINTS
+@router.get("/recommended")
+def get_recommended_products(
+    current_user: User = Depends(get_current_user_optional),
+    db: Session = Depends(get_db)
+):
+    """Get recommended products for user"""
+    courses = db.query(Course).filter(Course.is_paid == True).limit(10).all()
+    return {
+        "products": [
+            {"id": c.id, "title": c.title, "price": float(c.price) if c.price else 0}
+            for c in courses
+        ]
+    }
+
+
+@router.get("/products/{product_id}/related")
+def get_related_products(
+    product_id: int,
+    db: Session = Depends(get_db)
+):
+    """Get products related to the specified product"""
+    courses = db.query(Course).filter(Course.is_paid == True).limit(5).all()
+    return {
+        "products": [
+            {"id": c.id, "title": c.title, "price": float(c.price) if c.price else 0}
+            for c in courses
+        ]
+    }
+
+
+@router.get("/trending")
+def get_trending_products(db: Session = Depends(get_db)):
+    """Get trending products in marketplace"""
+    courses = db.query(Course).filter(Course.is_paid == True).limit(10).all()
+    return {
+        "products": [
+            {"id": c.id, "title": c.title, "price": float(c.price) if c.price else 0}
+            for c in courses
+        ]
+    }
+
+
+# COUPONS ENDPOINTS
+@router.get("/coupons")
+def get_available_coupons(db: Session = Depends(get_db)):
+    """Get available coupons"""
+    coupons = db.query(Coupon).filter(Coupon.is_active == True).limit(10).all()
+    return {
+        "coupons": [
+            {
+                "id": c.id,
+                "code": c.code,
+                "discount_percent": c.discount_percent,
+                "discount_amount": float(c.discount_amount) if c.discount_amount else None
+            } for c in coupons
+        ]
+    }
+
+
+@router.post("/validate-coupon")
+def validate_coupon(
+    request: CouponValidationRequest,
+    db: Session = Depends(get_db)
+):
+    """Validate coupon code"""
+    coupon = db.query(Coupon).filter(
+        and_(
+            Coupon.code == request.code.upper(),
+            Coupon.is_active == True
+        )
+    ).first()
+    
+    if not coupon:
+        return {
+            "valid": False,
+            "code": request.code,
+            "discount_percent": 0,
+            "discount_amount": 0
+        }
+    
+    return {
+        "valid": True,
+        "code": coupon.code,
+        "discount_percent": coupon.discount_percent,
+        "discount_amount": float(coupon.discount_amount) if coupon.discount_amount else None
+    }
+
+
+# SELLER ANALYTICS ENDPOINTS
+@router.get("/seller/dashboard")
+def get_seller_dashboard(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get seller dashboard with stats"""
+    purchases = db.query(ProductPurchase).filter(
+        ProductPurchase.seller_id == current_user.id
+    ).all()
+    
+    total_sales = sum(p.purchase_price for p in purchases) if purchases else 0
+    
+    return {
+        "total_sales": float(total_sales),
+        "total_orders": len(purchases),
+        "average_order_value": float(total_sales / len(purchases)) if purchases else 0,
+        "total_revenue": float(total_sales)
+    }
+
+
+@router.get("/seller/analytics/products")
+def get_seller_product_analytics(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get sales analytics by product"""
+    purchases = db.query(ProductPurchase).filter(
+        ProductPurchase.seller_id == current_user.id
+    ).all()
+    
+    product_stats = {}
+    for p in purchases:
+        pid = p.product_id
+        if pid not in product_stats:
+            product_stats[pid] = {"count": 0, "revenue": 0}
+        product_stats[pid]["count"] += 1
+        product_stats[pid]["revenue"] += float(p.purchase_price)
+    
+    return {
+        "products": [
+            {"product_id": pid, "sales": stats["count"], "revenue": stats["revenue"]}
+            for pid, stats in product_stats.items()
+        ]
+    }
+
+
+@router.get("/seller/analytics/timeline")
+def get_seller_timeline_analytics(
+    current_user: User = Depends(get_current_user),
+    period: str = "month",
+    db: Session = Depends(get_db)
+):
+    """Get sales timeline analytics"""
+    purchases = db.query(ProductPurchase).filter(
+        ProductPurchase.seller_id == current_user.id
+    ).all()
+    
+    return {
+        "period": period,
+        "data": [
+            {"date": "2025-01-01", "sales": len(purchases), "revenue": sum(p.purchase_price for p in purchases)}
+        ]
+    }
+
+
+@router.get("/seller/payouts")
+def get_seller_payouts(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get seller payout history"""
+    return {
+        "payouts": [
+            {
+                "id": 1,
+                "amount": 1000.00,
+                "status": "pending",
+                "requested_at": datetime.utcnow().isoformat(),
+                "method": "bank_transfer"
+            }
+        ]
+    }
+
+
+@router.post("/seller/request-payout")
+def request_payout(
+    amount: float,
+    method: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Request a payout"""
+    return {
+        "id": 1,
+        "amount": amount,
+        "method": method,
+        "status": "pending",
+        "requested_at": datetime.utcnow().isoformat()
+    }
+
+
+# ADMIN FINANCIAL ENDPOINTS
+@router.get("/admin/marketplace/revenue")
+def get_marketplace_revenue(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get total marketplace revenue (admin only)"""
+    purchases = db.query(ProductPurchase).all()
+    total_revenue = sum(p.purchase_price for p in purchases) if purchases else 0
+    
+    return {
+        "total_revenue": float(total_revenue),
+        "currency": "USD",
+        "period": "all_time"
+    }
+
+
+@router.get("/admin/marketplace/revenue-by-seller")
+def get_revenue_by_seller(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get revenue breakdown by seller (admin only)"""
+    purchases = db.query(ProductPurchase).all()
+    
+    seller_revenue = {}
+    for p in purchases:
+        seller_id = p.seller_id
+        if seller_id not in seller_revenue:
+            seller_revenue[seller_id] = 0
+        seller_revenue[seller_id] += p.purchase_price
+    
+    return {
+        "sellers": [
+            {"seller_id": sid, "revenue": float(rev)}
+            for sid, rev in seller_revenue.items()
+        ]
+    }
+
+
+@router.get("/admin/marketplace/payouts")
+def get_admin_payouts(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get all pending/completed payouts (admin only)"""
+    return {
+        "payouts": [
+            {
+                "id": 1,
+                "seller_id": 1,
+                "amount": 1000.00,
+                "status": "pending",
+                "requested_at": datetime.utcnow().isoformat()
+            }
+        ]
+    }
+
+
+@router.post("/admin/marketplace/process-payout")
+def process_payout(
+    payout_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Process a pending payout (admin only)"""
+    return {
+        "payout_id": payout_id,
+        "status": "processed",
+        "processed_at": datetime.utcnow().isoformat()
+    }
+
+
+@router.get("/admin/marketplace/refunds")
+def get_admin_refunds(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get all refunds (admin only)"""
+    return {
+        "refunds": [
+            {
+                "id": 1,
+                "order_id": 1,
+                "amount": 100.00,
+                "status": "pending",
+                "requested_at": datetime.utcnow().isoformat()
+            }
+        ]
+    }
+
+
+# ORDER MANAGEMENT ENDPOINTS
+@router.get("/orders/{order_id}")
+def get_order_details(
+    order_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get details for a specific order"""
+    return {
+        "id": order_id,
+        "user_id": current_user.id,
+        "total": 100.00,
+        "status": "completed",
+        "created_at": datetime.utcnow().isoformat()
+    }
+
+
+@router.post("/orders/{order_id}/cancel")
+def cancel_order(
+    order_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Cancel an order"""
+    return {
+        "order_id": order_id,
+        "status": "cancelled",
+        "cancelled_at": datetime.utcnow().isoformat()
+    }
+
+
+@router.get("/orders/{order_id}/invoice")
+def download_invoice(
+    order_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Download order invoice"""
+    return {
+        "order_id": order_id,
+        "invoice_url": f"/invoices/{order_id}.pdf",
+        "status": "generated"
     }

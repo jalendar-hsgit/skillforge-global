@@ -8,6 +8,7 @@ from app.services.realtime_events import (
     on_course_progress,
     on_course_completed,
 )
+from app.services.badge_service import BadgeService
 
 router = APIRouter(prefix="/progress-db", tags=["progress-db"])
 
@@ -100,6 +101,22 @@ async def upsert_progress(data: ProgressIn, user = Depends(get_current_user)):
                     video.get("course_title") or "",
                     completion_percentage=course_progress_pct
                 )
+                # Award badge for course completion
+                try:
+                    awarded = BadgeService.check_milestone_badges(
+                        db,
+                        user.id,
+                        'courses_completed',
+                        1  # User completed 1 course
+                    )
+                    if awarded:
+                        import logging
+                        logger = logging.getLogger(__name__)
+                        logger.info(f"Awarded {len(awarded)} badges to user {user.id} for course completion")
+                except Exception as e:
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f"Error awarding badges: {str(e)}")
         return {"ok": True}
     finally:
         db.close()

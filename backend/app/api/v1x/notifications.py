@@ -72,6 +72,16 @@ def mark_notification_read(
     return {"message": "Marked as read"}
 
 
+@router.post("/{notification_id}/read")
+def mark_notification_read_alias(
+    notification_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Mark notification as read (alias endpoint for /mark-read)."""
+    return mark_notification_read(notification_id, db, current_user)
+
+
 @router.post("/mark-all-read")
 def mark_all_notifications_read(
     db: Session = Depends(get_db),

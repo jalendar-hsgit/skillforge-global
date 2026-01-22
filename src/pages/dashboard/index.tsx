@@ -1,5 +1,6 @@
 import Head from 'next/head'
 import Layout from '@/components/Layout'
+import Link from 'next/link'
 import { PageHeader, PageContainer, PageSection, PageGrid, LoadingState, EmptyState } from '@/components/PageLayout'
 import { StatCard, ProgressCard, AlertCard, ActionCard } from '@/components/Cards'
 import { useEffect, useState } from 'react'
@@ -7,6 +8,7 @@ import { BookOpen, Award, TrendingUp, Target, Clock } from 'lucide-react'
 import type { GetServerSideProps } from 'next'
 import { usePlanFeatures } from '@/hooks/usePlanFeatures'
 import { Button } from '@/components/Button'
+import { ROUTES } from '@/lib/routes'
 
 type Me = { id:number; email:string; created_at:string } | null
 
@@ -61,16 +63,17 @@ export default function Dashboard({ me }: { me: Me }) {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        // Use new comprehensive student dashboard endpoint
-        const overviewRes = await fetch(`${process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8001'}/api/v1x/student/dashboard/overview`, {
+        // Use Next.js proxy to properly handle authentication and cookies
+        // This routes through /api/session/v1x/student/dashboard/overview
+        const overviewRes = await fetch(`/api/session/v1x/student/dashboard/overview`, {
           credentials: 'include'
         })
 
         if (overviewRes.ok) {
           const overviewData = await overviewRes.json()
           
-          // Fetch course progress
-          const coursesRes = await fetch(`${process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8001'}/api/v1x/student/dashboard/courses`, {
+          // Fetch course progress through Next.js proxy
+          const coursesRes = await fetch(`/api/session/v1x/student/dashboard/courses`, {
             credentials: 'include'
           })
           
@@ -424,6 +427,18 @@ export default function Dashboard({ me }: { me: Me }) {
             variant="default"
           />
         </PageGrid>
+      </PageSection>
+
+      {/* Profile Link Section */}
+      <PageSection>
+        <div className="flex justify-center mt-8">
+          <Link href={ROUTES.profile}>
+            <button className="flex items-center gap-2 px-8 py-3 rounded-lg text-base font-medium bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg shadow-cyan-500/30 hover:shadow-cyan-500/50 transition-all hover:scale-105">
+              <span>👤</span>
+              <span>View My Profile</span>
+            </button>
+          </Link>
+        </div>
       </PageSection>
     </Layout>
   )

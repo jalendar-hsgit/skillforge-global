@@ -1,0 +1,62 @@
+# QUICK FIX CARD - Cart Delete 404
+
+## TL;DR
+**Problem:** Cart delete returns 404  
+**Root Cause:** Next.js proxy not routing to specific handler  
+**Solution:** Restart `npm run dev`  
+**Expected:** Delete works, status 200 OK  
+
+---
+
+## DO THIS NOW
+
+### 1. Restart Frontend
+```bash
+# Stop server: Ctrl+C
+npm run dev
+# Wait for: "ready started server on 0.0.0.0:3000"
+```
+
+### 2. Test Delete
+Go to: http://localhost:3000/marketplace/cart
+- Click delete button
+- Item should disappear
+- No 404 errors
+
+### 3. Verify Success
+Open console (F12) and look for:
+```
+[Remove Item] Response status: 200
+Successfully removed item 1
+```
+
+---
+
+## If Still Failing
+
+Run this test:
+```bash
+python test_cart_delete_diagnostic.py
+```
+
+Shows you exactly what's broken.
+
+---
+
+## Files Created
+- `src/pages/api/session/v1x/marketplace/cart/[id].ts` ← NEW
+- `test_cart_complete.py` ← Run this to verify
+- `test_cart_delete_diagnostic.py` ← Run if still broken
+- Documentation files ↑ See for details
+
+---
+
+## Expected Behavior
+✅ Delete returns 200 OK (not 404)  
+✅ Item disappears immediately  
+✅ Cart total updates  
+✅ Item stays deleted after refresh  
+
+---
+
+**Status: Ready to test after npm restart**

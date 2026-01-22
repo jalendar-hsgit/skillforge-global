@@ -3,8 +3,8 @@ import { Resume } from '../types';
 
 export default function ExecutiveTemplate({ resume }: { resume: Resume }) {
   return (
-    <div className="executive-template bg-white rounded-xl shadow border p-8 grid grid-cols-3 gap-8">
-      <div className="col-span-2">
+    <div className="executive-template bg-white grid grid-cols-3 gap-0 mx-auto" style={{ minHeight: '297mm', width: '210mm', maxWidth: '100%', boxSizing: 'border-box', overflow: 'hidden' }}>
+      <div className="col-span-2" style={{ padding: '32px 28px', boxSizing: 'border-box' }}>
         <header className="mb-6 pb-4 border-b-4" style={{ borderColor: resume.accent_color || '#111827' }}>
           <h1 className="text-4xl font-extrabold tracking-tight" style={{ color: resume.accent_color || '#111827' }}>{resume.full_name}</h1>
           {resume.title && <p className="text-lg font-medium text-gray-600 mt-1">{resume.title}</p>}

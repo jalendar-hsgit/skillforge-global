@@ -2,7 +2,7 @@
 Resume Builder API with AI Integration
 """
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 import json
 from datetime import datetime
@@ -77,7 +77,14 @@ def get_resume(
     current_user: User = Depends(get_current_user)
 ):
     """Get resume by ID"""
-    resume = db.query(Resume).filter(
+    resume = db.query(Resume).options(
+        joinedload(Resume.work_experiences),
+        joinedload(Resume.education),
+        joinedload(Resume.projects),
+        joinedload(Resume.skills),
+        joinedload(Resume.certificates),
+        joinedload(Resume.achievements)
+    ).filter(
         Resume.id == resume_id,
         Resume.user_id == current_user.id
     ).first()

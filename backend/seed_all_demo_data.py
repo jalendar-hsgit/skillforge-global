@@ -18,6 +18,7 @@ from app.core.db import SessionLocal, engine, Base
 from app.core.security import get_password_hash
 from app.models.user import User, UserRole
 from app.modelsx.mentor import Mentor, MentorSession, MentorAvailability, MentorReview, MentorStatus, SessionStatus
+from app.modelsx.mentor_documents import MentorDocument, MentorApproval, DocumentType, DocumentStatus
 from app.modelsx.course import Course
 from app.modelsx.job_application import JobApplication, ApplicationStatus, JobType
 from app.modelsx.marketplace import DigitalProduct, ProductStatus, DigitalProductType
@@ -46,6 +47,7 @@ class DemoDataSeeder:
             "orders": {"created": 0, "existing": 0},
             "mentor_sessions": {"created": 0, "existing": 0},
             "mentor_availability": {"created": 0, "existing": 0},
+            "mentor_documents": {"created": 0, "existing": 0},
             "coding_challenges": {"created": 0, "existing": 0},
         }
 
@@ -65,7 +67,7 @@ class DemoDataSeeder:
             if existing:
                 existing.role = role
                 self.stats["users"]["existing"] += 1
-                print(f"  ✓ Existing: {email} ({role.value})")
+                print(f"  [OK] Existing: {email} ({role.value})")
             else:
                 user = User(
                     email=email,
@@ -75,7 +77,7 @@ class DemoDataSeeder:
                 )
                 self.db.add(user)
                 self.stats["users"]["created"] += 1
-                print(f"  ✓ Created: {email} ({role.value}) - pwd: {password}")
+                print(f"  [OK] Created: {email} ({role.value}) - pwd: {password}")
         
         self.db.commit()
 
@@ -97,7 +99,7 @@ class DemoDataSeeder:
             existing = self.db.query(User).filter(User.email == email).first()
             if existing:
                 self.stats["users"]["existing"] += 1
-                print(f"  ✓ Existing: {email}")
+                print(f"  [OK] Existing: {email}")
             else:
                 user = User(
                     email=email,
@@ -109,7 +111,7 @@ class DemoDataSeeder:
                 )
                 self.db.add(user)
                 self.stats["users"]["created"] += 1
-                print(f"  ✓ Created: {name} ({email})")
+                print(f"  [OK] Created: {name} ({email})")
         
         self.db.commit()
 
@@ -140,10 +142,10 @@ class DemoDataSeeder:
                 self.db.add(user)
                 self.db.flush()
                 self.stats["users"]["created"] += 1
-                print(f"  ✓ Created mentor user: {name}")
+                print(f"  [OK] Created mentor user: {name}")
             else:
                 user.role = UserRole.MENTOR
-                print(f"  ✓ Updated existing: {name}")
+                print(f"  [OK] Updated existing: {name}")
             
             # Check if mentor profile exists
             existing_mentor = self.db.query(Mentor).filter(Mentor.user_id == user.id).first()
@@ -158,10 +160,10 @@ class DemoDataSeeder:
                 )
                 self.db.add(mentor)
                 self.stats["mentors"]["created"] += 1
-                print(f"    → Created mentor profile: ${hourly_rate}/hr - {expertise}")
+                print(f"    -> Created mentor profile: ${hourly_rate}/hr - {expertise}")
             else:
                 self.stats["mentors"]["existing"] += 1
-                print(f"    → Existing mentor profile")
+                print(f"    -> Existing mentor profile")
         
         self.db.commit()
 
@@ -172,36 +174,93 @@ class DemoDataSeeder:
         print("="*60)
         
         mentors = self.db.query(Mentor).limit(4).all()
-        days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
         
+        # Create availability for Mon-Fri (0-4) with 1-hour slots from 9am-5pm
         for mentor in mentors:
             mentor_user = self.db.query(User).filter(User.id == mentor.user_id).first()
-            for day in days:
-                existing = self.db.query(MentorAvailability).filter(
-                    MentorAvailability.mentor_id == mentor.id,
-                    MentorAvailability.day_of_week == day
-                ).first()
-                
-                if not existing:
+            
+            # Check if already seeded
+            existing_count = self.db.query(MentorAvailability).filter(
+                MentorAvailability.mentor_id == mentor.id
+            ).count()
+            
+            if existing_count > 0:
+                self.stats["mentor_availability"]["existing"] += existing_count
+                print(f"  [OK] Already exists for: {mentor_user.name if mentor_user else 'Unknown'} ({existing_count} slots)")
+                continue
+            
+            # Create slots for Mon-Fri, 9am-5pm (8 one-hour slots per day = 40 slots)
+            for day_of_week in range(5):  # 0=Monday, 4=Friday
+                for hour in range(9, 17):  # 9am to 5pm
+                    start_time = f"{hour:02d}:00"
+                    end_time = f"{hour + 1:02d}:00"
+                    
                     avail = MentorAvailability(
                         mentor_id=mentor.id,
-                        day_of_week=day,
-                        start_time="09:00",
-                        end_time="17:00",
-                        is_available=True
+                        day_of_week=day_of_week,
+                        start_time=start_time,
+                        end_time=end_time,
+                        is_available=True,
+                        timezone="UTC"
                     )
                     self.db.add(avail)
                     self.stats["mentor_availability"]["created"] += 1
             
-            print(f"  ✓ Added availability for: {mentor_user.name if mentor_user else 'Unknown'}")
+            print(f"  [OK] Created 40 slots for: {mentor_user.name if mentor_user else 'Unknown'} (Mon-Fri 9am-5pm)")
+        
+        self.db.commit()
+
+    def seed_mentor_documents(self):
+        """Create mentor verification documents for demo"""
+        print("\n" + "="*60)
+        print("SEEDING: MENTOR DOCUMENTS")
+        print("="*60)
+        
+        mentors = self.db.query(Mentor).limit(4).all()
+        
+        document_types = [
+            DocumentType.CERTIFICATION,
+            DocumentType.ID_VERIFICATION,
+            DocumentType.DEGREE,
+            DocumentType.EXPERIENCE,
+        ]
+        
+        for mentor in mentors:
+            # Create 2 documents per mentor
+            for i, doc_type in enumerate(document_types[:2]):
+                existing = self.db.query(MentorDocument).filter(
+                    MentorDocument.mentor_id == mentor.id,
+                    MentorDocument.document_type == doc_type
+                ).first()
+                
+                if not existing:
+                    doc = MentorDocument(
+                        mentor_id=mentor.id,
+                        document_type=doc_type,
+                        filename=f"{doc_type.value}_document_{mentor.id}.pdf",
+                        filepath=f"mentor_documents/{mentor.id}/{doc_type.value}_document.pdf",
+                        file_size=1024 * 100 + (i * 50),  # 100KB to 100KB
+                        mime_type="application/pdf",
+                        status=DocumentStatus.PENDING,
+                        uploaded_at=datetime.utcnow() - timedelta(days=2),
+                    )
+                    self.db.add(doc)
+                    self.stats["mentor_documents"]["created"] += 1
+                else:
+                    self.stats["mentor_documents"]["existing"] += 1
+            
+            mentor_user = self.db.query(User).filter(User.id == mentor.user_id).first()
+            print(f"  [OK] Created documents for: {mentor_user.name if mentor_user else 'Unknown'}")
         
         self.db.commit()
 
     def seed_mentor_sessions(self):
-        """Create mentor sessions"""
+        """Create mentor sessions with various statuses"""
         print("\n" + "="*60)
         print("SEEDING: MENTOR SESSIONS")
         print("="*60)
+        
+        from app.modelsx.mentor import SessionFeedback
         
         mentors = self.db.query(Mentor).limit(4).all()
         students = self.db.query(User).filter(User.role == UserRole.USER).limit(5).all()
@@ -212,28 +271,101 @@ class DemoDataSeeder:
             "Database Design",
             "Cloud Deployment with AWS",
             "API Development",
+            "Data Structures",
+            "System Design",
         ]
         
         now = datetime.utcnow()
+        session_count = 0
         
-        for i, mentor in enumerate(mentors):
-            for j, student in enumerate(students[:2]):  # Each mentor mentors 2 students
-                session = MentorSession(
-                    mentor_id=mentor.id,
-                    student_id=student.id,
-                    topic=session_topics[i % len(session_topics)],
-                    scheduled_at=now + timedelta(days=7, hours=j*2),
-                    status=SessionStatus.PENDING,
-                    duration_minutes=60,
-                    price=mentor.hourly_rate
-                )
-                self.db.add(session)
-                self.stats["mentor_sessions"]["created"] += 1
-                
+        for mentor_idx, mentor in enumerate(mentors):
             mentor_user = self.db.query(User).filter(User.id == mentor.user_id).first()
-            print(f"  ✓ Created sessions for: {mentor_user.name if mentor_user else 'Unknown'}")
+            
+            # Create 3-4 sessions per mentor with mixed statuses
+            for student_idx, student in enumerate(students[:3]):
+                # Session 1: Completed (past) with feedback
+                if student_idx == 0:
+                    session = MentorSession(
+                        mentor_id=mentor.id,
+                        student_id=student.id,
+                        topic=session_topics[mentor_idx % len(session_topics)],
+                        description="Discussion on fundamentals and best practices",
+                        scheduled_at=now - timedelta(days=7, hours=2),
+                        status=SessionStatus.COMPLETED,
+                        duration_minutes=60,
+                        price=mentor.hourly_rate,
+                        meeting_url="https://zoom.us/j/completed_session_1",
+                        completed_at=now - timedelta(days=7),
+                        mentor_notes="Great progress! Student grasped core concepts quickly."
+                    )
+                    self.db.add(session)
+                    self.db.flush()
+                    
+                    # Add feedback for completed session
+                    feedback = SessionFeedback(
+                        session_id=session.id,
+                        mentor_feedback="Excellent session. Student is quick learner with good grasp of concepts.",
+                        student_notes="Very helpful! Learned a lot about best practices and optimization.",
+                        session_quality_rating=5,
+                        key_topics="fundamentals, optimization, design patterns",
+                        follow_up_required=False
+                    )
+                    self.db.add(feedback)
+                    
+                    # Add review
+                    review = MentorReview(
+                        mentor_id=mentor.id,
+                        session_id=session.id,
+                        student_id=student.id,
+                        rating=5,
+                        review_text="Excellent mentor! Very knowledgeable and patient.",
+                        tags="knowledgeable,patient,helpful"
+                    )
+                    self.db.add(review)
+                    
+                    session_count += 1
+                    self.stats["mentor_sessions"]["created"] += 1
+                    print(f"  [OK] Session {session_count}: COMPLETED (5-star) - {session_topics[mentor_idx % len(session_topics)]}")
+                
+                # Session 2: Confirmed (upcoming)
+                elif student_idx == 1:
+                    session = MentorSession(
+                        mentor_id=mentor.id,
+                        student_id=student.id,
+                        topic=session_topics[(mentor_idx + 1) % len(session_topics)],
+                        description="Advanced topics and Q&A",
+                        scheduled_at=now + timedelta(days=3, hours=2),
+                        status=SessionStatus.CONFIRMED,
+                        duration_minutes=60,
+                        price=mentor.hourly_rate,
+                        meeting_url="https://zoom.us/j/confirmed_session_2"
+                    )
+                    self.db.add(session)
+                    session_count += 1
+                    self.stats["mentor_sessions"]["created"] += 1
+                    print(f"  [OK] Session {session_count}: CONFIRMED - {session_topics[(mentor_idx + 1) % len(session_topics)]}")
+                
+                # Session 3: Pending (awaiting mentor confirmation)
+                else:
+                    session = MentorSession(
+                        mentor_id=mentor.id,
+                        student_id=student.id,
+                        topic=session_topics[(mentor_idx + 2) % len(session_topics)],
+                        description="Introductory session",
+                        scheduled_at=now + timedelta(days=5, hours=3),
+                        status=SessionStatus.PENDING,
+                        duration_minutes=60,
+                        price=mentor.hourly_rate
+                    )
+                    self.db.add(session)
+                    session_count += 1
+                    self.stats["mentor_sessions"]["created"] += 1
+                    print(f"  [OK] Session {session_count}: PENDING - {session_topics[(mentor_idx + 2) % len(session_topics)]}")
+            
+            print(f"    Total for {mentor_user.name if mentor_user else 'Unknown'}: 3 sessions")
         
         self.db.commit()
+        print(f"\n  Total Sessions Created: {session_count}")
 
     def seed_courses(self):
         """Create demo courses"""
@@ -264,10 +396,10 @@ class DemoDataSeeder:
                 )
                 self.db.add(course)
                 self.stats["courses"]["created"] += 1
-                print(f"  ✓ Created: {title} (${price})")
+                print(f"  [OK] Created: {title} (${price})")
             else:
                 self.stats["courses"]["existing"] += 1
-                print(f"  ✓ Existing: {title}")
+                print(f"  [OK] Existing: {title}")
         
         self.db.commit()
 
@@ -310,7 +442,7 @@ class DemoDataSeeder:
                 )
                 self.db.add(application)
                 self.stats["jobs"]["created"] += 1
-                print(f"  ✓ Created: {user.name} -> {company} ({position})")
+                print(f"  [OK] Created: {user.name} -> {company} ({position})")
             else:
                 self.stats["jobs"]["existing"] += 1
         
@@ -356,7 +488,7 @@ class DemoDataSeeder:
                 )
                 self.db.add(digital_product)
                 self.stats["marketplace"]["created"] += 1
-                print(f"  ✓ Created: {name} by {seller.name} (${price})")
+                print(f"  [OK] Created: {name} by {seller.name} (${price})")
             else:
                 self.stats["marketplace"]["existing"] += 1
         
@@ -555,7 +687,7 @@ class DemoDataSeeder:
                 )
                 self.db.add(challenge)
                 self.stats["coding_challenges"]["created"] += 1
-                print(f"  ✓ Created: {challenge_data['title']} ({challenge_data['difficulty']})")
+                print(f"  [OK] Created: {challenge_data['title']} ({challenge_data['difficulty']})")
             else:
                 self.stats["coding_challenges"]["existing"] += 1
         
@@ -592,7 +724,7 @@ class DemoDataSeeder:
                     )
                     self.db.add(order)
                     self.stats["orders"]["created"] += 1
-                    print(f"  ✓ Created: {user.name} purchased {course.title}")
+                    print(f"  [OK] Created: {user.name} purchased {course.title}")
                 else:
                     self.stats["orders"]["existing"] += 1
         
@@ -675,6 +807,7 @@ class DemoDataSeeder:
             self.seed_regular_users()
             self.seed_mentor_users()
             self.seed_mentor_availability()
+            self.seed_mentor_documents()
             self.seed_mentor_sessions()
             self.seed_courses()
             self.seed_job_applications()

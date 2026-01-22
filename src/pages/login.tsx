@@ -59,7 +59,8 @@ export default function LoginPage() {
       console.log('Starting login process...')
       
       // Use fetchWithCsrf for CSRF protection
-      const response = await fetchWithCsrf('/api/v1/auth/login', {
+      // Route through /api/session/login (Next.js proxy) to properly handle HttpOnly cookies
+      const response = await fetchWithCsrf('/api/session/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -84,7 +85,8 @@ export default function LoginPage() {
       
       // Check user role to determine redirect
       console.log('Fetching user info...')
-      const meResponse = await fetchWithCsrf('/api/v1/auth/me', { credentials: 'include' })
+      // Use /api/session/me (Next.js proxy) to properly read HttpOnly cookies
+      const meResponse = await fetchWithCsrf('/api/session/me', { credentials: 'include' })
       console.log('Me response status:', meResponse.status)
       
       if (meResponse.ok) {

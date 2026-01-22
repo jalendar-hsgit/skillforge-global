@@ -52,6 +52,7 @@ class Resume(Base):
     sections_order = Column(JSON)  # Custom section ordering
     enabled_sections = Column(JSON)  # Which sections are enabled
     custom_sections = Column(JSON)  # User-defined specialized sections
+    extra_content = Column(Text)  # Additional content area (textarea)
     
     # Page Settings
     max_pages = Column(Integer, default=10)  # Up to 10-page CV
@@ -61,6 +62,10 @@ class Resume(Base):
     # ATS Optimization
     ats_score = Column(Float, default=0.0)  # 0-100 score
     keywords = Column(JSON)  # Extracted keywords
+    
+    # Style Settings Tracking (for DB tracking)
+    style_settings_updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    style_settings_history = Column(JSON)  # Track all style changes
     
     # Analytics
     views = Column(Integer, default=0)
