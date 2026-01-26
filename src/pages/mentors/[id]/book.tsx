@@ -45,6 +45,7 @@ export default function BookSessionPage() {
   // Payment state
   const [showPayment, setShowPayment] = useState(false);
   const [bookedSessionId, setBookedSessionId] = useState<number | null>(null);
+  const [bookedSessionPrice, setBookedSessionPrice] = useState<number>(0);
 
   useEffect(() => {
     if (id) {
@@ -177,11 +178,14 @@ export default function BookSessionPage() {
         return fallbackStart.toISOString();
       })();
 
+      // Trim topic to remove any trailing/leading whitespace
+      const trimmedTopic = topic.trim();
+
       console.log('Booking session:', {
         mentor_id: Number(id),
         scheduled_at: scheduledAt,
         duration_minutes: duration,
-        topic
+        topic: trimmedTopic
       });
 
       let response;
@@ -196,8 +200,8 @@ export default function BookSessionPage() {
             mentor_id: Number(id),
             scheduled_at: scheduledAt,
             duration_minutes: duration,
-            topic,
-            description: notes || undefined
+            topic: trimmedTopic,
+            description: notes ? notes.trim() : undefined
           })
         });
       } catch (fetchErr: any) {
@@ -223,15 +227,16 @@ export default function BookSessionPage() {
 
       const sessionData = await response.json();
       setBookedSessionId(sessionData.id);
+      setBookedSessionPrice(sessionData.price || 0);
       
       // Show payment modal if session has a price
       if (sessionData.price > 0) {
         setShowPayment(true);
       } else {
-        // Free session, redirect to dashboard
+        // Free session, redirect to bookings
         setSuccess(true);
         setTimeout(() => {
-          router.push('/dashboard');
+          router.push('/my-bookings');
         }, 2000);
       }
     } catch (err: any) {
@@ -247,7 +252,7 @@ export default function BookSessionPage() {
     setShowPayment(false);
     setSuccess(true);
     setTimeout(() => {
-      router.push('/dashboard');
+      router.push('/my-bookings');
     }, 2000);
   };
 
@@ -335,7 +340,7 @@ export default function BookSessionPage() {
                 </div>
                 <SessionPayment
                   sessionId={bookedSessionId}
-                  amount={calculateCost()}
+                  amount={bookedSessionPrice}
                   onPaymentSuccess={handlePaymentSuccess}
                 />
               </div>

@@ -107,7 +107,7 @@ class MentorSession(Base):
     
     # Relationships
     mentor = relationship("Mentor", back_populates="sessions")
-    # student = relationship("app.models.user.User", foreign_keys=[student_id])
+    student = relationship("User", foreign_keys=[student_id], lazy="joined")
     review = relationship("MentorReview", uselist=False, back_populates="session")
     feedback = relationship("SessionFeedback", uselist=False, back_populates="session")
     # chat_files = relationship("MentorChatFile", back_populates="session")  # TODO: Define MentorChatFile model

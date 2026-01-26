@@ -23,6 +23,7 @@ class Order(Base):
     # Payment
     payment_method = Column(String)  # stripe, paypal, coins
     payment_id = Column(String)
+    payment_intent_id = Column(String, nullable=True)  # Stripe PaymentIntent ID
     payment_status = Column(String)
     paid_at = Column(DateTime)
     

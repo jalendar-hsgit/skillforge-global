@@ -78,6 +78,11 @@ class DigitalProduct(Base):
     review_count = Column(Integer, default=0)
     views_count = Column(Integer, default=0)
     
+    # Admin approval workflow
+    approved_at = Column(DateTime, nullable=True)
+    approved_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    suspension_reason = Column(String(500), nullable=True)
+    
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -85,6 +90,7 @@ class DigitalProduct(Base):
     
     # Relationships
     seller = relationship("User", foreign_keys=[seller_id])
+    approver = relationship("User", foreign_keys=[approved_by])
     
     __table_args__ = (
         Index("ix_digital_product_seller", "seller_id", "status"),
@@ -303,3 +309,35 @@ class MarketplaceAnalytics(Base):
     
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class SellerEarning(Base):
+    """Individual earnings from marketplace product sales"""
+    __tablename__ = "seller_earnings"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    seller_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    order_id = Column(Integer, ForeignKey("orders.id", ondelete="CASCADE"), unique=True, nullable=False)
+    product_id = Column(Integer, ForeignKey("digital_products.id", ondelete="CASCADE"), nullable=False)
+    
+    # Amounts (all in USD)
+    gross_amount = Column(Float, nullable=False)  # What customer paid
+    platform_fee = Column(Float, default=0.0)     # 20% commission
+    net_amount = Column(Float, nullable=False)    # 80% for seller
+    
+    # Payout tracking
+    payout_id = Column(Integer, ForeignKey("seller_payouts.id", ondelete="SET NULL"), nullable=True, index=True)
+    is_paid_out = Column(Boolean, default=False, index=True)
+    
+    # Timestamps
+    earned_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    paid_out_at = Column(DateTime, nullable=True)
+    
+    # Relationships
+    seller = relationship("User", foreign_keys=[seller_id], backref="seller_earnings")
+    order = relationship("Order", backref="seller_earning")
+    product = relationship("DigitalProduct", backref="seller_earnings")
+    payout = relationship("SellerPayout", backref="seller_earnings")
+    
+    def __repr__(self):
+        return f"<SellerEarning(id={self.id}, seller_id={self.seller_id}, net_amount={self.net_amount})>"

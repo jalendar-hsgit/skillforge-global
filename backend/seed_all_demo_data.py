@@ -813,7 +813,8 @@ class DemoDataSeeder:
             self.seed_job_applications()
             self.seed_marketplace_products()
             self.seed_coding_challenges()
-            self.seed_orders()
+            # self.seed_orders()  # DISABLED: Allow test users to add courses to cart
+            # Previously this pre-purchased courses, preventing cart tests
             
             self.show_summary()
             self.show_pending_items()

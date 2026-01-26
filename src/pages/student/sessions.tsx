@@ -21,6 +21,7 @@ interface MentorSession {
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
   duration_minutes: number;
   price?: number;
+  payment_status?: string;
   meeting_link?: string;
   feedback_submitted?: boolean;
 }
@@ -280,6 +281,12 @@ export default function StudentSessions() {
                           <Clock size={16} />
                           {session.duration_minutes} min
                         </div>
+                        {session.price && (
+                          <div className="flex items-center gap-1">
+                            <span className="font-semibold">Amount:</span>
+                            ${session.price.toFixed(2)}
+                          </div>
+                        )}
                       </div>
 
                       {/* Status Badge */}

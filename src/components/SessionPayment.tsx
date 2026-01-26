@@ -105,7 +105,7 @@ export default function SessionPayment({ sessionId, amount, onPaymentSuccess }: 
       setError('');
 
       const response = await fetch(
-        `${API_BASE}/api/v1x/payments/create-payment-intent`,
+        `${API_BASE}/api/v1x/mentors/sessions/payment-intent`,
         {
           method: 'POST',
           headers: {
@@ -135,6 +135,8 @@ export default function SessionPayment({ sessionId, amount, onPaymentSuccess }: 
     setSuccess(true);
     setTimeout(() => {
       onPaymentSuccess();
+      // Redirect to my bookings page
+      window.location.href = '/my-bookings';
     }, 2000);
   };
 
@@ -184,17 +186,33 @@ export default function SessionPayment({ sessionId, amount, onPaymentSuccess }: 
           </svg>
           <div>
             <h3 className="text-2xl font-semibold text-green-900">Payment Successful!</h3>
-            <p className="text-green-800 mt-1">Your session has been confirmed.</p>
+            <p className="text-green-800 mt-1">Your session has been confirmed. Redirecting to dashboard...</p>
           </div>
         </div>
       </Card>
     );
   }
 
-  if (!clientSecret) {
+  // Handle free sessions
+  if (amount === 0 || !clientSecret) {
     return (
-      <Card>
-        <p className="text-gray-600">Unable to initialize payment. Please try again.</p>
+      <Card className="bg-blue-50 border-blue-200">
+        <div className="flex items-center gap-4">
+          <svg className="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m7-4a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div>
+            <h3 className="text-lg font-semibold text-blue-900">Free Session</h3>
+            <p className="text-blue-800">This session is free - no payment required!</p>
+          </div>
+        </div>
+        <Button
+          onClick={() => handleSuccess()}
+          variant="primary"
+          className="mt-4 w-full"
+        >
+          Continue to Dashboard
+        </Button>
       </Card>
     );
   }

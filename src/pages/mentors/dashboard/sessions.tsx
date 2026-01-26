@@ -14,11 +14,11 @@ type Session = {
   scheduled_at: string
   duration_minutes: number
   price: number
+  payment_status?: string
   status: string
   meeting_link?: string
   notes?: string
   created_at: string
-  amount_paid?: number
 }
 
 type SessionAction = 'confirm' | 'cancel' | 'complete'
@@ -264,7 +264,12 @@ export default function MentorSessions() {
 
                     <div>
                       <div className="text-xs text-techGray mb-1">Amount</div>
-                      <div className="text-white font-medium">${session.amount_paid?.toFixed(2) || '$0.00'}</div>
+                      <div className="text-white font-medium">${session.price?.toFixed(2) || '$0.00'}</div>
+                      {session.payment_status && (
+                        <div className="text-xs text-techGray mt-1">
+                          Status: {session.payment_status}
+                        </div>
+                      )}
                     </div>
                   </div>
 

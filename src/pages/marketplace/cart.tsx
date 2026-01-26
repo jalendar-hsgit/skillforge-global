@@ -146,15 +146,22 @@ export default function CartPage() {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          payment_method: 'coins', // Demo: use coins
+          payment_method: 'stripe', // Use Stripe for payment
           coupon_code: couponCode || undefined
         })
       });
 
       if (response.ok) {
         const order = await response.json();
-        alert(`Order placed successfully! Order #${order.order_number}`);
-        router.push('/marketplace/orders');
+        
+        // If payment intent was created, redirect to payment page
+        if (order.client_secret) {
+          router.push(`/marketplace/checkout?orderId=${order.order_id}&clientSecret=${order.client_secret}`);
+        } else {
+          // Fallback for non-stripe payment methods
+          alert(`Order placed successfully! Order #${order.order_number}`);
+          router.push('/marketplace/orders');
+        }
       } else {
         const error = await response.json();
         alert(error.detail || 'Checkout failed');

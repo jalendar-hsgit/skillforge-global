@@ -1,52 +1,60 @@
-# 🚀 SKILLFORGE GLOBAL - QUICK IMPLEMENTATION GUIDE
+# � QUICK REFERENCE CARD - ALL CREDENTIALS & URLS
 
-**Status**: 70% Complete | **Database**: Stable (121 tables) | **Ready**: 47 Features Done
-
----
-
-## 📋 WHAT'S DONE (47 Features) ✅
-
-### Core Platform ✅
-- Authentication (JWT, secure cookies, roles)
-- Courses (25 in DB, v1 + v1x)
-- Videos (79+ YouTube)
-- Progress tracking (439 records)
-- Quizzes (45 questions, 5 quizzes)
-- Dashboard with stats
-- Credits system (257 coins)
-- Learning paths (5 paths)
-
-### Admin System ✅
-- Analytics dashboard
-- User management (242 users)
-- Course CRUD
-- Mentor management (4 mentors)
-- Session management (21 sessions)
-- Revenue tracking
-- Marketplace panel
-- Email broadcasts
-- Audit logs
-
-### Other Complete ✅
-- Mentor system (7 features)
-- Resume builder (PDF/DOCX, ATS)
-- Payment integration (Stripe)
-- Subscriptions & payouts
+**Print this page or bookmark for quick access**  
+**Updated**: January 27, 2026
 
 ---
 
-## 🟡 WHAT'S PARTIAL (8 Features) 50%
+## 🚀 START HERE
 
-| Feature | % Done | Hours Needed | Priority |
-|---------|--------|--------------|----------|
-| Social Features | 20% | 8-12h | High |
-| Leaderboards | 25% | 3-4h | High |
-| Achievements | 50% | 2-3h | High |
-| Coding Practice | 35% | 8-12h | High |
-| Forums | 15% | 6-8h | Medium |
-| Learning Paths+ | 40% | 4-6h | Medium |
-| Contest Platform | 10% | 10-15h | Low |
-| PWA Features | 15% | 8-12h | Low |
+### Development Environment
+```
+Frontend:    http://localhost:3001
+Backend:     http://localhost:8001
+API Docs:    http://localhost:8001/docs
+Database:    backend/app/data/skillforge.db
+```
+
+---
+
+## 👤 LOGIN CREDENTIALS - QUICK ACCESS
+
+### Copy-Paste Ready Login Table
+
+| Account Type | Email | Password | Next Step |
+|---|---|---|---|
+| **Student** | john.doe@example.com | john123 | → Dashboard |
+| **Admin** | admin@skillforge.com | admin123 | → Admin Panel |
+| **Superadmin** | superadmin@skillforge.com | super123 | → Full Access |
+| **Mentor** | mentor.sarah@skillforge.com | mentor123 | → Mentor Dashboard |
+| **Seller** | mentor.sarah@skillforge.com | mentor123 | → Marketplace |
+
+---
+
+## 🔑 ALL USER IDS & EMAILS
+
+### Admin Accounts
+```
+ID 1: superadmin@skillforge.com [super123]       SUPERADMIN
+ID 2: admin@skillforge.com [admin123]            ADMIN
+```
+
+### Student Accounts
+```
+ID 3: john.doe@example.com [john123]             Student
+ID 4: jane.smith@example.com [jane123]           Student
+ID 5: bob.wilson@example.com [bob123]            Student
+ID 6: alice.johnson@example.com [alice123]       Student
+ID 7: charlie.brown@example.com [charlie123]     Student
+```
+
+### Mentor/Seller Accounts
+```
+ID 8:  mentor.sarah@skillforge.com [mentor123]   $75/hr
+ID 9:  mentor.david@skillforge.com [mentor123]   $65/hr
+ID 10: mentor.emily@skillforge.com [mentor123]   $85/hr
+ID 11: mentor.james@skillforge.com [mentor123]   $70/hr
+```
 
 ---
 

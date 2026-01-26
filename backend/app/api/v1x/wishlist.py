@@ -4,10 +4,10 @@ Wishlist API Endpoints - User wishlist management
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from app.database import get_db
+from app.core.db import get_db
 from app.models.user import User
-from app.models.modelsx.marketplace import DigitalProduct
-from app.models.modelsx.wishlist import Wishlist
+from app.modelsx.marketplace import DigitalProduct
+from app.modelsx.wishlist import Wishlist
 from app.schemas.wishlist import (
     WishlistItemCreate,
     WishlistItemResponse,

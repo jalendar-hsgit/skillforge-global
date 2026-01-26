@@ -1,7 +1,7 @@
 """
 Mentor payout and earnings tracking endpoints
 """
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_
 from typing import List, Optional
@@ -91,7 +91,7 @@ class PaymentMethodCreate(BaseModel):
     account_holder_name: str = Field(min_length=2, max_length=255)
     bank_name: str = Field(min_length=2, max_length=255)
     account_number: str = Field(min_length=8, max_length=17)
-    routing_number: str = Field(min_length=9, max_length=9)
+    routing_number: str = Field(min_length=8, max_length=12)  # Allow 8-12 chars (routing numbers can vary by country)
     is_default: bool = False
 
 
@@ -244,39 +244,55 @@ def get_earnings_summary(
 
 @router.get("/earnings", response_model=List[EarningDetail])
 def get_earnings_history(
-    skip: int = 0,
-    limit: int = 50,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=100),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
     Get detailed earnings history for the mentor.
     Shows all earnings from completed sessions.
+    
+    - **skip**: Number of records to skip (pagination)
+    - **limit**: Number of records to return (max 100)
     """
-    mentor = get_mentor_or_404(current_user, db)
-    
-    earnings = db.query(MentorEarning).filter(
-        MentorEarning.mentor_id == mentor.id
-    ).order_by(MentorEarning.earned_at.desc()).offset(skip).limit(limit).all()
-    
-    result = []
-    for earning in earnings:
-        session = earning.session
-        student = session.student
-        result.append(EarningDetail(
-            id=earning.id,
-            session_id=earning.session_id,
-            student_name=student.name if student else "Unknown",
-            topic=session.topic,
-            gross_amount=earning.gross_amount,
-            platform_fee=earning.platform_fee,
-            net_amount=earning.net_amount,
-            earned_at=earning.earned_at,
-            is_paid_out=earning.is_paid_out,
-            payout_id=earning.payout_id
-        ))
-    
-    return result
+    try:
+        mentor = get_mentor_or_404(current_user, db)
+        
+        earnings = db.query(MentorEarning).filter(
+            MentorEarning.mentor_id == mentor.id
+        ).order_by(MentorEarning.earned_at.desc()).offset(skip).limit(limit).all()
+        
+        result = []
+        for earning in earnings:
+            try:
+                session = earning.session
+                if not session:
+                    continue
+                student = session.student
+                result.append(EarningDetail(
+                    id=earning.id,
+                    session_id=earning.session_id,
+                    student_name=student.name if student else "Unknown",
+                    topic=session.topic,
+                    gross_amount=earning.gross_amount,
+                    platform_fee=earning.platform_fee,
+                    net_amount=earning.net_amount,
+                    earned_at=earning.earned_at,
+                    is_paid_out=earning.is_paid_out,
+                    payout_id=earning.payout_id
+                ))
+            except Exception as e:
+                print(f"Error processing earning {earning.id}: {str(e)}")
+                continue
+        
+        return result
+    except Exception as e:
+        print(f"Error in get_earnings_history: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error fetching earnings: {str(e)}"
+        )
 
 
 @router.post("/request", response_model=PayoutDetail, status_code=status.HTTP_201_CREATED)
@@ -381,27 +397,44 @@ def get_payout_history(
     """
     Get payout request history for the mentor.
     """
-    mentor = get_mentor_or_404(current_user, db)
-    
-    payouts = db.query(MentorPayout).filter(
-        MentorPayout.mentor_id == mentor.id
-    ).order_by(MentorPayout.requested_at.desc()).offset(skip).limit(limit).all()
-    
-    result = []
-    for payout in payouts:
-        # Count earnings in this payout
-        earnings_count = db.query(func.count(MentorEarning.id)).filter(
-            MentorEarning.payout_id == payout.id
-        ).scalar() or 0
+    try:
+        mentor = get_mentor_or_404(current_user, db)
         
-        result.append(PayoutDetail(
-            id=payout.id,
-            amount=payout.amount,
-            platform_fee=payout.platform_fee,
-            net_amount=payout.net_amount,
-            method=payout.method,
-            status=payout.status,
-            requested_at=payout.requested_at,
+        payouts = db.query(MentorPayout).filter(
+            MentorPayout.mentor_id == mentor.id
+        ).order_by(MentorPayout.requested_at.desc()).offset(skip).limit(limit).all()
+        
+        result = []
+        for payout in payouts:
+            try:
+                # Count earnings in this payout
+                earnings_count = db.query(func.count(MentorEarning.id)).filter(
+                    MentorEarning.payout_id == payout.id
+                ).scalar() or 0
+                
+                result.append(PayoutDetail(
+                    id=payout.id,
+                    amount=payout.amount,
+                    platform_fee=payout.platform_fee,
+                    net_amount=payout.net_amount,
+                    method=payout.method,
+                    status=payout.status,
+                    requested_at=payout.requested_at,
+                    earnings_count=earnings_count
+                ))
+            except Exception as e:
+                print(f"Error processing payout {payout.id}: {e}")
+                continue
+        
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error in get_payout_history: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error fetching payout history: {str(e)}"
+        )
             processed_at=payout.processed_at,
             completed_at=payout.completed_at,
             failure_reason=payout.failure_reason,
@@ -458,8 +491,24 @@ def create_payment_method(
     """
     Add a new payment method (bank account) for payouts.
     Account numbers and routing numbers are encrypted before storage.
+    
+    Request body must include:
+    - account_holder_name: str (2-255 chars)
+    - bank_name: str (2-255 chars)
+    - account_number: str (8-17 chars)
+    - routing_number: str (exactly 9 chars)
+    - payment_type: optional, defaults to BANK_ACCOUNT
+    - is_default: optional boolean, defaults to False
     """
-    mentor = get_mentor_or_404(current_user, db)
+    try:
+        mentor = get_mentor_or_404(current_user, db)
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error getting mentor profile: {str(e)}"
+        )
     
     # Check if account already exists
     existing = db.query(PaymentMethod).filter(

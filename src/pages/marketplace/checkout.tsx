@@ -1,85 +1,191 @@
 /**
  * Checkout Page
- * Complete checkout flow with payment processing
+ * Complete checkout flow with payment processing using Stripe
  */
 
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
 import Layout from '@/components/Layout'
+import { CardElement, useStripe, useElements, Elements } from '@stripe/react-stripe-js';
+import { stripePromise } from '@/lib/stripe';
+import { useMe } from '@/hooks/useMe';
 import { API_BASE } from '@/lib/apiBase';
 
-const CheckoutPage = () => {
-  const [cartItems, setCartItems] = useState([]);
-  const [couponCode, setCouponCode] = useState('');
-  const [subtotal, setSubtotal] = useState(0);
-  const [discount, setDiscount] = useState(0);
-  const [total, setTotal] = useState(0);
-  const [paymentMethod, setPaymentMethod] = useState('stripe');
-  const [processing, setProcessing] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
-  const [orderNumber, setOrderNumber] = useState('');
+interface OrderData {
+  order_id: number;
+  order_number: string;
+  total_amount: number;
+  items_count: number;
+  discount_amount: number;
+  status: string;
+  client_secret?: string;
+  payment_intent_id?: string;
+}
 
-  useEffect(() => {
-    // Load cart from localStorage
-    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-    setCartItems(cart);
-    calculateTotals(cart);
-  }, []);
+const CARD_ELEMENT_OPTIONS = {
+  style: {
+    base: {
+      fontSize: '16px',
+      color: '#424770',
+      '::placeholder': {
+        color: '#aab7c4',
+      },
+    },
+    invalid: {
+      color: '#9e2146',
+    },
+  },
+};
 
-  const calculateTotals = (items) => {
-    const sub = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    setSubtotal(sub);
-    // Discount would be calculated here if coupon is applied
-    setTotal(sub - discount);
-  };
+const CheckoutFormContent: React.FC<{ orderData: OrderData }> = ({ orderData }) => {
+  const stripe = useStripe();
+  const elements = useElements();
+  const router = useRouter();
+  const { user } = useMe();
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
-  const handleApplyCoupon = async () => {
-    if (!couponCode) return;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!stripe || !elements) {
+      setErrorMessage('Stripe is not loaded');
+      return;
+    }
+
+    const cardElement = elements.getElement(CardElement);
+
+    if (!cardElement) {
+      setErrorMessage('Card element not found');
+      return;
+    }
+
+    setIsLoading(true);
+    setErrorMessage('');
 
     try {
-      const token = localStorage.getItem('access_token');
-      const response = await fetch(`${API_BASE}/api/v1x/marketplace/validate-coupon`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+      // Confirm payment with Stripe
+      const result = await stripe.confirmCardPayment(orderData.client_secret || '', {
+        payment_method: {
+          card: cardElement,
+          billing_details: {
+            name: user?.name || 'Guest',
+            email: user?.email,
+          },
         },
-        body: JSON.stringify({ coupon_code: couponCode })
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setDiscount(data.discount_amount);
-        setTotal(subtotal - data.discount_amount);
-        setError('');
-      } else {
-        setError('Invalid coupon code');
+      if (result.error) {
+        setErrorMessage(result.error.message || 'Payment failed');
+      } else if (result.paymentIntent?.status === 'succeeded') {
+        // Payment successful - confirm order and redirect
+        try {
+          await fetch(`${API_BASE}/api/session/v1x/marketplace/confirm-payment/${orderData.order_id}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include'
+          });
+          router.push(`/marketplace/order-confirmation/${orderData.order_id}`);
+        } catch (confirmError: any) {
+          // Still redirect even if confirmation fails - payment went through
+          router.push(`/marketplace/order-confirmation/${orderData.order_id}`);
+        }
+      } else if (result.paymentIntent?.status === 'requires_action') {
+        setErrorMessage('Additional authentication required. Please complete the verification.');
       }
-    } catch (err) {
-      setError('Failed to apply coupon');
+    } catch (error: any) {
+      setErrorMessage(error.message || 'An error occurred');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleCheckout = async (e) => {
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div>
+        <label className="block text-sm font-semibold text-gray-900 mb-2">
+          Card Details
+        </label>
+        <div className="p-4 border border-gray-300 rounded-lg">
+          <CardElement options={CARD_ELEMENT_OPTIONS} />
+        </div>
+      </div>
+
+      {errorMessage && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-700 text-sm font-medium">{errorMessage}</p>
+        </div>
+      )}
+
+      <button
+        type="submit"
+        disabled={!stripe || isLoading}
+        className="w-full py-3 px-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+      >
+        {isLoading ? 'Processing Payment...' : `Pay $${orderData.total_amount.toFixed(2)}`}
+      </button>
+    </form>
+  );
+};
+
+const CheckoutPage = () => {
+  const router = useRouter();
+  const [orderData, setOrderData] = useState<OrderData | null>(null);
+  const [cartSummary, setCartSummary] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [couponCode, setCouponCode] = useState('');
+
+  useEffect(() => {
+    loadCheckout();
+  }, []);
+
+  const loadCheckout = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch current cart
+      const cartResponse = await fetch(`${API_BASE}/api/session/v1x/marketplace/cart`, {
+        credentials: 'include'
+      });
+      
+      if (cartResponse.ok) {
+        const cart = await cartResponse.json();
+        setCartSummary(cart);
+      } else if (cartResponse.status === 401) {
+        router.push('/login?redirect=/marketplace/checkout');
+      }
+    } catch (err) {
+      console.error('Error loading cart:', err);
+      // Continue anyway - user can still proceed
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
-    setProcessing(true);
+    setLoading(true);
     setError('');
 
     try {
-      const token = localStorage.getItem('access_token');
-      const productIds = cartItems.map(item => item.id);
+      // Get product IDs from cart summary
+      const productIds = cartSummary?.items?.map((item: any) => item.id) || [];
 
-      // Step 1: Create order (checkout)
-      const checkoutResponse = await fetch(`${API_BASE}/api/v1x/marketplace/checkout`, {
+      if (productIds.length === 0) {
+        setError('Your cart is empty');
+        return;
+      }
+
+      // Create order with Stripe payment
+      const checkoutResponse = await fetch(`${API_BASE}/api/session/v1x/marketplace/checkout`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           product_ids: productIds,
-          coupon_code: couponCode || null,
-          payment_method: paymentMethod
+          coupon_code: couponCode || undefined,
+          payment_method: 'stripe'
         })
       });
 
@@ -88,169 +194,154 @@ const CheckoutPage = () => {
         throw new Error(data.detail || 'Checkout failed');
       }
 
-      const orderData = await checkoutResponse.json();
-      setOrderNumber(orderData.order_number);
-
-      // Complete checkout (payment handled server-side for demo)
-      setSuccess(true);
-      localStorage.removeItem('cart');
-      setTimeout(() => {
-        window.location.href = `/orders/${orderData.order_id}`;
-      }, 1500);
-    } catch (err) {
+      const order = await checkoutResponse.json();
+      setOrderData(order);
+    } catch (err: any) {
       setError(err.message || 'Checkout failed');
     } finally {
-      setProcessing(false);
+      setLoading(false);
     }
   };
 
-  if (success) {
+  if (loading) {
     return (
-      <div className="min-h-screen bg-green-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
-          <div className="text-5xl mb-4">✅</div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Order Confirmed!</h1>
-          <p className="text-gray-600 mb-4">
-            Your order {orderNumber} has been successfully processed.
-          </p>
-          <p className="text-sm text-gray-500">
-            Redirecting to order details...
-          </p>
+      <Layout maxWidth="7xl" showFooter={true}>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading checkout...</p>
+          </div>
         </div>
-      </div>
+      </Layout>
     );
   }
 
-  return (
-    <Layout maxWidth="7xl" showFooter={true}>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Cart Items */}
-        <div className="lg:col-span-2">
-          <div className="bg-white rounded-lg shadow p-6">
-            <h1 className="text-2xl font-bold text-gray-900 mb-6">Your Cart</h1>
+  // Show payment form if we have order data
+  if (orderData?.client_secret) {
+    return (
+      <Layout maxWidth="2xl" showFooter={true}>
+        <div className="py-12">
+          <div className="bg-white rounded-lg shadow p-8">
+            <h1 className="text-3xl font-bold mb-2">Complete Your Purchase</h1>
+            <p className="text-gray-600 mb-8">Order {orderData.order_number}</p>
 
-            {cartItems.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">Your cart is empty</p>
-            ) : (
-              <div className="space-y-4">
-                {cartItems.map((item) => (
-                  <div key={item.id} className="border rounded-lg p-4 flex justify-between items-center">
-                    <div>
-                      <h3 className="font-semibold text-gray-900">{item.name}</h3>
-                      <p className="text-gray-600 text-sm mt-1">Qty: {item.quantity}</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="md:col-span-2">
+                <Elements stripe={stripePromise}>
+                  <CheckoutFormContent orderData={orderData} />
+                </Elements>
+
+                <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                  <p className="text-sm text-gray-700">
+                    💳 <strong>Test Cards (in test mode):</strong>
+                  </p>
+                  <ul className="text-xs text-gray-600 mt-2 space-y-1">
+                    <li>Success: 4242 4242 4242 4242</li>
+                    <li>Decline: 4000 0000 0000 0002</li>
+                    <li>Exp: Any future date | CVC: Any 3 digits</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div>
+                <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+                  <h2 className="font-bold text-gray-900 mb-4">Order Summary</h2>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Items:</span>
+                      <span>{orderData.items_count}</span>
                     </div>
-                    <div className="text-right">
-                      <p className="font-bold text-gray-900">${(item.price * item.quantity).toFixed(2)}</p>
-                      <p className="text-gray-600 text-sm">${item.price.toFixed(2)} each</p>
+                    {orderData.discount_amount > 0 && (
+                      <div className="flex justify-between text-green-600">
+                        <span>Discount:</span>
+                        <span>-${orderData.discount_amount.toFixed(2)}</span>
+                      </div>
+                    )}
+                    <div className="border-t border-gray-200 pt-2 mt-2">
+                      <div className="flex justify-between font-bold">
+                        <span>Total:</span>
+                        <span className="text-xl text-blue-600">${orderData.total_amount.toFixed(2)}</span>
+                      </div>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-
-            {/* Coupon Section */}
-            <div className="mt-8 border-t pt-6">
-              <h2 className="font-semibold text-gray-900 mb-4">Apply Coupon Code</h2>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Enter coupon code"
-                  value={couponCode}
-                  onChange={(e) => setCouponCode(e.target.value)}
-                  className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  disabled={processing}
-                />
-                <button
-                  onClick={handleApplyCoupon}
-                  disabled={processing || !couponCode}
-                  className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 disabled:opacity-50"
-                >
-                  Apply
-                </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
+      </Layout>
+    );
+  }
 
-        {/* Order Summary & Payment */}
-        <div>
-          {/* Order Summary */}
-          <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Order Summary</h2>
-            <div className="space-y-3 border-b pb-4 mb-4">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Subtotal</span>
-                <span className="font-semibold">${subtotal.toFixed(2)}</span>
-              </div>
-              {discount > 0 && (
-                <div className="flex justify-between text-green-600">
-                  <span>Discount</span>
-                  <span>-${discount.toFixed(2)}</span>
+  // Show cart summary before payment
+  return (
+    <Layout maxWidth="7xl" showFooter={true}>
+      <div className="py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Cart Items */}
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-lg shadow p-6">
+              <h1 className="text-2xl font-bold text-gray-900 mb-6">Review Your Cart</h1>
+
+              {!cartSummary?.items || cartSummary.items.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">Your cart is empty</p>
+              ) : (
+                <div className="space-y-4">
+                  {cartSummary.items.map((item: any) => (
+                    <div key={item.id} className="border rounded-lg p-4 flex justify-between items-center">
+                      <div>
+                        <h3 className="font-semibold text-gray-900">{item.course_title || item.name}</h3>
+                        <p className="text-gray-600 text-sm mt-1">ID: {item.id}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-gray-900">${item.price.toFixed(2)}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
-              <div className="flex justify-between text-gray-600 text-sm">
-                <span>Shipping</span>
-                <span>FREE</span>
+            </div>
+          </div>
+
+          {/* Order Summary & Checkout */}
+          <div>
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Order Summary</h2>
+              <div className="space-y-3 border-b pb-4 mb-4">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Subtotal</span>
+                  <span className="font-semibold">${cartSummary?.subtotal?.toFixed(2) || '0.00'}</span>
+                </div>
+                {cartSummary?.discount > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Discount</span>
+                    <span>-${cartSummary.discount.toFixed(2)}</span>
+                  </div>
+                )}
               </div>
-            </div>
-            <div className="flex justify-between items-center mb-6">
-              <span className="text-lg font-bold text-gray-900">Total</span>
-              <span className="text-2xl font-bold text-blue-600">${total.toFixed(2)}</span>
-            </div>
-          </div>
+              <div className="flex justify-between items-center mb-6">
+                <span className="text-lg font-bold text-gray-900">Total</span>
+                <span className="text-2xl font-bold text-blue-600">${(cartSummary?.total || 0).toFixed(2)}</span>
+              </div>
 
-          {/* Payment Method Selection */}
-          <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <h2 className="font-bold text-gray-900 mb-4">Payment Method</h2>
-            <div className="space-y-3">
-              {['stripe', 'paypal'].map((method) => (
-                <label key={method} className="flex items-center p-4 border rounded-lg cursor-pointer hover:bg-gray-50"
-                  style={{
-                    backgroundColor: paymentMethod === method ? '#EBF8FF' : 'white',
-                    borderColor: paymentMethod === method ? '#3B82F6' : '#D1D5DB'
-                  }}
-                >
-                  <input
-                    type="radio"
-                    name="payment"
-                    value={method}
-                    checked={paymentMethod === method}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                    disabled={processing}
-                    className="mr-3"
-                  />
-                  <span className="font-semibold capitalize">{method}</span>
-                </label>
-              ))}
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                  <p className="text-red-800 text-sm">{error}</p>
+                </div>
+              )}
+
+              <button
+                onClick={handleCheckout}
+                disabled={loading || !cartSummary?.items?.length}
+                className="w-full py-3 px-4 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              >
+                {loading ? 'Processing...' : `Continue to Payment`}
+              </button>
+
+              <p className="text-xs text-gray-500 mt-4 text-center">
+                🔒 Secure checkout powered by Stripe
+              </p>
             </div>
-          </div>
-
-          {/* Error Message */}
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-              <p className="text-red-800 text-sm">{error}</p>
-            </div>
-          )}
-
-          {/* Checkout Button */}
-          <form onSubmit={handleCheckout}>
-            <button
-              type="submit"
-              disabled={processing || cartItems.length === 0}
-              className={`w-full py-3 px-4 rounded-lg font-bold text-white text-lg ${
-                processing
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700'
-              }`}
-            >
-              {processing ? 'Processing...' : `Pay $${total.toFixed(2)}`}
-            </button>
-          </form>
-
-          {/* Trust Badges */}
-          <div className="mt-6 text-center text-sm text-gray-600">
-            <p className="mb-3">🔒 Secure checkout powered by Stripe & PayPal</p>
-            <p>✅ Money-back guarantee within 30 days</p>
           </div>
         </div>
       </div>

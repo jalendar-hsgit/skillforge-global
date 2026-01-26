@@ -8,15 +8,14 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from decimal import Decimal
+from pydantic import BaseModel
 
 from app.core.db import get_db
 from app.core.security import get_current_user
 from app.models.user import User
 from app.modelsx.order import Order, Coupon
 from app.modelsx.marketplace import DigitalProduct
-
-# Simple inline schema definitions (would normally be in schemas/marketplace.py)
-from pydantic import BaseModel
+from app.services.stripe_service import stripe_service
 
 
 class CheckoutRequest(BaseModel):
@@ -145,19 +144,39 @@ def checkout(
     db.commit()
     db.refresh(order)
     
-    # TODO: Process payment with Stripe/PayPal based on payment_method
-    # For now, mark as completed for demo
-    order.payment_status = "completed"
-    order.status = "completed"
-    order.paid_at = datetime.utcnow()
-    db.commit()
+    # Create Stripe payment intent for actual payment processing
+    if request.payment_method == "stripe":
+        try:
+            payment_info = stripe_service.create_payment_intent(
+                amount=float(final_amount),
+                currency="usd",
+                session_id=0,  # Not a session, but order ID
+                mentor_id=0,   # Not applicable for marketplace
+                student_id=current_user.id
+            )
+            
+            # Store payment intent ID in order
+            order.payment_intent_id = payment_info['id']
+            db.commit()
+            
+            return {
+                "order_id": order.id,
+                "order_number": order.order_number,
+                "total_amount": float(final_amount),
+                "items_count": len(products),
+                "discount_amount": float(discount_amount),
+                "status": order.status,
+                "client_secret": payment_info['client_secret'],
+                "payment_intent_id": payment_info['id']
+            }
+        
+        except Exception as e:
+            # Delete the order if payment intent creation failed
+            db.delete(order)
+            db.commit()
+            raise HTTPException(status_code=500, detail=f"Failed to create payment: {str(e)}")
     
-    # Update product sales stats
-    for product in products:
-        product.sales_count += 1
-        product.total_revenue = float(product.total_revenue or 0) + float(product.price)
-    db.commit()
-    
+    # For other payment methods, return basic order info
     return {
         "order_id": order.id,
         "order_number": order.order_number,
@@ -166,3 +185,61 @@ def checkout(
         "discount_amount": float(discount_amount),
         "status": order.status
     }
+
+
+@router.post("/marketplace/confirm-payment/{order_id}")
+def confirm_marketplace_payment(
+    order_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Confirm payment for a marketplace order after Stripe payment succeeds.
+    Called from webhook or frontend after successful payment.
+    
+    Args:
+        order_id: The Order ID
+        db: Database session
+        current_user: Authenticated user
+    
+    Returns:
+        Order confirmation
+    """
+    order = db.query(Order).filter(Order.id == order_id).first()
+    
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    # Verify user is the order owner
+    if order.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # Check payment intent status if using Stripe
+    if order.payment_intent_id:
+        try:
+            payment_status = stripe_service.get_payment_status(order.payment_intent_id)
+            
+            if payment_status['status'] != 'succeeded':
+                raise HTTPException(status_code=400, detail="Payment not confirmed yet")
+            
+            # Payment succeeded, update order
+            order.payment_status = "succeeded"
+            order.status = "completed"
+            order.paid_at = datetime.utcnow()
+            
+            # Add order items to user's purchases (this would need order_items table in real implementation)
+            # For now, just mark as completed
+            
+            db.commit()
+            
+            return {
+                "order_id": order.id,
+                "order_number": order.order_number,
+                "status": order.status,
+                "message": "Order completed successfully"
+            }
+        
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to confirm payment: {str(e)}")
+    
+    raise HTTPException(status_code=400, detail="No payment intent found")

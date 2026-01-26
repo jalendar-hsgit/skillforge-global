@@ -45,7 +45,7 @@ curl -X GET "http://localhost:8001/api/v1x/admin/marketplace/revenue-by-seller?s
       "average_rating": 4.8
     }
   ],
-  "total": 8
+  "total": 8Mentor Booking Flow - Complete the frontend for booking sessions
 }
 ```
 

@@ -433,8 +433,15 @@ def get_my_sessions(
     
     sessions = query.order_by(MentorSession.scheduled_at.desc()).all()
     
-    session_responses = [
-        SessionResponse(
+    session_responses = []
+    for s in sessions:
+        # Get mentor name for display
+        mentor = db.query(Mentor).filter(Mentor.id == s.mentor_id).first()
+        mentor_user = db.query(User).filter(User.id == mentor.user_id).first() if mentor else None
+        mentor_name = mentor_user.name if mentor_user else "Unknown Mentor"
+        mentor_rating = mentor.average_rating if mentor else None
+        
+        response = SessionResponse(
             id=s.id,
             mentor_id=s.mentor_id,
             student_id=s.student_id,
@@ -448,10 +455,11 @@ def get_my_sessions(
             payment_status=s.payment_status,
             mentor_notes=s.mentor_notes,
             student_feedback=s.student_feedback,
-            created_at=s.created_at
+            created_at=s.created_at,
+            mentor_name=mentor_name,
+            mentor_rating=mentor_rating
         )
-        for s in sessions
-    ]
+        session_responses.append(response)
     
     return SessionListResponse(sessions=session_responses, total=len(session_responses))
 
@@ -1189,6 +1197,86 @@ def get_calendar_events(
         ))
     
     return events
+
+
+# ============ Payment Processing ============
+
+from app.schemas.mentor import PaymentIntentRequest, PaymentIntentResponse
+from app.services.stripe_service import stripe_service
+
+@router.post("/sessions/payment-intent", response_model=PaymentIntentResponse, status_code=status.HTTP_201_CREATED)
+def create_session_payment_intent(
+    request: PaymentIntentRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Create a Stripe payment intent for a mentor session.
+    
+    The student calls this after booking to pay for the session.
+    Returns client_secret for Stripe payment form.
+    """
+    # Verify session exists and belongs to student
+    session = db.query(MentorSession).filter(
+        MentorSession.id == request.session_id,
+        MentorSession.student_id == current_user.id
+    ).first()
+    
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Session not found or unauthorized"
+        )
+    
+    # Check if already paid
+    if session.payment_status == "paid":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Session already paid for"
+        )
+    
+    if session.price <= 0:
+        # Free session, no payment needed
+        session.payment_status = "free"
+        db.commit()
+        return PaymentIntentResponse(
+            client_secret="",
+            payment_intent_id="",
+            amount=0,
+            currency="usd",
+            session_id=session.id,
+            message="This is a free session"
+        )
+    
+    try:
+        # Create Stripe payment intent
+        payment_intent = stripe_service.create_payment_intent(
+            amount=int(session.price * 100),  # Stripe uses cents
+            currency="usd",
+            metadata={
+                "session_id": session.id,
+                "student_id": current_user.id,
+                "mentor_id": session.mentor_id
+            }
+        )
+        
+        # Store payment intent ID in session
+        session.payment_intent_id = payment_intent['id']
+        db.commit()
+        
+        return PaymentIntentResponse(
+            client_secret=payment_intent['client_secret'],
+            payment_intent_id=payment_intent['id'],
+            amount=session.price,
+            currency="usd",
+            session_id=session.id
+        )
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to create payment intent: {str(e)}"
+        )
 
 
 # ============ Email Notifications ============

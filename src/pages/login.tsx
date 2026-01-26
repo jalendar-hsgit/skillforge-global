@@ -96,9 +96,11 @@ export default function LoginPage() {
         // Determine redirect URL
         let redirectUrl = '/dashboard'
         
-        // If there's a redirect query param, use it
-        if (router.query.redirect && typeof router.query.redirect === 'string') {
-          redirectUrl = router.query.redirect
+        // If there's a redirect query param, use it (supports both 'next' and 'redirect')
+        const nextUrl = router.query.next || router.query.redirect
+        if (nextUrl && typeof nextUrl === 'string') {
+          // Decode the URL in case it was encoded
+          redirectUrl = decodeURIComponent(nextUrl)
           console.log('Using redirect param:', redirectUrl)
         } 
         // Redirect based on role

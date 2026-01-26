@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/Button';
-import { ShoppingCart, Search, Filter, Star, Clock, PlayCircle } from 'lucide-react';
+import { ShoppingCart, Search, Filter, Star, Clock, PlayCircle, Zap } from 'lucide-react';
 import Link from 'next/link';
 
 interface Course {
@@ -27,7 +27,7 @@ export default function MarketplacePage() {
   const [cartCount, setCartCount] = useState(0);
   const [addingToCart, setAddingToCart] = useState<number | null>(null);
 
-  const categories = ['All', 'Web Development', 'Data Science', 'Mobile Development', 'Cloud Computing', 'AI/ML'];
+  const categories = ['All', 'Web Development', 'Data Science', 'Mobile Development', 'Cloud Computing', 'AI/ML', 'Business', 'Design'];
 
   useEffect(() => {
     fetchCourses();

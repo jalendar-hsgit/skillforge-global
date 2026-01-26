@@ -109,7 +109,7 @@ from app.modelsx.referral import (
 # import Marketplace models
 from app.modelsx.marketplace import (
     DigitalProduct, ProductPurchase, SellerAccount,
-    ProductBundle, SellerPayout, MarketplaceAnalytics
+    ProductBundle, SellerPayout, MarketplaceAnalytics, SellerEarning
 )
 # import Wishlist models
 from app.modelsx.wishlist import Wishlist
@@ -254,6 +254,12 @@ except Exception as e:
     print(f"Failed to import payments: {e}")
 
 try:
+    from app.api.v1x.stripe_webhook import router as stripe_webhook
+except Exception as e:
+    print(f"Failed to import stripe_webhook: {e}")
+    stripe_webhook = None
+
+try:
     from app.api.v1x.chat_files import router as chat_files
 except Exception as e:
     print(f"Failed to import chat_files: {e}")
@@ -268,6 +274,18 @@ try:
 except Exception as e:
     print(f"Failed to import admin_payouts: {e}")
     admin_payouts = None
+
+try:
+    from app.api.v1x.payouts_v2 import router as payouts_v2
+except Exception as e:
+    print(f"Failed to import payouts_v2: {e}")
+    payouts_v2 = None
+
+try:
+    from app.api.v1x.webhooks import router as webhooks
+except Exception as e:
+    print(f"Failed to import webhooks: {e}")
+    webhooks = None
 
 try:
     from app.api.v1x.subscriptions import router as subscriptions
@@ -802,7 +820,7 @@ def _mount_v1x_export(obj):
 # Mount all v1x exports (modules or routers)
 # Filter out None values to handle failed imports gracefully
 # Note: session is mounted separately at /api/session, not included here
-_exports = [x for x in (auth_v1x, security_router, courses_db, courses_router, orders_db, progress_db, quizzes_db, youtube_sync, coins_db, mentors, mentor_documents, mentor_verification, account, payments, chat_files, payouts, admin_payouts, subscriptions, connect, student_dashboard, mentor_portal, recordings, resumes, resume_ai, cover_letter, resume_comparison, linkedin_import, hiring, resume_import, marketplace, seller, marketplace_checkout, admin_marketplace, payments_integration, wishlist, reviews, job_applications, job_notifications, job_calendar, resume_export, resume_templates, resume_analytics_events, resume_scoring, leaderboard, admin_metrics, admin_analytics, coding_practice, code_snippets, solution_sharing, user_profiles, solution_comments, social, learning_paths, premium_tiers, github_integration, advanced_dashboard, ai_hints, pwa, contests, notifications_v1x, code_executor, activity, badges, forums, recommendations, teams, search, interview, referral, admin_router, verification_router, analytics_router, payments_router_phase23, video_router, messaging_router, forum_router, payments_integrated_router, notifications_websocket) if x is not None]
+_exports = [x for x in (auth_v1x, security_router, courses_db, courses_router, orders_db, progress_db, quizzes_db, youtube_sync, coins_db, mentors, mentor_documents, mentor_verification, account, payments, stripe_webhook, chat_files, payouts, payouts_v2, webhooks, admin_payouts, subscriptions, connect, student_dashboard, mentor_portal, recordings, resumes, resume_ai, cover_letter, resume_comparison, linkedin_import, hiring, resume_import, marketplace, seller, marketplace_checkout, admin_marketplace, payments_integration, wishlist, reviews, job_applications, job_notifications, job_calendar, resume_export, resume_templates, resume_analytics_events, resume_scoring, leaderboard, admin_metrics, admin_analytics, coding_practice, code_snippets, solution_sharing, user_profiles, solution_comments, social, learning_paths, premium_tiers, github_integration, advanced_dashboard, ai_hints, pwa, contests, notifications_v1x, code_executor, activity, badges, forums, recommendations, teams, search, interview, referral, admin_router, verification_router, analytics_router, payments_router_phase23, video_router, messaging_router, forum_router, payments_integrated_router, notifications_websocket) if x is not None]
 for _export in _exports:
     _mount_v1x_export(_export)
 

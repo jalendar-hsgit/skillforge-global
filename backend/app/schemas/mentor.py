@@ -113,6 +113,8 @@ class SessionResponse(BaseModel):
     mentor_notes: Optional[str] = None
     student_feedback: Optional[str] = None
     created_at: datetime
+    mentor_name: Optional[str] = None  # Added for display
+    mentor_rating: Optional[float] = None  # Added for display
     
     class Config:
         from_attributes = True
@@ -423,3 +425,23 @@ class EmailNotificationResponse(BaseModel):
     session_id: int
     notification_type: str
     sent_at: datetime
+
+
+# ============ Payment Schemas ============
+
+class PaymentIntentRequest(BaseModel):
+    """Request to create a payment intent for a mentor session"""
+    session_id: int = Field(..., description="ID of the mentor session to pay for")
+
+
+class PaymentIntentResponse(BaseModel):
+    """Stripe payment intent response"""
+    client_secret: str = Field(..., description="Stripe client secret for payment form")
+    payment_intent_id: str = Field(..., description="Stripe payment intent ID")
+    amount: float = Field(..., description="Amount to pay in USD")
+    currency: str = Field(default="usd", description="Currency code")
+    session_id: int = Field(..., description="Associated session ID")
+    message: Optional[str] = Field(None, description="Additional message (e.g., for free sessions)")
+    
+    class Config:
+        from_attributes = True

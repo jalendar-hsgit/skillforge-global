@@ -431,7 +431,13 @@ export default function Dashboard({ me }: { me: Me }) {
 
       {/* Profile Link Section */}
       <PageSection>
-        <div className="flex justify-center mt-8">
+        <div className="flex justify-center gap-4 mt-8 flex-wrap">
+          <Link href="/my-bookings">
+            <button className="flex items-center gap-2 px-8 py-3 rounded-lg text-base font-medium bg-gradient-to-r from-forgePurple-600 to-aiElectric-600 text-white shadow-lg shadow-forgePurple-500/30 hover:shadow-forgePurple-500/50 transition-all hover:scale-105">
+              <span>📚</span>
+              <span>My Bookings</span>
+            </button>
+          </Link>
           <Link href={ROUTES.profile}>
             <button className="flex items-center gap-2 px-8 py-3 rounded-lg text-base font-medium bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg shadow-cyan-500/30 hover:shadow-cyan-500/50 transition-all hover:scale-105">
               <span>👤</span>

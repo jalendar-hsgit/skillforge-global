@@ -2,223 +2,155 @@ import Head from 'next/head'
 import Layout from '@/components/Layout'
 import { useState, useEffect } from 'react'
 import { requireAdminSSR, AdminSSRProps } from '@/lib/adminAuth'
+import { CheckCircle, XCircle, AlertCircle, Search, Filter, Eye, EyeOff, Trash2 } from 'lucide-react'
 
-type MarketplaceStats = {
-  timeframe: string
-  total_orders: number
-  total_revenue: number
-  avg_order_value: number
-  active_coupons: number
-  top_courses: {
-    course_id: number
-    title: string
-    sales: number
-    revenue: number
-  }[]
+type Product = {
+  id: number
+  name: string
+  seller_id: number
+  seller_email: string
+  price: number
+  status: 'draft' | 'published' | 'suspended' | 'archived'
+  sales_count: number
+  created_at: string
+  suspension_reason?: string
+  views_count: number
+  average_rating: number
 }
 
-type Order = {
-  id: number
-  order_number: string
-  user_email: string
-  course_title: string
+type Seller = {
+  seller_id: number
+  user_id: number
+  email: string
+  store_name: string
   status: string
-  amount: number
-  discount_amount: number
-  payment_method: string
-  payment_status: string
+  products_count: number
+  sales_count: number
+  total_revenue: number
   created_at: string
-  coupon_code: string | null
 }
 
-type Coupon = {
-  id: number
-  code: string
-  discount_type: string
-  discount_value: number
-  is_active: boolean
-  expires_at: string | null
-  max_uses: number | null
-  current_uses: number
-  created_at: string
+type DashboardStats = {
+  products: {
+    total: number
+    published: number
+    draft: number
+    suspended: number
+  }
+  sellers: {
+    total: number
+    verified: number
+    pending: number
+  }
+  sales: {
+    total_transactions: number
+    total_revenue: number
+    platform_fee: number
+    seller_earnings: number
+  }
 }
 
 export default function AdminMarketplace({ me }: AdminSSRProps) {
-  const [stats, setStats] = useState<MarketplaceStats | null>(null)
-  const [orders, setOrders] = useState<Order[]>([])
-  const [coupons, setCoupons] = useState<Coupon[]>([])
-  const [timeframe, setTimeframe] = useState<'7d' | '30d' | '90d' | '1y' | 'all'>('30d')
+  const [stats, setStats] = useState<DashboardStats | null>(null)
+  const [products, setProducts] = useState<Product[]>([])
+  const [sellers, setSellers] = useState<Seller[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'coupons'>('overview')
-  const [showCreateCoupon, setShowCreateCoupon] = useState(false)
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'sellers'>('dashboard')
+  const [productSearch, setProductSearch] = useState('')
+  const [productStatusFilter, setProductStatusFilter] = useState<string>('')
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+  const [suspensionReason, setSuspensionReason] = useState('')
   
-  const [couponForm, setCouponForm] = useState({
-    code: '',
-    discount_type: 'percentage',
-    discount_value: 0,
-    max_uses: null as number | null,
-    expires_at: ''
-  })
-
   useEffect(() => {
     loadMarketplaceData()
-  }, [timeframe])
+  }, [])
 
   async function loadMarketplaceData() {
     setLoading(true)
     try {
-      const [statsRes, ordersRes, couponsRes] = await Promise.all([
-        fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE}/api/v1x/admin/marketplace/stats?timeframe=${timeframe}`,
-          { credentials: 'include' }
-        ),
-        fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE}/api/v1x/admin/marketplace/orders?limit=50`,
-          { credentials: 'include' }
-        ),
-        fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE}/api/v1x/admin/marketplace/coupons`,
-          { credentials: 'include' }
-        )
+      const [dashRes, productsRes, sellersRes] = await Promise.all([
+        fetch(`${process.env.NEXT_PUBLIC_API_BASE}/api/v1x/admin/marketplace/dashboard`, { credentials: 'include' }),
+        fetch(`${process.env.NEXT_PUBLIC_API_BASE}/api/v1x/admin/marketplace/products`, { credentials: 'include' }),
+        fetch(`${process.env.NEXT_PUBLIC_API_BASE}/api/v1x/admin/marketplace/sellers`, { credentials: 'include' })
       ])
 
-      if (statsRes.ok) {
-        const data = await statsRes.json()
-        setStats(data)
+      if (dashRes.ok) setStats(await dashRes.json())
+      if (productsRes.ok) {
+        const data = await productsRes.json()
+        setProducts(data.products || [])
       }
-
-      if (ordersRes.ok) {
-        const data = await ordersRes.json()
-        setOrders(data.orders || [])
-      }
-
-      if (couponsRes.ok) {
-        const data = await couponsRes.json()
-        setCoupons(data)
+      if (sellersRes.ok) {
+        const data = await sellersRes.json()
+        setSellers(data.sellers || [])
       }
     } catch (err) {
-      console.error('Failed to load marketplace data:', err)
+      console.error('Failed to load data:', err)
     } finally {
       setLoading(false)
     }
   }
 
-  async function handleCreateCoupon() {
-    if (!couponForm.code || couponForm.discount_value <= 0) {
-      alert('Please fill in all required fields')
+  async function approveProduct(productId: number) {
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE}/api/v1x/admin/marketplace/products/${productId}/approve`,
+        { method: 'PUT', credentials: 'include' }
+      )
+      if (res.ok) {
+        alert('Product approved!')
+        loadMarketplaceData()
+      }
+    } catch (err) {
+      alert('Failed to approve product')
+    }
+  }
+
+  async function suspendProduct(productId: number) {
+    if (!suspensionReason.trim()) {
+      alert('Please provide a suspension reason')
       return
     }
-
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE}/api/v1x/admin/marketplace/coupons`,
+        `${process.env.NEXT_PUBLIC_API_BASE}/api/v1x/admin/marketplace/products/${productId}/suspend`,
         {
-          method: 'POST',
+          method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({
-            code: couponForm.code.toUpperCase(),
-            discount_type: couponForm.discount_type,
-            discount_value: couponForm.discount_value,
-            max_uses: couponForm.max_uses,
-            expires_at: couponForm.expires_at || null
-          })
+          body: JSON.stringify({ reason: suspensionReason })
         }
       )
-
-      if (!res.ok) {
-        const err = await res.json()
-        alert(`Failed: ${err.detail || 'Unknown error'}`)
-        return
+      if (res.ok) {
+        alert('Product suspended!')
+        setSuspensionReason('')
+        setSelectedProduct(null)
+        loadMarketplaceData()
       }
-
-      alert('Coupon created successfully!')
-      setShowCreateCoupon(false)
-      setCouponForm({ code: '', discount_type: 'percentage', discount_value: 0, max_uses: null, expires_at: '' })
-      loadMarketplaceData()
     } catch (err) {
-      console.error(err)
-      alert('An error occurred')
+      alert('Failed to suspend product')
     }
   }
 
-  async function toggleCoupon(couponId: number) {
+  async function verifySeller(sellerId: number) {
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE}/api/v1x/admin/marketplace/coupons/${couponId}/toggle`,
-        {
-          method: 'PATCH',
-          credentials: 'include'
-        }
+        `${process.env.NEXT_PUBLIC_API_BASE}/api/v1x/admin/marketplace/sellers/${sellerId}/verify`,
+        { method: 'PUT', credentials: 'include' }
       )
-
-      if (!res.ok) throw new Error('Failed')
-
-      loadMarketplaceData()
+      if (res.ok) {
+        alert('Seller verified!')
+        loadMarketplaceData()
+      }
     } catch (err) {
-      console.error(err)
-      alert('Failed to toggle coupon')
+      alert('Failed to verify seller')
     }
   }
 
-  async function deleteCoupon(couponId: number) {
-    if (!confirm('Delete this coupon? This cannot be undone.')) return
-
-    try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE}/api/v1x/admin/marketplace/coupons/${couponId}`,
-        {
-          method: 'DELETE',
-          credentials: 'include'
-        }
-      )
-
-      if (!res.ok) throw new Error('Failed')
-
-      alert('Coupon deleted')
-      loadMarketplaceData()
-    } catch (err) {
-      console.error(err)
-      alert('Failed to delete coupon')
-    }
-  }
-
-  async function refundOrder(orderId: number, orderNumber: string) {
-    if (!confirm(`Refund order ${orderNumber}? This will mark the order as refunded.`)) return
-
-    try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE}/api/v1x/admin/marketplace/orders/${orderId}/refund`,
-        {
-          method: 'POST',
-          credentials: 'include'
-        }
-      )
-
-      if (!res.ok) throw new Error('Failed')
-
-      alert('Order refunded successfully')
-      loadMarketplaceData()
-    } catch (err) {
-      console.error(err)
-      alert('Failed to refund order')
-    }
-  }
-
-  function formatCurrency(amount: number): string {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount)
-  }
-
-  function formatDate(dateString: string): string {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    })
-  }
+  const filteredProducts = products.filter(p => {
+    const matchSearch = p.name.toLowerCase().includes(productSearch.toLowerCase())
+    const matchStatus = !productStatusFilter || p.status === productStatusFilter
+    return matchSearch && matchStatus
+  })
 
   return (
     <Layout>
@@ -226,314 +158,313 @@ export default function AdminMarketplace({ me }: AdminSSRProps) {
         <title>Marketplace Admin – SkillForge Global</title>
       </Head>
 
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Marketplace Management</h1>
-          <p className="text-techGray">Orders, coupons, and sales analytics</p>
-        </div>
+      <div className="min-h-screen bg-deepTech-950 bg-neural">
+        <div className="container mx-auto px-4 py-8 max-w-7xl">
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-forgePurple-400 via-neuralBlue-400 to-aiElectric-400 mb-2">
+              Marketplace Admin
+            </h1>
+            <p className="text-techGray-400">Manage products, sellers, and digital marketplace</p>
+          </div>
 
-        {/* Tabs */}
-        <div className="mb-6 flex gap-2 border-b border-white/10">
-          {(['overview', 'orders', 'coupons'] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-6 py-3 font-medium transition-colors ${
-                activeTab === tab
-                  ? 'text-white border-b-2 border-forgePurple'
-                  : 'text-gray-400 hover:text-gray-300'
-              }`}
-            >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </button>
-          ))}
-        </div>
+          {/* Tabs */}
+          <div className="mb-6 flex gap-2 border-b border-white/10">
+            {(['dashboard', 'products', 'sellers'] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-6 py-3 font-semibold transition-all ${
+                  activeTab === tab
+                    ? 'text-white border-b-2 border-forgePurple-400'
+                    : 'text-techGray-400 hover:text-white'
+                }`}
+              >
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </button>
+            ))}
+          </div>
 
-        {loading ? (
-          <div className="text-center py-12 text-gray-400">Loading...</div>
-        ) : (
-          <>
-            {/* Overview Tab */}
-            {activeTab === 'overview' && stats && (
-              <div className="space-y-6">
-                {/* Timeframe Selector */}
-                <div className="flex gap-2">
-                  {(['7d', '30d', '90d', '1y', 'all'] as const).map((tf) => (
-                    <button
-                      key={tf}
-                      onClick={() => setTimeframe(tf)}
-                      className={`px-4 py-2 rounded-lg transition-colors ${
-                        timeframe === tf
-                          ? 'bg-forgePurple text-white'
-                          : 'bg-white/5 text-gray-400 hover:bg-white/10'
-                      }`}
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-forgePurple-400 border-t-transparent"></div>
+              <p className="mt-4 text-techGray-400">Loading...</p>
+            </div>
+          ) : (
+            <>
+              {/* Dashboard Tab */}
+              {activeTab === 'dashboard' && stats && (
+                <div className="space-y-6">
+                  {/* Stats Cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <StatCard
+                      title="Total Products"
+                      value={stats.products.total.toString()}
+                      color="from-forgePurple-500 to-forgePurple-600"
+                      icon="📦"
+                    />
+                    <StatCard
+                      title="Published"
+                      value={stats.products.published.toString()}
+                      color="from-green-500 to-green-600"
+                      icon="✓"
+                    />
+                    <StatCard
+                      title="Draft / Pending"
+                      value={stats.products.draft.toString()}
+                      color="from-yellow-500 to-yellow-600"
+                      icon="⏳"
+                    />
+                    <StatCard
+                      title="Suspended"
+                      value={stats.products.suspended.toString()}
+                      color="from-red-500 to-red-600"
+                      icon="⚠️"
+                    />
+                  </div>
+
+                  {/* Revenue Stats */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <StatCard
+                      title="Total Revenue"
+                      value={`$${stats.sales.total_revenue.toFixed(2)}`}
+                      color="from-aiElectric-500 to-aiElectric-600"
+                      icon="💰"
+                    />
+                    <StatCard
+                      title="Platform Fee (20%)"
+                      value={`$${stats.sales.platform_fee.toFixed(2)}`}
+                      color="from-neuralBlue-500 to-neuralBlue-600"
+                      icon="🏦"
+                    />
+                  </div>
+
+                  {/* Seller Stats */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <StatCard
+                      title="Total Sellers"
+                      value={stats.sellers.total.toString()}
+                      color="from-purple-500 to-purple-600"
+                      icon="👥"
+                    />
+                    <StatCard
+                      title="Verified Sellers"
+                      value={stats.sellers.verified.toString()}
+                      color="from-green-500 to-green-600"
+                      icon="✅"
+                    />
+                    <StatCard
+                      title="Pending Verification"
+                      value={stats.sellers.pending.toString()}
+                      color="from-yellow-500 to-yellow-600"
+                      icon="⏳"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Products Tab */}
+              {activeTab === 'products' && (
+                <div className="space-y-4">
+                  {/* Search & Filter */}
+                  <div className="flex gap-4 mb-6">
+                    <div className="flex-1 relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-techGray-400" />
+                      <input
+                        type="text"
+                        value={productSearch}
+                        onChange={(e) => setProductSearch(e.target.value)}
+                        placeholder="Search products..."
+                        className="w-full pl-10 pr-4 py-2 bg-deepTech-800 border border-white/10 rounded-lg text-white placeholder-techGray-400 focus:border-forgePurple-400 focus:outline-none"
+                      />
+                    </div>
+                    <select
+                      value={productStatusFilter}
+                      onChange={(e) => setProductStatusFilter(e.target.value)}
+                      className="px-4 py-2 bg-deepTech-800 border border-white/10 rounded-lg text-white focus:border-forgePurple-400 focus:outline-none"
                     >
-                      {tf === 'all' ? 'All Time' : `Last ${tf.toUpperCase()}`}
-                    </button>
-                  ))}
-                </div>
+                      <option value="">All Status</option>
+                      <option value="draft">Draft</option>
+                      <option value="published">Published</option>
+                      <option value="suspended">Suspended</option>
+                    </select>
+                  </div>
 
-                {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <MetricCard title="Total Orders" value={stats.total_orders.toString()} icon="🛒" />
-                  <MetricCard title="Total Revenue" value={formatCurrency(stats.total_revenue)} icon="💰" />
-                  <MetricCard title="Avg Order Value" value={formatCurrency(stats.avg_order_value)} icon="📊" />
-                  <MetricCard title="Active Coupons" value={stats.active_coupons.toString()} icon="🎫" />
-                </div>
-
-                {/* Top Selling Courses */}
-                <div className="rounded-xl border border-white/10 bg-white/5 p-6">
-                  <h2 className="text-xl font-bold text-white mb-4">Top Selling Courses</h2>
-                  <div className="space-y-3">
-                    {stats.top_courses.map((course, idx) => (
-                      <div
-                        key={course.course_id}
-                        className="flex items-center justify-between p-4 rounded-lg bg-white/5"
-                      >
-                        <div className="flex items-center gap-4">
-                          <span className="text-2xl font-bold text-gray-400">#{idx + 1}</span>
-                          <div>
-                            <p className="text-white font-medium">{course.title}</p>
-                            <p className="text-sm text-gray-400">{course.sales} sales</p>
-                          </div>
-                        </div>
-                        <p className="text-green-400 font-bold text-lg">
-                          {formatCurrency(course.revenue)}
-                        </p>
-                      </div>
-                    ))}
-                    {stats.top_courses.length === 0 && (
-                      <p className="text-center py-6 text-gray-400">No sales data available</p>
-                    )}
+                  {/* Products Table */}
+                  <div className="bg-glass backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="text-left text-techGray-300 bg-deepTech-800/50 border-b border-white/10">
+                            <th className="px-6 py-3 font-semibold">Product</th>
+                            <th className="px-6 py-3 font-semibold">Seller</th>
+                            <th className="px-6 py-3 font-semibold text-right">Price</th>
+                            <th className="px-6 py-3 font-semibold text-center">Status</th>
+                            <th className="px-6 py-3 font-semibold text-right">Sales</th>
+                            <th className="px-6 py-3 font-semibold">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredProducts.length === 0 ? (
+                            <tr>
+                              <td colSpan={6} className="px-6 py-8 text-center text-techGray-400">
+                                No products found
+                              </td>
+                            </tr>
+                          ) : (
+                            filteredProducts.map((product) => (
+                              <tr key={product.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                                <td className="px-6 py-4">
+                                  <div>
+                                    <p className="text-white font-medium">{product.name}</p>
+                                    <p className="text-xs text-techGray-400"># {product.id}</p>
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <p className="text-techGray-300">{product.seller_email}</p>
+                                </td>
+                                <td className="px-6 py-4 text-right">
+                                  <span className="text-aiElectric-400 font-semibold">${product.price.toFixed(2)}</span>
+                                </td>
+                                <td className="px-6 py-4 text-center">
+                                  <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
+                                    product.status === 'published' ? 'bg-green-500/20 text-green-300' :
+                                    product.status === 'draft' ? 'bg-yellow-500/20 text-yellow-300' :
+                                    product.status === 'suspended' ? 'bg-red-500/20 text-red-300' :
+                                    'bg-gray-500/20 text-gray-300'
+                                  }`}>
+                                    {product.status}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 text-right">
+                                  <span className="text-white font-semibold">{product.sales_count}</span>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <div className="flex gap-2">
+                                    {product.status === 'draft' && (
+                                      <button
+                                        onClick={() => approveProduct(product.id)}
+                                        className="px-3 py-1 bg-green-500/20 text-green-300 rounded text-xs hover:bg-green-500/30 transition-colors flex items-center gap-1"
+                                        title="Approve"
+                                      >
+                                        <CheckCircle className="w-4 h-4" />
+                                        Approve
+                                      </button>
+                                    )}
+                                    {product.status !== 'suspended' && (
+                                      <button
+                                        onClick={() => setSelectedProduct(product)}
+                                        className="px-3 py-1 bg-red-500/20 text-red-300 rounded text-xs hover:bg-red-500/30 transition-colors flex items-center gap-1"
+                                        title="Suspend"
+                                      >
+                                        <AlertCircle className="w-4 h-4" />
+                                        Suspend
+                                      </button>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Orders Tab */}
-            {activeTab === 'orders' && (
-              <div className="rounded-xl border border-white/10 bg-white/5 overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="text-left text-sm text-gray-400 border-b border-white/10 bg-white/5">
-                        <th className="p-4">Order #</th>
-                        <th className="p-4">Customer</th>
-                        <th className="p-4">Course</th>
-                        <th className="p-4">Amount</th>
-                        <th className="p-4">Status</th>
-                        <th className="p-4">Date</th>
-                        <th className="p-4">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {orders.map((order) => (
-                        <tr key={order.id} className="border-b border-white/5">
-                          <td className="p-4 text-white font-mono">{order.order_number}</td>
-                          <td className="p-4 text-gray-300">{order.user_email}</td>
-                          <td className="p-4 text-white">{order.course_title}</td>
-                          <td className="p-4 text-green-400 font-medium">
-                            {formatCurrency(order.amount)}
-                            {order.discount_amount > 0 && (
-                              <span className="text-xs text-yellow-400 ml-2">
-                                (-{formatCurrency(order.discount_amount)})
-                              </span>
-                            )}
-                          </td>
-                          <td className="p-4">
-                            <span className={`text-xs px-2 py-1 rounded-full ${
-                              order.status === 'completed' ? 'bg-green-500/20 text-green-300' :
-                              order.status === 'refunded' ? 'bg-red-500/20 text-red-300' :
-                              'bg-yellow-500/20 text-yellow-300'
-                            }`}>
-                              {order.status}
-                            </span>
-                          </td>
-                          <td className="p-4 text-gray-400 text-sm">
-                            {formatDate(order.created_at)}
-                          </td>
-                          <td className="p-4">
-                            {order.status !== 'refunded' && (
-                              <button
-                                onClick={() => refundOrder(order.id, order.order_number)}
-                                className="text-red-400 hover:text-red-300 text-sm"
-                              >
-                                Refund
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                      {orders.length === 0 && (
-                        <tr>
-                          <td colSpan={7} className="py-12 text-center text-gray-400">
-                            No orders found
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {/* Coupons Tab */}
-            {activeTab === 'coupons' && (
-              <div className="space-y-6">
-                <button
-                  onClick={() => setShowCreateCoupon(true)}
-                  className="px-6 py-3 bg-forgePurple hover:bg-forgePurple/80 rounded-lg font-medium transition-colors"
-                >
-                  ➕ Create Coupon
-                </button>
-
-                <div className="rounded-xl border border-white/10 bg-white/5 overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="text-left text-sm text-gray-400 border-b border-white/10 bg-white/5">
-                          <th className="p-4">Code</th>
-                          <th className="p-4">Discount</th>
-                          <th className="p-4">Uses</th>
-                          <th className="p-4">Expires</th>
-                          <th className="p-4">Status</th>
-                          <th className="p-4">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {coupons.map((coupon) => (
-                          <tr key={coupon.id} className="border-b border-white/5">
-                            <td className="p-4 text-white font-mono font-bold">{coupon.code}</td>
-                            <td className="p-4 text-gray-300">
-                              {coupon.discount_type === 'percentage' 
-                                ? `${coupon.discount_value}%`
-                                : formatCurrency(coupon.discount_value)}
-                            </td>
-                            <td className="p-4 text-gray-400">
-                              {coupon.current_uses}
-                              {coupon.max_uses && ` / ${coupon.max_uses}`}
-                            </td>
-                            <td className="p-4 text-gray-400 text-sm">
-                              {coupon.expires_at ? formatDate(coupon.expires_at) : 'Never'}
-                            </td>
-                            <td className="p-4">
-                              <span className={`text-xs px-2 py-1 rounded-full ${
-                                coupon.is_active
-                                  ? 'bg-green-500/20 text-green-300'
-                                  : 'bg-gray-500/20 text-gray-400'
-                              }`}>
-                                {coupon.is_active ? 'Active' : 'Inactive'}
-                              </span>
-                            </td>
-                            <td className="p-4 flex gap-2">
-                              <button
-                                onClick={() => toggleCoupon(coupon.id)}
-                                className="text-blue-400 hover:text-blue-300 text-sm"
-                              >
-                                {coupon.is_active ? 'Deactivate' : 'Activate'}
-                              </button>
-                              <button
-                                onClick={() => deleteCoupon(coupon.id)}
-                                className="text-red-400 hover:text-red-300 text-sm"
-                              >
-                                Delete
-                              </button>
-                            </td>
+              {/* Sellers Tab */}
+              {activeTab === 'sellers' && (
+                <div className="space-y-4">
+                  <div className="bg-glass backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="text-left text-techGray-300 bg-deepTech-800/50 border-b border-white/10">
+                            <th className="px-6 py-3 font-semibold">Store</th>
+                            <th className="px-6 py-3 font-semibold">Email</th>
+                            <th className="px-6 py-3 font-semibold text-center">Products</th>
+                            <th className="px-6 py-3 font-semibold text-center">Sales</th>
+                            <th className="px-6 py-3 font-semibold text-right">Revenue</th>
+                            <th className="px-6 py-3 font-semibold text-center">Status</th>
+                            <th className="px-6 py-3 font-semibold">Actions</th>
                           </tr>
-                        ))}
-                        {coupons.length === 0 && (
-                          <tr>
-                            <td colSpan={6} className="py-12 text-center text-gray-400">
-                              No coupons created yet
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          {sellers.map((seller) => (
+                            <tr key={seller.seller_id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                              <td className="px-6 py-4">
+                                <p className="text-white font-medium">{seller.store_name}</p>
+                              </td>
+                              <td className="px-6 py-4">
+                                <p className="text-techGray-300">{seller.email}</p>
+                              </td>
+                              <td className="px-6 py-4 text-center">
+                                <span className="text-white font-semibold">{seller.products_count}</span>
+                              </td>
+                              <td className="px-6 py-4 text-center">
+                                <span className="text-white font-semibold">{seller.sales_count}</span>
+                              </td>
+                              <td className="px-6 py-4 text-right">
+                                <span className="text-aiElectric-400 font-semibold">${seller.total_revenue.toFixed(2)}</span>
+                              </td>
+                              <td className="px-6 py-4 text-center">
+                                <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
+                                  seller.status === 'verified' ? 'bg-green-500/20 text-green-300' :
+                                  'bg-yellow-500/20 text-yellow-300'
+                                }`}>
+                                  {seller.status}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4">
+                                {seller.status !== 'verified' && (
+                                  <button
+                                    onClick={() => verifySeller(seller.seller_id)}
+                                    className="px-3 py-1 bg-green-500/20 text-green-300 rounded text-xs hover:bg-green-500/30 transition-colors"
+                                  >
+                                    Verify
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
-          </>
-        )}
+              )}
+            </>
+          )}
+        </div>
 
-        {/* Create Coupon Modal */}
-        {showCreateCoupon && (
-          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-            <div className="bg-[#0a0a0a] border border-white/10 rounded-xl p-6 max-w-md w-full">
-              <h2 className="text-2xl font-bold text-white mb-6">Create Coupon</h2>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Coupon Code *</label>
-                  <input
-                    type="text"
-                    value={couponForm.code}
-                    onChange={(e) => setCouponForm({ ...couponForm, code: e.target.value.toUpperCase() })}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white font-mono"
-                    placeholder="e.g., SAVE20"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Discount Type *</label>
-                  <select
-                    value={couponForm.discount_type}
-                    onChange={(e) => setCouponForm({ ...couponForm, discount_type: e.target.value })}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white"
-                  >
-                    <option value="percentage">Percentage (%)</option>
-                    <option value="fixed">Fixed Amount ($)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Discount Value * {couponForm.discount_type === 'percentage' ? '(0-100)' : '($)'}
-                  </label>
-                  <input
-                    type="number"
-                    value={couponForm.discount_value}
-                    onChange={(e) => setCouponForm({ ...couponForm, discount_value: parseFloat(e.target.value) })}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white"
-                    min="0"
-                    max={couponForm.discount_type === 'percentage' ? 100 : undefined}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Max Uses (Optional)</label>
-                  <input
-                    type="number"
-                    value={couponForm.max_uses || ''}
-                    onChange={(e) => setCouponForm({ ...couponForm, max_uses: e.target.value ? parseInt(e.target.value) : null })}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white"
-                    placeholder="Unlimited"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Expires At (Optional)</label>
-                  <input
-                    type="datetime-local"
-                    value={couponForm.expires_at}
-                    onChange={(e) => setCouponForm({ ...couponForm, expires_at: e.target.value })}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white"
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-3 mt-6">
+        {/* Suspension Modal */}
+        {selectedProduct && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-deepTech-800 border border-white/10 rounded-2xl p-8 max-w-md w-full">
+              <h3 className="text-xl font-bold text-white mb-4">Suspend Product</h3>
+              <p className="text-techGray-300 mb-4">
+                Product: <strong>{selectedProduct.name}</strong>
+              </p>
+              <textarea
+                value={suspensionReason}
+                onChange={(e) => setSuspensionReason(e.target.value)}
+                placeholder="Reason for suspension..."
+                className="w-full p-3 bg-deepTech-900 border border-white/10 rounded-lg text-white placeholder-techGray-400 focus:border-red-400 focus:outline-none mb-4 min-h-24"
+              />
+              <div className="flex gap-3">
                 <button
-                  onClick={handleCreateCoupon}
-                  className="flex-1 px-6 py-3 bg-forgePurple hover:bg-forgePurple/80 rounded-lg font-medium transition-colors"
+                  onClick={() => suspendProduct(selectedProduct.id)}
+                  className="flex-1 px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg transition-colors"
                 >
-                  Create Coupon
+                  Suspend
                 </button>
                 <button
-                  onClick={() => setShowCreateCoupon(false)}
-                  className="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg font-medium transition-colors"
+                  onClick={() => {
+                    setSelectedProduct(null)
+                    setSuspensionReason('')
+                  }}
+                  className="flex-1 px-4 py-2 bg-deepTech-700 hover:bg-deepTech-600 text-white font-semibold rounded-lg transition-colors"
                 >
                   Cancel
                 </button>
@@ -546,16 +477,20 @@ export default function AdminMarketplace({ me }: AdminSSRProps) {
   )
 }
 
-function MetricCard({ title, value, icon }: { title: string; value: string; icon: string }) {
+function StatCard({ title, value, color, icon }: { title: string; value: string; color: string; icon: string }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-6">
-      <div className="flex items-start justify-between mb-2">
-        <p className="text-sm text-gray-400">{title}</p>
-        <span className="text-2xl">{icon}</span>
+    <div className={`bg-gradient-to-br ${color} rounded-xl p-6 text-white`}>
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-sm font-medium opacity-90">{title}</p>
+          <p className="text-3xl font-black mt-2">{value}</p>
+        </div>
+        <span className="text-3xl">{icon}</span>
       </div>
-      <p className="text-3xl font-bold text-white">{value}</p>
     </div>
   )
 }
 
-export const getServerSideProps = requireAdminSSR
+export async function getServerSideProps(context: any) {
+  return requireAdminSSR(context)
+}

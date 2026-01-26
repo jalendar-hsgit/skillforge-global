@@ -15,7 +15,7 @@ function SubscribeForm() {
   const stripe = useStripe()
   const elements = useElements()
   const router = useRouter()
-  const { me } = useMe()
+  const { me, loading: authLoading } = useMe()
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -24,11 +24,14 @@ function SubscribeForm() {
   const cycle = (router.query.cycle as string) || 'monthly'
 
   useEffect(() => {
-    if (!me) {
-      // If not logged in, redirect to login
-      router.replace(`/login?next=/subscribe?plan=${plan}&cycle=${cycle}`)
+    // Only check auth after loading is complete
+    if (!authLoading && !me) {
+      // If not logged in, redirect to login with proper URL encoding
+      const nextUrl = `/subscribe?plan=${plan}&cycle=${cycle}`
+      const loginUrl = `/login?next=${encodeURIComponent(nextUrl)}`
+      router.replace(loginUrl)
     }
-  }, [me, plan, cycle, router])
+  }, [me, authLoading, plan, cycle, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -87,25 +90,33 @@ function SubscribeForm() {
 
   return (
     <Card className="max-w-lg mx-auto p-8">
-      <h1 className="text-2xl font-bold mb-2">Subscribe to {plan?.toUpperCase()}</h1>
-      <p className="text-sm text-gray-600 mb-6">Billing: {cycle === 'annual' ? 'Annual (save 17%)' : 'Monthly'}</p>
-
-      <form onSubmit={handleSubmit}>
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-2">Card details</label>
-          <div className="border rounded-md p-3 bg-white">
-            <CardElement options={{ hidePostalCode: true }} />
-          </div>
+      {authLoading ? (
+        <div className="text-center py-8">
+          <p className="text-gray-600">Loading...</p>
         </div>
+      ) : (
+        <>
+          <h1 className="text-2xl font-bold mb-2">Subscribe to {plan?.toUpperCase()}</h1>
+          <p className="text-sm text-gray-600 mb-6">Billing: {cycle === 'annual' ? 'Annual (save 17%)' : 'Monthly'}</p>
 
-        {error && (
-          <div className="text-red-600 text-sm mb-3">{error}</div>
-        )}
+          <form onSubmit={handleSubmit}>
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2">Card details</label>
+              <div className="border rounded-md p-3 bg-white">
+                <CardElement options={{ hidePostalCode: true }} />
+              </div>
+            </div>
 
-        <Button type="submit" variant="primary" className="w-full" disabled={!stripe || loading}>
-          {loading ? 'Processing...' : 'Start Subscription'}
-        </Button>
-      </form>
+            {error && (
+              <div className="text-red-600 text-sm mb-3">{error}</div>
+            )}
+
+            <Button type="submit" variant="primary" className="w-full" disabled={!stripe || loading}>
+              {loading ? 'Processing...' : 'Start Subscription'}
+            </Button>
+          </form>
+        </>
+      )}
     </Card>
   )
 }

@@ -2398,22 +2398,287 @@ def process_payout(
     }
 
 
+@router.get("/admin/marketplace/dashboard")
+def admin_marketplace_dashboard(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """[ADMIN ONLY] Get marketplace dashboard metrics"""
+    from app.models.user import UserRole
+    if current_user.role not in [UserRole.ADMIN, UserRole.SUPERADMIN]:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    total_products = db.query(DigitalProduct).count()
+    published_products = db.query(DigitalProduct).filter_by(status=ProductStatus.PUBLISHED).count()
+    draft_products = db.query(DigitalProduct).filter_by(status=ProductStatus.DRAFT).count()
+    suspended_products = db.query(DigitalProduct).filter_by(status=ProductStatus.SUSPENDED).count()
+    
+    total_sellers = db.query(SellerAccount).count()
+    verified_sellers = db.query(SellerAccount).filter_by(status="verified").count()
+    
+    total_sales = db.query(ProductPurchase).filter_by(status="completed").count()
+    total_revenue = db.query(ProductPurchase).filter_by(status="completed").with_entities(
+        func.sum(ProductPurchase.purchase_price)
+    ).scalar() or 0.0
+    
+    return {
+        "products": {
+            "total": total_products,
+            "published": published_products,
+            "draft": draft_products,
+            "suspended": suspended_products
+        },
+        "sellers": {
+            "total": total_sellers,
+            "verified": verified_sellers,
+            "pending": total_sellers - verified_sellers
+        },
+        "sales": {
+            "total_transactions": total_sales,
+            "total_revenue": float(total_revenue),
+            "platform_fee": float(total_revenue * 0.20),
+            "seller_earnings": float(total_revenue * 0.80)
+        }
+    }
+
+
+@router.get("/admin/marketplace/products")
+def admin_list_products(
+    status: Optional[str] = None,
+    seller_id: Optional[int] = None,
+    skip: int = 0,
+    limit: int = 20,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """[ADMIN ONLY] List all products including drafts and suspended"""
+    from app.models.user import UserRole
+    if current_user.role not in [UserRole.ADMIN, UserRole.SUPERADMIN]:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    query = db.query(DigitalProduct)
+    
+    if status:
+        query = query.filter_by(status=status)
+    
+    if seller_id:
+        query = query.filter_by(seller_id=seller_id)
+    
+    total = query.count()
+    products = query.order_by(desc(DigitalProduct.created_at)).offset(skip).limit(limit).all()
+    
+    return {
+        "products": [
+            {
+                "id": p.id,
+                "name": p.name,
+                "seller_id": p.seller_id,
+                "status": p.status,
+                "price": float(p.price),
+                "sales_count": p.sales_count,
+                "created_at": p.created_at.isoformat() if p.created_at else None,
+                "views_count": p.views_count
+            }
+            for p in products
+        ],
+        "total": total,
+        "skip": skip,
+        "limit": limit
+    }
+
+
+@router.get("/admin/marketplace/products/{product_id}")
+def admin_get_product(
+    product_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """[ADMIN ONLY] Get full product details for admin review"""
+    from app.models.user import UserRole
+    if current_user.role not in [UserRole.ADMIN, UserRole.SUPERADMIN]:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    product = db.query(DigitalProduct).filter_by(id=product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    seller = db.query(User).filter_by(id=product.seller_id).first()
+    sales = db.query(ProductPurchase).filter_by(product_id=product_id, status="completed").count()
+    
+    return {
+        "id": product.id,
+        "name": product.name,
+        "description": product.description,
+        "seller_id": product.seller_id,
+        "seller_email": seller.email if seller else None,
+        "price": float(product.price),
+        "status": product.status,
+        "sales_count": sales,
+        "views_count": product.views_count,
+        "average_rating": float(product.average_rating or 0),
+        "created_at": product.created_at.isoformat() if product.created_at else None,
+        "suspension_reason": product.suspension_reason if hasattr(product, 'suspension_reason') else None
+    }
+
+
+@router.put("/admin/marketplace/products/{product_id}/approve")
+def admin_approve_product(
+    product_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """[ADMIN ONLY] Approve pending product for publication"""
+    from app.models.user import UserRole
+    if current_user.role not in [UserRole.ADMIN, UserRole.SUPERADMIN]:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    product = db.query(DigitalProduct).filter_by(id=product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    product.status = ProductStatus.PUBLISHED
+    if hasattr(product, 'approved_at'):
+        product.approved_at = datetime.utcnow()
+    if hasattr(product, 'approved_by'):
+        product.approved_by = current_user.id
+    
+    db.commit()
+    
+    return {
+        "message": "Product approved successfully",
+        "product_id": product_id,
+        "status": "published"
+    }
+
+
+@router.put("/admin/marketplace/products/{product_id}/suspend")
+def admin_suspend_product(
+    product_id: int,
+    reason: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """[ADMIN ONLY] Suspend a product"""
+    from app.models.user import UserRole
+    if current_user.role not in [UserRole.ADMIN, UserRole.SUPERADMIN]:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    product = db.query(DigitalProduct).filter_by(id=product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    product.status = ProductStatus.SUSPENDED
+    if hasattr(product, 'suspension_reason'):
+        product.suspension_reason = reason or "Suspended by admin"
+    
+    db.commit()
+    
+    return {
+        "message": "Product suspended successfully",
+        "product_id": product_id,
+        "status": "suspended",
+        "reason": reason
+    }
+
+
+@router.get("/admin/marketplace/sellers")
+def admin_list_sellers(
+    status: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 20,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """[ADMIN ONLY] List all sellers with metrics"""
+    from app.models.user import UserRole
+    if current_user.role not in [UserRole.ADMIN, UserRole.SUPERADMIN]:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    query = db.query(SellerAccount)
+    
+    if status:
+        query = query.filter_by(status=status)
+    
+    total = query.count()
+    sellers = query.offset(skip).limit(limit).all()
+    
+    result = []
+    for seller in sellers:
+        user = db.query(User).filter_by(id=seller.user_id).first()
+        products = db.query(DigitalProduct).filter_by(seller_id=seller.user_id).count()
+        sales = db.query(ProductPurchase).filter_by(seller_id=seller.user_id, status="completed").count()
+        
+        result.append({
+            "seller_id": seller.id,
+            "user_id": seller.user_id,
+            "email": user.email if user else None,
+            "store_name": seller.store_name,
+            "status": seller.status,
+            "products_count": products,
+            "sales_count": sales,
+            "total_revenue": float(seller.total_revenue or 0),
+            "created_at": seller.created_at.isoformat() if seller.created_at else None
+        })
+    
+    return {
+        "sellers": result,
+        "total": total,
+        "skip": skip,
+        "limit": limit
+    }
+
+
+@router.put("/admin/marketplace/sellers/{seller_id}/verify")
+def admin_verify_seller(
+    seller_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """[ADMIN ONLY] Verify a seller account"""
+    from app.models.user import UserRole
+    if current_user.role not in [UserRole.ADMIN, UserRole.SUPERADMIN]:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    seller = db.query(SellerAccount).filter_by(id=seller_id).first()
+    if not seller:
+        raise HTTPException(status_code=404, detail="Seller not found")
+    
+    seller.status = "verified"
+    db.commit()
+    
+    return {
+        "message": "Seller verified successfully",
+        "seller_id": seller_id,
+        "status": "verified"
+    }
+
+
 @router.get("/admin/marketplace/refunds")
 def get_admin_refunds(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get all refunds (admin only)"""
+    """[ADMIN ONLY] Get all refunds"""
+    from app.models.user import UserRole
+    if current_user.role not in [UserRole.ADMIN, UserRole.SUPERADMIN]:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    refunds = db.query(ProductPurchase).filter_by(status="refunded").all()
+    
     return {
         "refunds": [
             {
-                "id": 1,
-                "order_id": 1,
-                "amount": 100.00,
-                "status": "pending",
-                "requested_at": datetime.utcnow().isoformat()
+                "id": r.id,
+                "order_id": r.id,
+                "product_id": r.product_id,
+                "buyer_id": r.buyer_id,
+                "amount": float(r.purchase_price),
+                "status": "refunded",
+                "created_at": r.purchased_at.isoformat() if r.purchased_at else None
             }
-        ]
+            for r in refunds
+        ],
+        "total": len(refunds)
     }
 
 

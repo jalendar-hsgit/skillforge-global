@@ -914,6 +914,150 @@ class EmailService:
         """
         
         return await self.send_email(to_email, subject, html_content)
+    
+    async def send_marketplace_order_confirmation(
+        self,
+        to_email: str,
+        user_name: str,
+        product_names: list,
+        order_id: int,
+        order_number: str,
+        amount: float,
+        order_date: datetime
+    ) -> bool:
+        """Send marketplace order confirmation email."""
+        subject = f"Order Confirmation - {order_number}"
+        
+        products_html = "\n".join([f"<li>{name}</li>" for name in product_names])
+        
+        html_content = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h2 style="color: #059669;">Marketplace Order Confirmed ✓</h2>
+                
+                <p>Hi {user_name},</p>
+                
+                <p>Thank you for your purchase! Your marketplace order has been successfully completed.</p>
+                
+                <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <h3 style="margin-top: 0; color: #1f2937;">Order Details</h3>
+                    <p><strong>Order Number:</strong> {order_number}</p>
+                    <p><strong>Order ID:</strong> #{order_id}</p>
+                    <p><strong>Items Purchased:</strong></p>
+                    <ul style="margin: 10px 0; padding-left: 20px;">
+                        {products_html}
+                    </ul>
+                    <p><strong>Total Amount:</strong> ${amount:.2f}</p>
+                    <p><strong>Order Date:</strong> {order_date.strftime('%B %d, %Y at %I:%M %p')}</p>
+                </div>
+                
+                <p><strong>What's Next:</strong></p>
+                <ol style="margin: 10px 0; padding-left: 20px;">
+                    <li>Download your purchased items immediately</li>
+                    <li>Check your email for download links</li>
+                    <li>Access all materials in your dashboard</li>
+                </ol>
+                
+                <p>
+                    <a href="{settings.FRONTEND_ORIGIN}/dashboard/marketplace" 
+                       style="display: inline-block; background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 0;">
+                        View Your Purchases
+                    </a>
+                </p>
+                
+                <div style="background: #eff6ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <p style="margin: 0;">
+                        <strong>💡 Tip:</strong> Save your order confirmation and keep the download links 
+                        in a safe place for future reference.
+                    </p>
+                </div>
+                
+                <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+                
+                <p style="color: #6b7280; font-size: 12px;">
+                    Questions about your order? Contact support at support@skillforge.global<br>
+                    SkillForge Global - Marketplace - Empowering Your Learning Journey
+                </p>
+            </div>
+        </body>
+        </html>
+        """
+        
+        return await self.send_email(to_email, subject, html_content)
+    
+    async def send_seller_payout_notification(
+        self,
+        to_email: str,
+        seller_name: str,
+        amount: float,
+        payout_date: datetime,
+        payout_method: str,
+        payout_id: int
+    ) -> bool:
+        """Send seller payout notification email."""
+        subject = f"Payout Processed - ${amount:.2f}"
+        
+        method_text = "Bank Transfer" if payout_method == "bank_transfer" else "PayPal"
+        
+        html_content = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h2 style="color: #059669;">Payout Processed ✓</h2>
+                
+                <p>Hi {seller_name},</p>
+                
+                <p>Great news! Your seller payout has been successfully processed and is on its way to you.</p>
+                
+                <div style="background: #d1fae5; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #059669;">
+                    <h3 style="margin-top: 0; color: #065f46;">Payout Summary</h3>
+                    <p><strong>Payout ID:</strong> #{payout_id}</p>
+                    <p><strong>Amount:</strong> ${amount:.2f}</p>
+                    <p><strong>Method:</strong> {method_text}</p>
+                    <p style="margin-bottom: 0;"><strong>Processing Date:</strong> {payout_date.strftime('%B %d, %Y')}</p>
+                </div>
+                
+                <p style="color: #6b7280; font-size: 14px;">
+                    <strong>⏱️ Arrival Time:</strong><br>
+                    • Bank Transfer: 2-5 business days<br>
+                    • PayPal: 1-2 business days
+                </p>
+                
+                <p>
+                    <a href="{settings.FRONTEND_ORIGIN}/seller/payouts" 
+                       style="display: inline-block; background: #059669; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 0;">
+                        View Payout History
+                    </a>
+                </p>
+                
+                <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <h3 style="margin-top: 0; color: #1f2937;">💰 Keep Earning</h3>
+                    <p style="margin-bottom: 0;">
+                        Keep creating amazing products and watch your earnings grow! 
+                        Check your seller dashboard for sales analytics and trends.
+                    </p>
+                </div>
+                
+                <p>
+                    <a href="{settings.FRONTEND_ORIGIN}/seller/dashboard" 
+                       style="display: inline-block; background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 0;">
+                        Go to Seller Dashboard
+                    </a>
+                </p>
+                
+                <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+                
+                <p style="color: #6b7280; font-size: 12px;">
+                    Questions about your payout? Contact seller support at sellers@skillforge.global<br>
+                    SkillForge Global - Marketplace - Empowering Creators Worldwide
+                </p>
+            </div>
+        </body>
+        </html>
+        """
+        
+        return await self.send_email(to_email, subject, html_content)
 
 
 # Singleton instance
