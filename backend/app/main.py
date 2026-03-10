@@ -42,7 +42,7 @@ from app.modelsx.resume_comparison import ResumeVersion, ResumeComparison
 # import job application tracking
 from app.modelsx.job_application import JobApplication as JobApplicationTracker
 # import marketplace models
-from app.modelsx.order import Order, Coupon, CartItem
+from app.modelsx.order import Order, Coupon, CartItem, OrderItem
 # import platform settings
 from app.modelsx.platform_settings import PlatformSetting
 # import coding practice models

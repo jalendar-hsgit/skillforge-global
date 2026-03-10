@@ -11,24 +11,12 @@ from sqlalchemy.orm import Session
 from decimal import Decimal
 
 from app.core.db import get_db
-from app.core.security import get_current_user
-from app.models.user import User, UserRole
+from app.core.rbac import require_admin
+from app.models.user import User
 from app.modelsx.marketplace import DigitalProduct
 from app.modelsx.order import Order
 
 router = APIRouter(prefix="/admin/marketplace", tags=["admin-marketplace"])
-
-
-def is_admin(user: User) -> bool:
-    """Check if user is admin."""
-    return user.role in [UserRole.ADMIN, UserRole.SUPERADMIN]
-
-
-def require_admin(current_user: User = Depends(get_current_user)):
-    """Ensure user is admin."""
-    if not is_admin(current_user):
-        raise HTTPException(status_code=403, detail="Admin access required")
-    return current_user
 
 
 # ============================================================================

@@ -80,7 +80,7 @@ const CheckoutFormContent: React.FC<{ orderData: OrderData }> = ({ orderData }) 
       } else if (result.paymentIntent?.status === 'succeeded') {
         // Payment successful - confirm order and redirect
         try {
-          await fetch(`${API_BASE}/api/session/v1x/marketplace/confirm-payment/${orderData.order_id}`, {
+          await fetch(`${process.env.NEXT_PUBLIC_API_BASE || ''}/api/v1x/marketplace/confirm-payment/${orderData.order_id}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include'
@@ -138,27 +138,71 @@ const CheckoutPage = () => {
 
   useEffect(() => {
     loadCheckout();
-  }, []);
+  }, [router.query]);
 
   const loadCheckout = async () => {
     try {
       setLoading(true);
+      setError('');
+
+      // Check if orderId is in URL (from cart.tsx checkout flow)
+      const orderId = router.query.orderId;
       
-      // Fetch current cart
-      const cartResponse = await fetch(`${API_BASE}/api/session/v1x/marketplace/cart`, {
+      if (orderId && orderId !== 'undefined') {
+        // Order already created by cart.tsx - just fetch it
+        try {
+          const orderResponse = await fetch(
+            `${process.env.NEXT_PUBLIC_API_BASE || ''}/api/v1x/marketplace/orders/${orderId}`,
+            { credentials: 'include' }
+          );
+
+          if (orderResponse.ok) {
+            const order = await orderResponse.json();
+            console.log('[Checkout] Fetched order:', order);
+            // Ensure we have client_secret from the response
+            const orderData = {
+              order_id: order.id || parseInt(orderId as string),
+              order_number: order.order_number || '',
+              total_amount: order.total_amount || order.amount || 0,
+              items_count: order.items_count || 0,
+              discount_amount: order.discount_amount || 0,
+              status: order.status || 'pending',
+              client_secret: order.client_secret,
+              payment_intent_id: order.payment_intent_id
+            };
+            console.log('[Checkout] Setting orderData:', orderData);
+            setOrderData(orderData);
+            setLoading(false);
+            return;
+          } else {
+            const errData = await orderResponse.json().catch(() => ({}));
+            console.error('Order fetch error:', errData);
+          }
+        } catch (orderErr) {
+          console.error('Error fetching existing order:', orderErr);
+          setError('Could not load order. Please try again.');
+          setLoading(false);
+          return;
+        }
+      }
+
+      // No orderId - fetch cart to show summary
+      const cartResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE || ''}/api/v1x/marketplace/cart`, {
         credentials: 'include'
       });
       
       if (cartResponse.ok) {
         const cart = await cartResponse.json();
+        console.log('[Checkout] Cart data:', cart);
         setCartSummary(cart);
       } else if (cartResponse.status === 401) {
         router.push('/login?redirect=/marketplace/checkout');
+        return;
       }
+      setLoading(false);
     } catch (err) {
-      console.error('Error loading cart:', err);
-      // Continue anyway - user can still proceed
-    } finally {
+      console.error('Error loading checkout:', err);
+      setError('Error loading checkout information');
       setLoading(false);
     }
   };
@@ -174,11 +218,12 @@ const CheckoutPage = () => {
 
       if (productIds.length === 0) {
         setError('Your cart is empty');
+        setLoading(false);
         return;
       }
 
       // Create order with Stripe payment
-      const checkoutResponse = await fetch(`${API_BASE}/api/session/v1x/marketplace/checkout`, {
+      const checkoutResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE || ''}/api/v1x/marketplace/checkout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -195,10 +240,12 @@ const CheckoutPage = () => {
       }
 
       const order = await checkoutResponse.json();
-      setOrderData(order);
+      // Update URL with orderId to trigger useEffect to load order
+      const orderId = order.id || order.order_id;
+      await router.push(`/marketplace/checkout?orderId=${orderId}`);
+      // setOrderData will be called by useEffect when router.query changes
     } catch (err: any) {
       setError(err.message || 'Checkout failed');
-    } finally {
       setLoading(false);
     }
   };
@@ -217,19 +264,32 @@ const CheckoutPage = () => {
   }
 
   // Show payment form if we have order data
-  if (orderData?.client_secret) {
+  if (orderData?.order_id) {
     return (
       <Layout maxWidth="2xl" showFooter={true}>
         <div className="py-12">
           <div className="bg-white rounded-lg shadow p-8">
             <h1 className="text-3xl font-bold mb-2">Complete Your Purchase</h1>
-            <p className="text-gray-600 mb-8">Order {orderData.order_number}</p>
+            <p className="text-gray-600 mb-8">Order {orderData.order_number || `#${orderData.order_id}`}</p>
+
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                <p className="text-red-800 text-sm">{error}</p>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="md:col-span-2">
-                <Elements stripe={stripePromise}>
-                  <CheckoutFormContent orderData={orderData} />
-                </Elements>
+                {orderData.client_secret ? (
+                  <Elements stripe={stripePromise}>
+                    <CheckoutFormContent orderData={orderData} />
+                  </Elements>
+                ) : (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
+                    <p className="text-blue-800 font-semibold">Preparing payment...</p>
+                    <p className="text-blue-700 text-sm mt-2">If this takes too long, please refresh the page.</p>
+                  </div>
+                )}
 
                 <div className="mt-6 p-4 bg-blue-50 rounded-lg">
                   <p className="text-sm text-gray-700">

@@ -1,24 +1,27 @@
 import { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/Button';
-import { Trash2, ShoppingBag, Tag, ArrowLeft } from 'lucide-react';
+import { Trash2, ShoppingBag, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { API_BASE } from '@/lib/apiBase';
 
 interface CartItem {
   id: number;
-  course_id: number;
-  course_title: string;
-  course_path: string;
+  product_id?: number;
+  course_id?: number;
+  course_title?: string;
+  product_name?: string;
+  title?: string;
+  course_path?: string;
   price: number;
   added_at: string;
+  quantity?: number;
 }
 
-interface CartSummary {
+interface CartData {
   items: CartItem[];
   subtotal: number;
-  discount: number;
+  discount?: number;
   tax: number;
   total: number;
   coupon_code?: string;
@@ -26,10 +29,12 @@ interface CartSummary {
 
 export default function CartPage() {
   const router = useRouter();
-  const [cart, setCart] = useState<CartSummary | null>(null);
+  const [cart, setCart] = useState<CartData | null>(null);
   const [loading, setLoading] = useState(true);
   const [couponCode, setCouponCode] = useState('');
-  const [couponMessage, setCouponMessage] = useState('');
+  const [couponMessage, setCouponMessage] = useState<string | null>(null);
+  const [removingItem, setRemovingItem] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
@@ -39,77 +44,44 @@ export default function CartPage() {
   const fetchCart = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/api/session/v1x/marketplace/cart`, {
-        credentials: 'include'
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE || ''}/api/v1x/marketplace/cart`, {
+        credentials: 'include',
       });
+
+      if (response.status === 401) {
+        router.push('/auth/login?redirect=/marketplace/cart');
+        return;
+      }
 
       if (response.ok) {
         const data = await response.json();
         setCart(data);
-      } else if (response.status === 401) {
-        router.push('/login?redirect=/marketplace/cart');
+      } else {
+        setCart(null);
       }
     } catch (error) {
       console.error('Error fetching cart:', error);
+      setCart(null);
     } finally {
       setLoading(false);
     }
   };
 
   const removeItem = async (itemId: number) => {
+    setRemovingItem(itemId);
     try {
-      console.log(`[Remove Item] Starting removal of cart item ${itemId}`);
-      console.log(`[Remove Item] Calling DELETE /api/session/v1x/marketplace/cart/${itemId}`);
-      console.log(`[Remove Item] Current cart before deletion:`, cart?.items.map(i => ({ id: i.id, courseId: i.course_id })));
-      
-      const response = await fetch(`${API_BASE}/api/session/v1x/marketplace/cart/${itemId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE || ''}/api/v1x/marketplace/cart/${itemId}`, {
         method: 'DELETE',
-        credentials: 'include'
+        credentials: 'include',
       });
 
-      console.log(`[Remove Item] Response status: ${response.status}, statusText: ${response.statusText}`);
-
       if (response.ok) {
-        // Success - refresh cart
-        console.log(`[Remove Item] Successfully removed item ${itemId}`);
-        await fetchCart();
-        console.log(`[Remove Item] Cart refreshed after deletion`);
-      } else {
-        // Log error details
-        let errorMessage = 'Unknown error';
-        try {
-          const error = await response.json();
-          errorMessage = error.detail || JSON.stringify(error);
-          console.error('[Remove Item] 400+ error:', { 
-            status: response.status, 
-            statusText: response.statusText,
-            itemId,
-            error 
-          });
-          
-          // Show specific error based on status code
-          if (response.status === 404) {
-            alert(`Item not found (ID: ${itemId}). It may have been already removed. Refreshing cart...`);
-            await fetchCart();
-          } else if (response.status === 403) {
-            alert(`You don't have permission to remove this item.`);
-          } else {
-            alert(`Failed to remove item: ${errorMessage}`);
-          }
-        } catch (jsonError) {
-          const text = await response.text();
-          console.error('[Remove Item] Non-JSON error response:', { 
-            status: response.status,
-            statusText: response.statusText,
-            itemId,
-            text 
-          });
-          alert(`Failed to remove item: Status ${response.status} - ${response.statusText}`);
-        }
+        fetchCart();
       }
     } catch (error) {
-      console.error('[Remove Item] Exception:', error);
-      alert('Failed to remove item: Network error - ' + (error instanceof Error ? error.message : String(error)));
+      console.error('Error removing item:', error);
+    } finally {
+      setRemovingItem(null);
     }
   };
 
@@ -117,58 +89,57 @@ export default function CartPage() {
     if (!couponCode.trim()) return;
 
     try {
-      const response = await fetch(`${API_BASE}/api/session/v1x/marketplace/coupons/validate`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE || ''}/api/v1x/marketplace/apply-coupon`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ coupon_code: couponCode })
+        body: JSON.stringify({ coupon_code: couponCode }),
       });
 
       if (response.ok) {
-        const data = await response.json();
-        setCouponMessage(`✓ Coupon applied: ${data.discount_type === 'percentage' ? data.discount_value + '%' : '$' + data.discount_value} off`);
-        // Recalculate with coupon (in real app, backend should return updated cart)
+        setCouponMessage('✓ Coupon applied successfully!');
         fetchCart();
+        setCouponCode('');
+        // Clear message after 3 seconds
+        setTimeout(() => setCouponMessage(null), 3000);
       } else {
-        const error = await response.json();
-        setCouponMessage(`✗ ${error.detail || 'Invalid coupon'}`);
+        const data = await response.json();
+        setCouponMessage(`✗ ${data.detail || 'Invalid coupon'}`);
+        // Clear error message after 3 seconds
+        setTimeout(() => setCouponMessage(null), 3000);
       }
     } catch (error) {
-      setCouponMessage('✗ Failed to apply coupon');
+      console.error('Error applying coupon:', error);
+      setCouponMessage('✗ Error applying coupon');
+      setTimeout(() => setCouponMessage(null), 3000);
     }
+  };
+
+  const proceedToCheckout = () => {
+    router.push('/marketplace/checkout');
   };
 
   const handleCheckout = async () => {
     setProcessing(true);
     try {
-      const response = await fetch(`${API_BASE}/api/session/v1x/marketplace/checkout`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE || ''}/api/v1x/marketplace/checkout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          payment_method: 'stripe', // Use Stripe for payment
-          coupon_code: couponCode || undefined
-        })
+          payment_method: 'stripe',
+          coupon_code: couponCode || undefined,
+        }),
       });
 
       if (response.ok) {
         const order = await response.json();
-        
-        // If payment intent was created, redirect to payment page
-        if (order.client_secret) {
-          router.push(`/marketplace/checkout?orderId=${order.order_id}&clientSecret=${order.client_secret}`);
-        } else {
-          // Fallback for non-stripe payment methods
-          alert(`Order placed successfully! Order #${order.order_number}`);
-          router.push('/marketplace/orders');
-        }
+        router.push(`/marketplace/checkout?orderId=${order.order_id}`);
       } else {
-        const error = await response.json();
-        alert(error.detail || 'Checkout failed');
+        setError('Checkout failed');
       }
-    } catch (error) {
-      console.error('Error during checkout:', error);
-      alert('Checkout failed');
+    } catch (err) {
+      setError('Checkout failed');
     } finally {
       setProcessing(false);
     }
@@ -270,7 +241,7 @@ export default function CartPage() {
                         className="flex-1 px-4 py-2 bg-deepTech-900 border-2 border-techGray-700 rounded-lg text-white focus:border-forgePurple focus:outline-none"
                       />
                       <Button size="sm" onClick={applyCoupon}>
-                        <Tag className="w-4 h-4" />
+                        Apply
                       </Button>
                     </div>
                     {couponMessage && (
@@ -286,7 +257,7 @@ export default function CartPage() {
                       <span>Subtotal</span>
                       <span className="font-semibold">${cart.subtotal.toFixed(2)}</span>
                     </div>
-                    {cart.discount > 0 && (
+                    {(cart.discount && cart.discount > 0) && (
                       <div className="flex justify-between text-green-500">
                         <span>Discount</span>
                         <span className="font-semibold">-${cart.discount.toFixed(2)}</span>

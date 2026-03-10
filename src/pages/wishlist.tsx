@@ -29,8 +29,20 @@ export default function WishlistPage() {
   const [page, setPage] = useState(0);
   const [total, setTotal] = useState(0);
   const [removing, setRemoving] = useState<number | null>(null);
+  const [isClient, setIsClient] = useState(false);
 
-  const limit = 12;
+  const limit = 10;
+
+  // Check if authenticated - client-side only
+  useEffect(() => {
+    setIsClient(true);
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('Please login to view your wishlist');
+      }
+    }
+  }, []);
 
   useEffect(() => {
     fetchWishlist();
@@ -109,7 +121,20 @@ export default function WishlistPage() {
 
   const totalPages = Math.ceil(total / limit);
 
-  if (!localStorage.getItem('token')) {
+  // Don't render login message on server
+  if (!isClient) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-12">
+        <div className="container mx-auto px-4">
+          <div className="text-center">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && error.includes('login')) {
     return (
       <div className="min-h-screen bg-gray-50 py-12">
         <div className="container mx-auto px-4">

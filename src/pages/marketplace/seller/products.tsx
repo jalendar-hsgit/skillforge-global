@@ -36,7 +36,7 @@ export default function SellerProducts() {
 
   const fetchProducts = async () => {
     try {
-      const url = new URL(`/api/session/v1x/seller/products`);
+      const url = new URL(`${process.env.NEXT_PUBLIC_API_BASE || ''}/api/v1x/marketplace/seller/products`);
       if (filterStatus !== 'all') {
         url.searchParams.append('status', filterStatus);
       }
@@ -47,7 +47,7 @@ export default function SellerProducts() {
 
       if (res.ok) {
         const data = await res.json();
-        setProducts(data.products || []);
+        setProducts(data.items || data.products || []);
       } else if (res.status === 401) {
         router.push('/login');
       }
@@ -62,7 +62,7 @@ export default function SellerProducts() {
   const deleteProduct = async (id: number) => {
     try {
       const res = await fetch(
-        `/api/session/v1x/seller/products/${id}`,
+        `${process.env.NEXT_PUBLIC_API_BASE || ''}/api/v1x/marketplace/seller/products/${id}`,
         {
           method: 'DELETE',
           credentials: 'include',

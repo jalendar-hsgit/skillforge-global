@@ -240,7 +240,7 @@ def get_payment_status(
 
 
 @router.post("/webhook/stripe")
-async def stripe_webhook(request: Request):
+async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     """
     Stripe webhook endpoint for payment events.
     
@@ -250,26 +250,81 @@ async def stripe_webhook(request: Request):
     - charge.refunded
     """
     
-    # TODO: Implement Stripe webhook signature verification
-    # In production, verify webhook signature:
-    # endpoint_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
-    # sig_header = request.headers.get("stripe-signature")
-    # Verify signature before processing
+    import stripe
+    import os
     
-    payload = await request.json()
-    event_type = payload.get("type")
-    event_data = payload.get("data", {}).get("object", {})
+    # Get the webhook secret from environment
+    endpoint_secret = os.getenv("STRIPE_WEBHOOK_SECRET", "whsec_test")
     
-    # Log webhook event
+    payload = await request.body()
+    sig_header = request.headers.get("stripe-signature")
+    
+    try:
+        # Verify webhook signature
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, endpoint_secret
+        )
+    except ValueError as e:
+        # Invalid payload
+        print(f"Invalid payload: {e}")
+        raise HTTPException(status_code=400, detail="Invalid payload")
+    except stripe.error.SignatureVerificationError as e:
+        # Invalid signature
+        print(f"Invalid signature: {e}")
+        raise HTTPException(status_code=400, detail="Invalid signature")
+    
+    # Handle the event
+    event_type = event.get("type")
+    event_data = event.get("data", {}).get("object", {})
+    
     print(f"Stripe webhook received: {event_type}")
     
-    # TODO: Process webhook events
-    # Examples:
-    # - Update order payment status
-    # - Trigger notifications
-    # - Update analytics
+    if event_type == "payment_intent.succeeded":
+        # Payment was successful
+        intent_id = event_data.get("id")
+        metadata = event_data.get("metadata", {})
+        order_id = metadata.get("order_id")
+        
+        if order_id:
+            order = db.query(Order).filter(Order.id == int(order_id)).first()
+            if order:
+                order.payment_status = "completed"
+                order.status = "completed"
+                order.payment_intent_id = intent_id
+                order.paid_at = datetime.utcnow()
+                db.commit()
+                print(f"Order {order_id} marked as completed")
     
-    return {"received": True}
+    elif event_type == "payment_intent.payment_failed":
+        # Payment failed
+        intent_id = event_data.get("id")
+        metadata = event_data.get("metadata", {})
+        order_id = metadata.get("order_id")
+        
+        if order_id:
+            order = db.query(Order).filter(Order.id == int(order_id)).first()
+            if order:
+                order.payment_status = "failed"
+                order.status = "failed"
+                order.payment_intent_id = intent_id
+                db.commit()
+                print(f"Order {order_id} marked as failed")
+    
+    elif event_type == "charge.refunded":
+        # Charge was refunded
+        charge_id = event_data.get("id")
+        metadata = event_data.get("metadata", {})
+        order_id = metadata.get("order_id")
+        
+        if order_id:
+            order = db.query(Order).filter(Order.id == int(order_id)).first()
+            if order:
+                order.payment_status = "refunded"
+                order.status = "refunded"
+                db.commit()
+                print(f"Order {order_id} marked as refunded")
+    
+    return {"received": True, "event_type": event_type}
 
 
 @router.post("/webhook/paypal")

@@ -14,7 +14,7 @@ import os
 from pydantic import BaseModel
 
 from app.core.db import get_db
-from app.core.security import get_current_admin, get_current_superadmin
+from app.core.rbac import require_admin, require_superadmin
 from app.models.user import User, UserRole
 from app.modelsx.mentor import Mentor, MentorSession, MentorStatus, SessionStatus, MentorReview
 from app.modelsx.admin_log import AdminLog
@@ -70,7 +70,7 @@ def log_admin_action(
 
 @router.get("/dashboard/stats", response_model=AdminDashboardStats)
 def get_dashboard_stats(
-    admin_user: User = Depends(get_current_admin),
+    admin_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
     """Get comprehensive dashboard statistics for admin overview"""

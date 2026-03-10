@@ -10,7 +10,7 @@ from pydantic import BaseModel
 import asyncio
 
 from app.core.db import get_db
-from app.core.security import get_current_user
+from app.core.rbac import require_admin
 from app.models.user import User, UserRole
 from app.modelsx.payment_method import PayoutRequest as PayoutRequestModel, PaymentMethod
 from app.modelsx.mentor import Mentor
@@ -69,15 +69,9 @@ class VerifyPaymentMethodRequest(BaseModel):
     status: str  # VERIFIED, REJECTED
 
 
-# Helper Functions
-def require_admin(user: User = Depends(get_current_user)) -> User:
-    """Verify user is admin"""
-    if user.role not in [UserRole.ADMIN, UserRole.SUPERADMIN]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin access required"
-        )
-    return user
+# ============================================================================
+# PAYOUT MANAGEMENT ENDPOINTS
+# ============================================================================
 
 
 # Endpoints - Define specific routes BEFORE generic /{payout_id}

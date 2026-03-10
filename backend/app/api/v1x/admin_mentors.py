@@ -8,6 +8,7 @@ from datetime import datetime
 
 from app.core.db import get_db
 from app.core.security import get_current_user
+from app.core.rbac import require_admin
 from app.models.user import User
 from app.modelsx.mentor import Mentor, MentorStatus, MentorSession
 from app.services.email_service import email_service
@@ -37,31 +38,17 @@ class UpdateMentorStatusRequest(BaseModel):
     status: MentorStatus
 
 
-def is_admin(user: User) -> bool:
-    """Check if user has admin privileges."""
-    # TODO: Implement proper role-based access control
-    # For now, check if user email is in admin list
-    admin_emails = ["admin@skillforge.com", "support@skillforge.com"]
-    return user.email in admin_emails or user.email.endswith("@skillforge.com")
-
-
 @router.get("/applications", response_model=List[MentorApplicationResponse])
 def get_mentor_applications(
     status_filter: Optional[str] = Query(None, description="Filter by status"),
     limit: int = Query(100, ge=1, le=500),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
     """
     Get all mentor applications (admin only).
     Optionally filter by status.
     """
-    if not is_admin(current_user):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin access required"
-        )
-    
     query = db.query(Mentor)
     
     if status_filter:
@@ -96,19 +83,13 @@ def get_mentor_applications(
 def update_mentor_status(
     mentor_id: int,
     request: UpdateMentorStatusRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
     """
     Update mentor application status (admin only).
     Approve or reject applications.
     """
-    if not is_admin(current_user):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin access required"
-        )
-    
     mentor = db.query(Mentor).filter(Mentor.id == mentor_id).first()
     if not mentor:
         raise HTTPException(
@@ -165,18 +146,12 @@ def update_mentor_status(
 
 @router.get("/stats")
 def get_mentor_stats(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
     """
     Get mentor system statistics (admin only).
     """
-    if not is_admin(current_user):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin access required"
-        )
-    
     total_mentors = db.query(Mentor).count()
     pending = db.query(Mentor).filter(Mentor.status == MentorStatus.PENDING).count()
     approved = db.query(Mentor).filter(Mentor.status == MentorStatus.APPROVED).count()

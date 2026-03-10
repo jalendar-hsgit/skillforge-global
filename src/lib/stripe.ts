@@ -5,9 +5,11 @@ const stripePublicKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_te
 
 let stripePromise: ReturnType<typeof loadStripe>;
 
+export const stripePromise = loadStripe(stripePublicKey);
+
 export const getStripe = async () => {
   if (!stripePromise) {
-    stripePromise = loadStripe(stripePublicKey);
+    return await loadStripe(stripePublicKey);
   }
   return stripePromise;
 };

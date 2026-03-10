@@ -21,7 +21,7 @@ from app.modelsx.mentor import Mentor, MentorSession, MentorAvailability, Mentor
 from app.modelsx.mentor_documents import MentorDocument, MentorApproval, DocumentType, DocumentStatus
 from app.modelsx.course import Course
 from app.modelsx.job_application import JobApplication, ApplicationStatus, JobType
-from app.modelsx.marketplace import DigitalProduct, ProductStatus, DigitalProductType
+from app.modelsx.marketplace import DigitalProduct, ProductStatus, DigitalProductType, SellerAccount
 from app.modelsx.order import Order
 
 # Import all models to ensure tables are created
@@ -448,6 +448,32 @@ class DemoDataSeeder:
         
         self.db.commit()
 
+    def seed_seller_accounts(self):
+        """Create seller accounts for all mentors"""
+        print("\n" + "="*60)
+        print("SEEDING: SELLER ACCOUNTS")
+        print("="*60)
+        
+        mentors = self.db.query(User).filter(User.role == UserRole.MENTOR).all()
+        
+        for mentor in mentors:
+            existing = self.db.query(SellerAccount).filter_by(user_id=mentor.id).first()
+            if not existing:
+                seller_account = SellerAccount(
+                    user_id=mentor.id,
+                    store_name=f"{mentor.name}'s Store",
+                    store_description=f"Products and resources by {mentor.name}",
+                    is_verified=True,
+                    payout_method="stripe"
+                )
+                self.db.add(seller_account)
+                self.stats["marketplace"]["created"] += 1
+                print(f"  [OK] Created seller account: {mentor.name}")
+            else:
+                self.stats["marketplace"]["existing"] += 1
+        
+        self.db.commit()
+
     def seed_marketplace_products(self):
         """Create marketplace products"""
         print("\n" + "="*60)
@@ -811,6 +837,7 @@ class DemoDataSeeder:
             self.seed_mentor_sessions()
             self.seed_courses()
             self.seed_job_applications()
+            self.seed_seller_accounts()
             self.seed_marketplace_products()
             self.seed_coding_challenges()
             # self.seed_orders()  # DISABLED: Allow test users to add courses to cart

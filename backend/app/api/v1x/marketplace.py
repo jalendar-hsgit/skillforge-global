@@ -9,18 +9,20 @@ from datetime import datetime
 import secrets
 from pathlib import Path
 import uuid
+import os
 
 from app.core.db import get_db
 from app.core.security import get_current_user, get_current_user_optional
 from app.models.user import User
 from app.modelsx.course import Course
-from app.modelsx.order import Order, CartItem, Coupon
+from app.modelsx.order import Order, CartItem, Coupon, OrderItem
 from app.modelsx.video import Video
 from app.modelsx.coins import CoinLedger
 from app.modelsx.marketplace import DigitalProduct, ProductStatus, SellerAccount, ProductPurchase
 from app.services.email_service import email_service
 from pydantic import BaseModel, Field
 from decimal import Decimal
+from app.schemas.marketplace import DigitalProductCreate, DigitalProductUpdate
 
 
 router = APIRouter(prefix="/marketplace", tags=["Marketplace"])
@@ -78,9 +80,12 @@ class CourseDetail(CourseListItem):
 
 class CartItemResponse(BaseModel):
     id: int
-    course_id: int
-    course_title: str
-    course_path: str
+    course_id: Optional[int] = None
+    product_id: Optional[int] = None
+    course_title: Optional[str] = None
+    product_name: Optional[str] = None
+    name: Optional[str] = None  # Generic name field
+    course_path: Optional[str] = None
     price: float
     added_at: datetime
     
@@ -113,6 +118,7 @@ class CheckoutRequest(BaseModel):
 
 class OrderResponse(BaseModel):
     id: int
+    order_id: int = None  # Alias for frontend
     order_number: str
     status: str
     subtotal: float
@@ -124,6 +130,11 @@ class OrderResponse(BaseModel):
     payment_status: Optional[str]
     created_at: datetime
     course_title: Optional[str] = None
+    
+    def __init__(self, **data):
+        super().__init__(**data)
+        if self.order_id is None:
+            self.order_id = self.id
     
     class Config:
         from_attributes = True
@@ -276,7 +287,7 @@ async def get_cart(
     db: Session = Depends(get_db)
 ):
     """
-    Get current user's shopping cart.
+    Get current user's shopping cart (includes courses and digital products).
     """
     cart_items = db.query(CartItem).filter(CartItem.user_id == current_user.id).all()
     
@@ -284,17 +295,33 @@ async def get_cart(
     subtotal = 0
     
     for item in cart_items:
-        course = db.query(Course).filter(Course.id == item.course_id).first()
-        if course:
-            items.append(CartItemResponse(
-                id=item.id,
-                course_id=course.id,
-                course_title=course.title,
-                course_path=course.path,
-                price=float(item.price),
-                added_at=item.added_at
-            ))
-            subtotal += float(item.price)
+        # Handle courses
+        if item.course_id:
+            course = db.query(Course).filter(Course.id == item.course_id).first()
+            if course:
+                items.append(CartItemResponse(
+                    id=item.id,
+                    course_id=course.id,
+                    course_title=course.title,
+                    name=course.title,
+                    course_path=course.path,
+                    price=float(item.price),
+                    added_at=item.added_at
+                ))
+                subtotal += float(item.price)
+        # Handle digital products
+        elif item.product_id:
+            product = db.query(DigitalProduct).filter(DigitalProduct.id == item.product_id).first()
+            if product:
+                items.append(CartItemResponse(
+                    id=item.id,
+                    product_id=product.id,
+                    product_name=product.name,
+                    name=product.name,
+                    price=float(item.price),
+                    added_at=item.added_at
+                ))
+                subtotal += float(item.price)
     
     return CartSummary(
         items=items,
@@ -354,6 +381,58 @@ async def add_to_cart(
     return {"message": "Course added to cart", "cart_item_id": cart_item.id}
 
 
+@router.post("/cart/add-digital-product")
+async def add_digital_product_to_cart(
+    request: dict,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Add a digital product to the shopping cart.
+    """
+    product_id = request.get("product_id")
+    if not product_id:
+        raise HTTPException(status_code=400, detail="product_id is required")
+    
+    product = db.query(DigitalProduct).filter(DigitalProduct.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    # Check if already purchased
+    existing_purchase = db.query(ProductPurchase).filter(
+        and_(
+            ProductPurchase.buyer_id == current_user.id,
+            ProductPurchase.product_id == product_id,
+            ProductPurchase.status == "completed"
+        )
+    ).first()
+    
+    if existing_purchase:
+        raise HTTPException(status_code=400, detail="Product already purchased")
+    
+    # Check if already in cart
+    existing_item = db.query(CartItem).filter(
+        and_(
+            CartItem.user_id == current_user.id,
+            CartItem.product_id == product_id
+        )
+    ).first()
+    
+    if existing_item:
+        raise HTTPException(status_code=400, detail="Product already in cart")
+    
+    # Add to cart
+    cart_item = CartItem(
+        user_id=current_user.id,
+        product_id=product_id,
+        price=Decimal(str(product.price))
+    )
+    db.add(cart_item)
+    db.commit()
+    
+    return {"message": "Product added to cart", "cart_item_id": cart_item.id}
+
+
 @router.delete("/cart/{item_id}")
 async def remove_from_cart(
     item_id: int,
@@ -393,7 +472,7 @@ async def checkout(
     db: Session = Depends(get_db)
 ):
     """
-    Process checkout and create order.
+    Process checkout and create order with support for mixed items (courses + digital products).
     """
     # Get cart items
     cart_items = db.query(CartItem).filter(CartItem.user_id == current_user.id).all()
@@ -438,12 +517,19 @@ async def checkout(
     # Generate order number
     order_number = f"ORD-{datetime.utcnow().strftime('%Y%m%d')}-{secrets.token_hex(4).upper()}"
     
-    # Create order (for single course for now - extend for multi-course later)
-    course = db.query(Course).filter(Course.id == cart_items[0].course_id).first()
+    # Get first course title for email (if exists)
+    first_course = None
+    for item in cart_items:
+        if item.course_id:
+            first_course = db.query(Course).filter(Course.id == item.course_id).first()
+            break
+    
+    # Create order with first course_id if available (for backward compatibility)
+    first_course_id = cart_items[0].course_id if cart_items[0].course_id else None
     
     order = Order(
         user_id=current_user.id,
-        course_id=cart_items[0].course_id,
+        course_id=first_course_id,
         order_number=order_number,
         status="pending",
         subtotal=Decimal(str(subtotal)),
@@ -457,6 +543,17 @@ async def checkout(
     )
     
     db.add(order)
+    db.flush()  # Flush to get order.id
+    
+    # Create OrderItem records for each cart item (supports mixed items)
+    for cart_item in cart_items:
+        order_item = OrderItem(
+            order_id=order.id,
+            course_id=cart_item.course_id,
+            product_id=cart_item.product_id,
+            item_price=cart_item.price
+        )
+        db.add(order_item)
     
     # For demo purposes, mark as completed immediately
     # In production, integrate with Stripe/PayPal webhooks
@@ -480,7 +577,7 @@ async def checkout(
         coin_transaction = CoinLedger(
             user_id=current_user.id,
             delta=-coins_required,
-            reason=f"Course purchase: {course.title if course else 'Unknown'}"
+            reason=f"Purchase: {first_course.title if first_course else 'Products'}"
         )
         db.add(coin_transaction)
         
@@ -501,14 +598,14 @@ async def checkout(
     db.refresh(order)
     
     # Send order confirmation email
-    if current_user and current_user.email and course:
+    if current_user and current_user.email:
         try:
             import asyncio
             asyncio.create_task(
                 email_service.send_order_confirmation(
                     to_email=current_user.email,
                     user_name=current_user.name,
-                    course_title=course.title if course else "Course",
+                    course_title=first_course.title if first_course else "Products",
                     order_id=order.id,
                     order_number=order.order_number,
                     amount=float(order.amount),
@@ -530,7 +627,7 @@ async def checkout(
         payment_method=order.payment_method,
         payment_status=order.payment_status,
         created_at=order.created_at,
-        course_title=course.title if course else None
+        course_title=first_course.title if first_course else None
     )
 
 
@@ -1078,7 +1175,7 @@ def get_seller_products(
 
 @router.post("/seller/products")
 def create_product(
-    product_data: dict,
+    product_data: DigitalProductCreate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -1090,7 +1187,7 @@ def create_product(
         raise HTTPException(status_code=404, detail="Please create a seller account first")
     
     # Generate slug from name
-    name = product_data.get("name", "")
+    name = product_data.name
     slug = name.lower().replace(" ", "-").replace(".", "") + "-" + secrets.token_hex(3)
     
     # Check if slug exists
@@ -1102,19 +1199,19 @@ def create_product(
         seller_id=current_user.id,
         name=name,
         slug=slug,
-        description=product_data.get("description", ""),
-        product_type=product_data.get("product_type", "resource"),
-        category=product_data.get("category", "other"),
-        price=float(product_data.get("price", 0.0)),
-        original_price=float(product_data.get("original_price", 0.0)) or None,
-        content_url=product_data.get("content_url"),
-        preview_url=product_data.get("preview_url"),
-        thumbnail_url=product_data.get("thumbnail_url"),
-        tags=product_data.get("tags", []),
-        requirements=product_data.get("requirements", []),
-        features=product_data.get("features", []),
-        status=product_data.get("status", ProductStatus.DRAFT),
-        visibility=product_data.get("visibility", "public")
+        description=product_data.description,
+        product_type=product_data.product_type,
+        category=product_data.category,
+        price=float(product_data.price),
+        original_price=float(product_data.original_price) if product_data.original_price else None,
+        content_url=product_data.content_url,
+        preview_url=product_data.preview_url,
+        thumbnail_url=product_data.thumbnail_url,
+        tags=product_data.tags if product_data.tags else [],
+        requirements=product_data.requirements if product_data.requirements else [],
+        features=product_data.features if product_data.features else [],
+        status=ProductStatus.DRAFT,
+        visibility="public"
     )
     
     db.add(product)
@@ -1182,7 +1279,7 @@ def get_seller_product(
 @router.put("/seller/products/{product_id}")
 def update_product(
     product_id: int,
-    product_data: dict,
+    product_data: DigitalProductUpdate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -1199,32 +1296,28 @@ def update_product(
         raise HTTPException(status_code=404, detail="Product not found")
     
     # Update fields
-    if "name" in product_data:
-        product.name = product_data["name"]
-    if "description" in product_data:
-        product.description = product_data["description"]
-    if "price" in product_data:
-        product.price = float(product_data["price"])
-    if "original_price" in product_data:
-        product.original_price = float(product_data["original_price"]) or None
-    if "category" in product_data:
-        product.category = product_data["category"]
-    if "status" in product_data:
-        product.status = product_data["status"]
-        if product_data["status"] == ProductStatus.PUBLISHED and not product.published_at:
-            product.published_at = datetime.utcnow()
-    if "thumbnail_url" in product_data:
-        product.thumbnail_url = product_data["thumbnail_url"]
-    if "content_url" in product_data:
-        product.content_url = product_data["content_url"]
-    if "preview_url" in product_data:
-        product.preview_url = product_data["preview_url"]
-    if "tags" in product_data:
-        product.tags = product_data["tags"]
-    if "requirements" in product_data:
-        product.requirements = product_data["requirements"]
-    if "features" in product_data:
-        product.features = product_data["features"]
+    if product_data.name is not None:
+        product.name = product_data.name
+    if product_data.description is not None:
+        product.description = product_data.description
+    if product_data.price is not None:
+        product.price = float(product_data.price)
+    if product_data.original_price is not None:
+        product.original_price = float(product_data.original_price) if product_data.original_price else None
+    if product_data.category is not None:
+        product.category = product_data.category
+    if product_data.thumbnail_url is not None:
+        product.thumbnail_url = product_data.thumbnail_url
+    if product_data.content_url is not None:
+        product.content_url = product_data.content_url
+    if product_data.preview_url is not None:
+        product.preview_url = product_data.preview_url
+    if product_data.tags is not None:
+        product.tags = product_data.tags
+    if product_data.requirements is not None:
+        product.requirements = product_data.requirements
+    if product_data.features is not None:
+        product.features = product_data.features
     
     product.updated_at = datetime.utcnow()
     
@@ -2223,6 +2316,58 @@ def validate_coupon(
     }
 
 
+@router.post("/apply-coupon")
+def apply_coupon(
+    request: ApplyCouponRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Apply coupon code to cart (alias for frontend compatibility)"""
+    if not request.coupon_code:
+        return {
+            "valid": False,
+            "message": "Coupon code is required"
+        }
+    
+    coupon = db.query(Coupon).filter(
+        Coupon.code == request.coupon_code.upper()
+    ).first()
+    
+    if not coupon:
+        return {
+            "valid": False,
+            "message": "Invalid coupon code"
+        }
+    
+    if not coupon.is_active:
+        return {
+            "valid": False,
+            "message": "This coupon is no longer active"
+        }
+    
+    # Check if coupon has expired
+    if coupon.expiry_date and coupon.expiry_date < datetime.utcnow():
+        return {
+            "valid": False,
+            "message": "This coupon has expired"
+        }
+    
+    # Check usage limits
+    if coupon.usage_limit and coupon.usage_count >= coupon.usage_limit:
+        return {
+            "valid": False,
+            "message": "Coupon usage limit exceeded"
+        }
+    
+    return {
+        "valid": True,
+        "code": coupon.code,
+        "discount_type": coupon.discount_type,
+        "discount_value": float(coupon.discount_value),
+        "message": "Coupon applied successfully!"
+    }
+
+
 # SELLER ANALYTICS ENDPOINTS
 @router.get("/seller/dashboard")
 def get_seller_dashboard(
@@ -2414,7 +2559,7 @@ def admin_marketplace_dashboard(
     suspended_products = db.query(DigitalProduct).filter_by(status=ProductStatus.SUSPENDED).count()
     
     total_sellers = db.query(SellerAccount).count()
-    verified_sellers = db.query(SellerAccount).filter_by(status="verified").count()
+    verified_sellers = db.query(SellerAccount).filter_by(is_verified=True).count()
     
     total_sales = db.query(ProductPurchase).filter_by(status="completed").count()
     total_revenue = db.query(ProductPurchase).filter_by(status="completed").with_entities(
@@ -2597,7 +2742,15 @@ def admin_list_sellers(
     query = db.query(SellerAccount)
     
     if status:
-        query = query.filter_by(status=status)
+        # Filter by verification status
+        if status == "verified":
+            query = query.filter_by(is_verified=True)
+        elif status == "unverified":
+            query = query.filter_by(is_verified=False)
+        elif status == "active":
+            query = query.filter_by(is_active=True)
+        elif status == "inactive":
+            query = query.filter_by(is_active=False)
     
     total = query.count()
     sellers = query.offset(skip).limit(limit).all()
@@ -2613,7 +2766,9 @@ def admin_list_sellers(
             "user_id": seller.user_id,
             "email": user.email if user else None,
             "store_name": seller.store_name,
-            "status": seller.status,
+            "is_verified": seller.is_verified,
+            "is_active": seller.is_active,
+            "seller_tier": seller.seller_tier,
             "products_count": products,
             "sales_count": sales,
             "total_revenue": float(seller.total_revenue or 0),
@@ -2690,12 +2845,68 @@ def get_order_details(
     db: Session = Depends(get_db)
 ):
     """Get details for a specific order"""
+    order = db.query(Order).filter(
+        Order.id == order_id,
+        Order.user_id == current_user.id
+    ).first()
+    
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    # Get course details
+    course = db.query(Course).filter(Course.id == order.course_id).first() if order.course_id else None
+    
+    # Create Stripe payment intent if not already created
+    client_secret = None
+    if order.payment_status == "pending" and order.payment_method == "stripe":
+        try:
+            # Create or get payment intent
+            import stripe
+            stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+            
+            amount_cents = int(float(order.amount) * 100)
+            
+            # Check if we already have a payment intent
+            if order.payment_intent_id:
+                # Retrieve existing intent
+                intent = stripe.PaymentIntent.retrieve(order.payment_intent_id)
+            else:
+                # Create new intent
+                intent = stripe.PaymentIntent.create(
+                    amount=amount_cents,
+                    currency="usd",
+                    metadata={
+                        "order_id": order.id,
+                        "user_id": current_user.id
+                    }
+                )
+                # Save the intent ID
+                order.payment_intent_id = intent.id
+                db.commit()
+            
+            client_secret = intent.client_secret
+        except Exception as e:
+            print(f"Error creating payment intent: {e}")
+            client_secret = None
+    
     return {
-        "id": order_id,
+        "id": order.id,
+        "order_id": order.id,
+        "order_number": order.order_number,
         "user_id": current_user.id,
-        "total": 100.00,
-        "status": "completed",
-        "created_at": datetime.utcnow().isoformat()
+        "amount": float(order.amount),
+        "subtotal": float(order.subtotal),
+        "discount_amount": float(order.discount_amount),
+        "tax_amount": float(order.tax_amount),
+        "status": order.status,
+        "payment_status": order.payment_status,
+        "payment_method": order.payment_method,
+        "course_title": course.title if course else None,
+        "course_id": order.course_id,
+        "items_count": 1,
+        "client_secret": client_secret,
+        "payment_intent_id": order.payment_intent_id,
+        "created_at": order.created_at.isoformat()
     }
 
 

@@ -20,6 +20,9 @@ import logging
 
 from app.core.db import get_db
 from app.core.security import get_current_user
+from app.core.rbac import require_admin
+from app.models.user import Userfrom app.core.db import get_db
+from app.core.security import get_current_user
 from app.models.user import User
 from app.models.quiz_attempt import QuizAttempt
 from app.modelsx.mentor import Mentor, MentorSession
@@ -86,7 +89,7 @@ class StudentEngagementMetric(BaseModel):
 
 def check_admin_access(user: User):
     """Verify user is admin"""
-    if user.role != "admin":
+    if user.role not in ["admin", "ADMIN", "superadmin", "SUPERADMIN"]:
         raise HTTPException(status_code=403, detail="Admin access required")
 
 

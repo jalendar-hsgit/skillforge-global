@@ -33,7 +33,7 @@ export default function OrdersPage() {
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/session/v1x/marketplace/orders`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE || ''}/api/v1x/marketplace/orders`, {
         credentials: 'include'
       });
 

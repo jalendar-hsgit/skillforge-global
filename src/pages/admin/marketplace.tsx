@@ -69,9 +69,9 @@ export default function AdminMarketplace({ me }: AdminSSRProps) {
     setLoading(true)
     try {
       const [dashRes, productsRes, sellersRes] = await Promise.all([
-        fetch(`${process.env.NEXT_PUBLIC_API_BASE}/api/v1x/admin/marketplace/dashboard`, { credentials: 'include' }),
-        fetch(`${process.env.NEXT_PUBLIC_API_BASE}/api/v1x/admin/marketplace/products`, { credentials: 'include' }),
-        fetch(`${process.env.NEXT_PUBLIC_API_BASE}/api/v1x/admin/marketplace/sellers`, { credentials: 'include' })
+        fetch(`${process.env.NEXT_PUBLIC_API_BASE}/api/v1x/marketplace/admin/marketplace/dashboard`, { credentials: 'include' }),
+        fetch(`${process.env.NEXT_PUBLIC_API_BASE}/api/v1x/marketplace/admin/marketplace/products`, { credentials: 'include' }),
+        fetch(`${process.env.NEXT_PUBLIC_API_BASE}/api/v1x/marketplace/admin/marketplace/sellers`, { credentials: 'include' })
       ])
 
       if (dashRes.ok) setStats(await dashRes.json())
@@ -93,7 +93,7 @@ export default function AdminMarketplace({ me }: AdminSSRProps) {
   async function approveProduct(productId: number) {
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE}/api/v1x/admin/marketplace/products/${productId}/approve`,
+        `${process.env.NEXT_PUBLIC_API_BASE}/api/v1x/marketplace/admin/marketplace/products/${productId}/approve`,
         { method: 'PUT', credentials: 'include' }
       )
       if (res.ok) {
@@ -112,7 +112,7 @@ export default function AdminMarketplace({ me }: AdminSSRProps) {
     }
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE}/api/v1x/admin/marketplace/products/${productId}/suspend`,
+        `${process.env.NEXT_PUBLIC_API_BASE}/api/v1x/marketplace/admin/marketplace/products/${productId}/suspend`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -134,7 +134,7 @@ export default function AdminMarketplace({ me }: AdminSSRProps) {
   async function verifySeller(sellerId: number) {
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE}/api/v1x/admin/marketplace/sellers/${sellerId}/verify`,
+        `${process.env.NEXT_PUBLIC_API_BASE}/api/v1x/marketplace/admin/marketplace/sellers/${sellerId}/verify`,
         { method: 'PUT', credentials: 'include' }
       )
       if (res.ok) {
@@ -199,25 +199,25 @@ export default function AdminMarketplace({ me }: AdminSSRProps) {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <StatCard
                       title="Total Products"
-                      value={stats.products.total.toString()}
+                      value={(stats.products?.total ?? 0).toString()}
                       color="from-forgePurple-500 to-forgePurple-600"
                       icon="📦"
                     />
                     <StatCard
                       title="Published"
-                      value={stats.products.published.toString()}
+                      value={(stats.products?.published ?? 0).toString()}
                       color="from-green-500 to-green-600"
                       icon="✓"
                     />
                     <StatCard
                       title="Draft / Pending"
-                      value={stats.products.draft.toString()}
+                      value={(stats.products?.draft ?? 0).toString()}
                       color="from-yellow-500 to-yellow-600"
                       icon="⏳"
                     />
                     <StatCard
                       title="Suspended"
-                      value={stats.products.suspended.toString()}
+                      value={(stats.products?.suspended ?? 0).toString()}
                       color="from-red-500 to-red-600"
                       icon="⚠️"
                     />
@@ -227,13 +227,13 @@ export default function AdminMarketplace({ me }: AdminSSRProps) {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <StatCard
                       title="Total Revenue"
-                      value={`$${stats.sales.total_revenue.toFixed(2)}`}
+                      value={`$${(stats.sales?.total_revenue ?? 0).toFixed(2)}`}
                       color="from-aiElectric-500 to-aiElectric-600"
                       icon="💰"
                     />
                     <StatCard
                       title="Platform Fee (20%)"
-                      value={`$${stats.sales.platform_fee.toFixed(2)}`}
+                      value={`$${(stats.sales?.platform_fee ?? 0).toFixed(2)}`}
                       color="from-neuralBlue-500 to-neuralBlue-600"
                       icon="🏦"
                     />
@@ -243,19 +243,19 @@ export default function AdminMarketplace({ me }: AdminSSRProps) {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <StatCard
                       title="Total Sellers"
-                      value={stats.sellers.total.toString()}
+                      value={(stats.sellers?.total ?? 0).toString()}
                       color="from-purple-500 to-purple-600"
                       icon="👥"
                     />
                     <StatCard
                       title="Verified Sellers"
-                      value={stats.sellers.verified.toString()}
+                      value={(stats.sellers?.verified ?? 0).toString()}
                       color="from-green-500 to-green-600"
                       icon="✅"
                     />
                     <StatCard
                       title="Pending Verification"
-                      value={stats.sellers.pending.toString()}
+                      value={(stats.sellers?.pending ?? 0).toString()}
                       color="from-yellow-500 to-yellow-600"
                       icon="⏳"
                     />

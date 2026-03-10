@@ -435,13 +435,6 @@ def get_payout_history(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error fetching payout history: {str(e)}"
         )
-            processed_at=payout.processed_at,
-            completed_at=payout.completed_at,
-            failure_reason=payout.failure_reason,
-            earnings_count=earnings_count
-        ))
-    
-    return result
 
 
 @router.get("/sessions/completed", response_model=List[SessionEarningDetail])

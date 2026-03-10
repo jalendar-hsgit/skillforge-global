@@ -234,7 +234,13 @@ def login(res: Response, request: Request, data: LoginRequest, db: Session = Dep
             secure=secure,
         )
         logger.debug("Auth cookie set on response")
-        return {"logged": True}
+        return {
+            "logged": True,
+            "access_token": token,
+            "token_type": "bearer",
+            "user_id": u.id,
+            "email": u.email
+        }
     except HTTPException:
         # Re-raise HTTP errors (401/429)
         raise

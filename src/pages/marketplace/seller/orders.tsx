@@ -33,7 +33,7 @@ export default function SellerOrders() {
 
   const fetchOrders = async () => {
     try {
-      const url = new URL(`/api/session/v1x/seller/orders`);
+      const url = new URL(`${process.env.NEXT_PUBLIC_API_BASE || ''}/api/v1x/marketplace/seller/orders`);
       if (filterStatus !== 'all') {
         url.searchParams.append('status', filterStatus);
       }
@@ -44,9 +44,11 @@ export default function SellerOrders() {
 
       if (res.ok) {
         const data = await res.json();
-        setOrders(data.orders || []);
+        setOrders(data.items || data.orders || []);
       } else if (res.status === 401) {
         router.push('/login');
+      } else {
+        setError(`Failed to load orders: ${res.status}`);
       }
     } catch (err) {
       setError('Failed to load orders');

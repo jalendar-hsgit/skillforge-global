@@ -48,9 +48,59 @@ export default function CreateProduct() {
   const [requirementInput, setRequirementInput] = useState('');
   const [featureInput, setFeatureInput] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
 
   const productTypes = ['course', 'template', 'bundle', 'resource', 'tool', 'consultation'];
   const categories = ['programming', 'design', 'business', 'marketing', 'education', 'health', 'other'];
+
+  // Load product data when editing
+  useEffect(() => {
+    if (!isAuthorized || authLoading) return;
+    
+    if (router.query.productId && !initialLoadDone) {
+      const loadProduct = async () => {
+        try {
+          const res = await fetch(
+            `${process.env.NEXT_PUBLIC_API_BASE || ''}/api/v1x/marketplace/seller/products/${router.query.productId}`,
+            { credentials: 'include' }
+          );
+          
+          if (res.ok) {
+            const product = await res.json();
+            setFormData({
+              name: product.name,
+              description: product.description,
+              product_type: product.product_type || 'resource',
+              category: product.category || 'other',
+              price: product.price,
+              original_price: product.original_price,
+              tags: product.tags || [],
+              requirements: product.requirements || [],
+              features: product.features || [],
+              status: product.status || 'draft',
+              visibility: 'public',
+            });
+            
+            setUploadedFiles({
+              thumbnail: product.thumbnail_url,
+              content: product.content_url,
+              preview: product.preview_url,
+            });
+          } else {
+            setError('Failed to load product');
+          }
+        } catch (err: any) {
+          setError(err.message || 'Error loading product');
+        } finally {
+          setInitialLoadDone(true);
+        }
+      };
+      
+      loadProduct();
+    } else if (!router.query.productId) {
+      setInitialLoadDone(true);
+    }
+  }, [router.query.productId, isAuthorized, authLoading]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -127,7 +177,7 @@ export default function CreateProduct() {
       // First, create the product if it doesn't exist
       if (!router.query.productId) {
         const res = await fetch(
-          `/api/session/v1x/seller/products`,
+          `${process.env.NEXT_PUBLIC_API_BASE || ''}/api/v1x/marketplace/seller/products`,
           {
             method: 'POST',
             headers: {
@@ -140,8 +190,8 @@ export default function CreateProduct() {
 
         if (res.ok) {
           const product = await res.json();
-          // Redirect to edit page
-          router.push(`/marketplace/seller/edit-product?productId=${product.id}`);
+          // Redirect to edit page with the same URL path (create-product handles both)
+          router.push(`/marketplace/seller/create-product?productId=${product.id}`);
           return;
         }
       }
@@ -150,7 +200,7 @@ export default function CreateProduct() {
       const formDataUpload = new FormData();
       formDataUpload.append('file', file);
 
-      const uploadUrl = `/api/session/v1x/seller/products/${router.query.productId}/upload-${fileType}`;
+      const uploadUrl = `${process.env.NEXT_PUBLIC_API_BASE || ''}/api/v1x/marketplace/seller/products/${router.query.productId}/upload-${fileType}`;
 
       const uploadRes = await fetch(uploadUrl, {
         method: 'POST',
@@ -184,16 +234,24 @@ export default function CreateProduct() {
     setSuccess('');
 
     try {
+      // Only send fields that the backend schema expects
       const submitData = {
-        ...formData,
-        thumbnail_url: uploadedFiles.thumbnail,
-        content_url: uploadedFiles.content,
-        preview_url: uploadedFiles.preview,
+        name: formData.name,
+        description: formData.description,
+        product_type: formData.product_type,
+        category: formData.category,
+        price: formData.price,
+        tags: formData.tags,
+        requirements: formData.requirements,
+        features: formData.features,
+        thumbnail_url: uploadedFiles.thumbnail || null,
+        content_url: uploadedFiles.content || null,
+        preview_url: uploadedFiles.preview || null,
       };
 
       const url = router.query.productId
-        ? `/api/session/v1x/seller/products/${router.query.productId}`
-        : `/api/session/v1x/seller/products`;
+        ? `${process.env.NEXT_PUBLIC_API_BASE || ''}/api/v1x/marketplace/seller/products/${router.query.productId}`
+        : `${process.env.NEXT_PUBLIC_API_BASE || ''}/api/v1x/marketplace/seller/products`;
 
       const res = await fetch(url, {
         method: router.query.productId ? 'PUT' : 'POST',
@@ -211,7 +269,16 @@ export default function CreateProduct() {
         }, 1500);
       } else {
         const errorData = await res.json();
-        setError(errorData.detail || 'Failed to save product');
+        // Handle validation errors from Pydantic
+        if (errorData.detail && Array.isArray(errorData.detail)) {
+          const validationErrors = errorData.detail.map((e: any) => `${e.loc?.[1] || 'Field'}: ${e.msg}`).join('; ');
+          setError(validationErrors);
+        } else if (errorData.detail) {
+          setError(errorData.detail);
+        } else {
+          setError('Failed to save product');
+        }
+        console.error('Product creation error:', errorData);
       }
     } catch (err: any) {
       setError(err.message || 'Error saving product');

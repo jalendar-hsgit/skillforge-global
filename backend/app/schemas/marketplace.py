@@ -33,8 +33,8 @@ class DigitalProductCreate(BaseModel):
     tags: List[str] = Field(default=[], max_items=10)
     
     price: float = Field(..., gt=0, le=10000)
-    original_price: Optional[float] = None
-    currency: str = Field(default="USD", min_length=3, max_length=3)
+    original_price: Optional[float] = Field(None, gt=0)
+    currency: Optional[str] = Field(default="USD", min_length=3, max_length=3)
     
     thumbnail_url: Optional[str] = None
     content_url: Optional[str] = None

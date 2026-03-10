@@ -8,6 +8,12 @@ from datetime import datetime
 from typing import Optional, Dict, Any
 from decimal import Decimal
 from pydantic import BaseModel
+import os
+import stripe
+import hmac
+import json
+import hashlib
+from urllib.request import Request as URLRequest
 
 
 class PaymentProvider(str, Enum):
@@ -73,71 +79,249 @@ class StripeProcessor(PaymentProcessor):
     
     def __init__(self, api_key: Optional[str] = None):
         super().__init__(PaymentProvider.STRIPE)
-        self.api_key = api_key or "sk_test_placeholder"
-        # In production: import stripe; stripe.api_key = api_key
-        self.stripe = None  # Placeholder for stripe library
+        self.api_key = api_key or os.getenv("STRIPE_SECRET_KEY", "sk_test_placeholder")
+        stripe.api_key = self.api_key
+        self.stripe = stripe
     
     def process_payment(self, request: PaymentRequest) -> PaymentResponse:
         """
         Process payment via Stripe.
         
-        In production, this would:
-        1. Create a Stripe payment intent
-        2. Process the payment
-        3. Handle 3D Secure if needed
-        4. Return transaction ID
+        Creates a PaymentIntent and processes the payment.
         """
         
-        # TODO: Integrate actual Stripe API
-        # For now, simulate successful payment
+        try:
+            # Create a payment intent
+            intent = self.stripe.PaymentIntent.create(
+                amount=int(float(request.amount) * 100),  # Convert to cents
+                currency=request.currency.lower(),
+                payment_method_types=["card"],
+                metadata={
+                    "order_id": request.order_id,
+                    "customer_email": request.customer_email,
+                    "description": request.description
+                },
+                description=request.description,
+                receipt_email=request.customer_email
+            )
+            
+            payment_id = intent.id
+            status = PaymentStatus.COMPLETED if intent.status == "succeeded" else PaymentStatus.PROCESSING
+            
+            return PaymentResponse(
+                payment_id=payment_id,
+                order_id=request.order_id,
+                status=status,
+                amount=request.amount,
+                currency=request.currency,
+                provider=PaymentProvider.STRIPE,
+                timestamp=datetime.utcnow(),
+                metadata={
+                    "stripe_charge_id": intent.get("charges", {}).data[0].id if intent.get("charges") else None,
+                    "customer_email": request.customer_email,
+                    "description": request.description,
+                    "intent_id": intent.id,
+                    "intent_status": intent.status,
+                    "client_secret": intent.client_secret
+                }
+            )
         
-        payment_id = f"stripe_{request.order_id}_{int(datetime.utcnow().timestamp())}"
+        except self.stripe.error.CardError as e:
+            # Card was declined
+            return PaymentResponse(
+                payment_id=f"stripe_error_{request.order_id}",
+                order_id=request.order_id,
+                status=PaymentStatus.FAILED,
+                amount=request.amount,
+                currency=request.currency,
+                provider=PaymentProvider.STRIPE,
+                timestamp=datetime.utcnow(),
+                metadata={
+                    "error": e.user_message,
+                    "error_code": e.code,
+                    "customer_email": request.customer_email
+                }
+            )
         
-        return PaymentResponse(
-            payment_id=payment_id,
-            order_id=request.order_id,
-            status=PaymentStatus.COMPLETED,
-            amount=request.amount,
-            currency=request.currency,
-            provider=PaymentProvider.STRIPE,
-            timestamp=datetime.utcnow(),
-            metadata={
-                "stripe_charge_id": f"ch_{payment_id}",
-                "customer_email": request.customer_email,
-                "description": request.description
-            }
-        )
+        except self.stripe.error.RateLimitError:
+            # Too many requests made to the API too quickly
+            return PaymentResponse(
+                payment_id=f"stripe_ratelimit_{request.order_id}",
+                order_id=request.order_id,
+                status=PaymentStatus.PROCESSING,
+                amount=request.amount,
+                currency=request.currency,
+                provider=PaymentProvider.STRIPE,
+                timestamp=datetime.utcnow(),
+                metadata={
+                    "error": "Rate limit exceeded, please try again",
+                    "customer_email": request.customer_email
+                }
+            )
+        
+        except self.stripe.error.InvalidRequestError as e:
+            # Invalid parameters were supplied to Stripe's API
+            return PaymentResponse(
+                payment_id=f"stripe_invalid_{request.order_id}",
+                order_id=request.order_id,
+                status=PaymentStatus.FAILED,
+                amount=request.amount,
+                currency=request.currency,
+                provider=PaymentProvider.STRIPE,
+                timestamp=datetime.utcnow(),
+                metadata={
+                    "error": str(e),
+                    "customer_email": request.customer_email
+                }
+            )
+        
+        except self.stripe.error.AuthenticationError:
+            # Authentication with Stripe's API failed
+            return PaymentResponse(
+                payment_id=f"stripe_auth_{request.order_id}",
+                order_id=request.order_id,
+                status=PaymentStatus.FAILED,
+                amount=request.amount,
+                currency=request.currency,
+                provider=PaymentProvider.STRIPE,
+                timestamp=datetime.utcnow(),
+                metadata={
+                    "error": "Authentication failed",
+                    "customer_email": request.customer_email
+                }
+            )
+        
+        except self.stripe.error.StripeError as e:
+            # Generic Stripe error
+            return PaymentResponse(
+                payment_id=f"stripe_error_{request.order_id}",
+                order_id=request.order_id,
+                status=PaymentStatus.FAILED,
+                amount=request.amount,
+                currency=request.currency,
+                provider=PaymentProvider.STRIPE,
+                timestamp=datetime.utcnow(),
+                metadata={
+                    "error": str(e),
+                    "customer_email": request.customer_email
+                }
+            )
+        
+        except Exception as e:
+            # Unknown error
+            return PaymentResponse(
+                payment_id=f"error_{request.order_id}",
+                order_id=request.order_id,
+                status=PaymentStatus.FAILED,
+                amount=request.amount,
+                currency=request.currency,
+                provider=PaymentProvider.STRIPE,
+                timestamp=datetime.utcnow(),
+                metadata={
+                    "error": str(e),
+                    "customer_email": request.customer_email
+                }
+            )
     
     def refund_payment(self, payment_id: str, amount: Optional[float] = None) -> PaymentResponse:
         """Refund a Stripe payment"""
         
-        # TODO: Integrate actual Stripe refund API
+        try:
+            # Refund the charge
+            refund_data = {}
+            if amount:
+                refund_data["amount"] = int(float(amount) * 100)  # Convert to cents
+            
+            # Payment ID could be either a PaymentIntent ID or Charge ID
+            # Try to refund by PaymentIntent first, then by Charge
+            try:
+                intent = self.stripe.PaymentIntent.retrieve(payment_id)
+                if intent.charges.data:
+                    charge_id = intent.charges.data[0].id
+                    refund = self.stripe.Refund.create(charge=charge_id, **refund_data)
+                else:
+                    raise ValueError("No charges found for this payment intent")
+            except:
+                # Try as a charge ID directly
+                refund = self.stripe.Refund.create(charge=payment_id, **refund_data)
+            
+            return PaymentResponse(
+                payment_id=refund.id,
+                order_id=0,
+                status=PaymentStatus.REFUNDED,
+                amount=float(refund.amount) / 100,
+                currency=refund.currency.upper() if refund.currency else "USD",
+                provider=PaymentProvider.STRIPE,
+                timestamp=datetime.utcnow(),
+                metadata={
+                    "refund_id": refund.id,
+                    "refund_status": refund.status,
+                    "reason": refund.reason
+                }
+            )
         
-        return PaymentResponse(
-            payment_id=payment_id,
-            order_id=0,  # Would get from DB
-            status=PaymentStatus.REFUNDED,
-            amount=amount or 0,
-            currency="USD",
-            provider=PaymentProvider.STRIPE,
-            timestamp=datetime.utcnow(),
-            metadata={"refund_processed": True}
-        )
+        except Exception as e:
+            return PaymentResponse(
+                payment_id=payment_id,
+                order_id=0,
+                status=PaymentStatus.FAILED,
+                amount=0,
+                currency="USD",
+                provider=PaymentProvider.STRIPE,
+                timestamp=datetime.utcnow(),
+                metadata={"error": str(e)}
+            )
     
     def get_payment_status(self, payment_id: str) -> PaymentResponse:
         """Get Stripe payment status"""
         
-        # TODO: Query Stripe API for actual status
+        try:
+            intent = self.stripe.PaymentIntent.retrieve(payment_id)
+            
+            # Map Stripe status to our status
+            status_map = {
+                "succeeded": PaymentStatus.COMPLETED,
+                "processing": PaymentStatus.PROCESSING,
+                "requires_payment_method": PaymentStatus.PENDING,
+                "requires_action": PaymentStatus.PENDING,
+                "requires_confirmation": PaymentStatus.PENDING,
+                "canceled": PaymentStatus.CANCELLED,
+            }
+            
+            status = status_map.get(intent.status, PaymentStatus.PENDING)
+            
+            charge_id = None
+            amount = float(intent.amount) / 100 if intent.amount else 0
+            
+            if intent.charges.data:
+                charge_id = intent.charges.data[0].id
+            
+            return PaymentResponse(
+                payment_id=payment_id,
+                order_id=intent.metadata.get("order_id") if intent.metadata else 0,
+                status=status,
+                amount=amount,
+                currency=intent.currency.upper() if intent.currency else "USD",
+                provider=PaymentProvider.STRIPE,
+                timestamp=datetime.utcnow(),
+                metadata={
+                    "intent_status": intent.status,
+                    "charge_id": charge_id,
+                    "client_secret": intent.client_secret
+                }
+            )
         
-        return PaymentResponse(
-            payment_id=payment_id,
-            order_id=0,
-            status=PaymentStatus.COMPLETED,
-            amount=0,
-            currency="USD",
-            provider=PaymentProvider.STRIPE,
-            timestamp=datetime.utcnow()
-        )
+        except Exception as e:
+            return PaymentResponse(
+                payment_id=payment_id,
+                order_id=0,
+                status=PaymentStatus.PENDING,
+                amount=0,
+                currency="USD",
+                provider=PaymentProvider.STRIPE,
+                timestamp=datetime.utcnow(),
+                metadata={"error": str(e)}
+            )
 
 
 class PayPalProcessor(PaymentProcessor):

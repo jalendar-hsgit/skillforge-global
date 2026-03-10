@@ -72,12 +72,13 @@ class Coupon(Base):
 
 
 class CartItem(Base):
-    """Shopping cart items"""
+    """Shopping cart items (supports courses and digital products)"""
     __tablename__ = "cart_items"
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    course_id = Column(Integer, ForeignKey("courses.id", ondelete="CASCADE"), nullable=False)
+    course_id = Column(Integer, ForeignKey("courses.id", ondelete="CASCADE"), nullable=True)
+    product_id = Column(Integer, ForeignKey("digital_products.id", ondelete="CASCADE"), nullable=True)
     
     price = Column(Numeric(10, 2), nullable=False)
     added_at = Column(DateTime, default=datetime.utcnow)
@@ -85,3 +86,26 @@ class CartItem(Base):
     # Relationships
     user = relationship("User")
     course = relationship("Course")
+    product = relationship("DigitalProduct")
+
+
+class OrderItem(Base):
+    """Order items - tracks individual courses and digital products in an order"""
+    __tablename__ = "order_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    order_id = Column(Integer, ForeignKey("orders.id", ondelete="CASCADE"), nullable=False, index=True)
+    course_id = Column(Integer, ForeignKey("courses.id", ondelete="SET NULL"), nullable=True)
+    product_id = Column(Integer, ForeignKey("digital_products.id", ondelete="SET NULL"), nullable=True)
+    
+    # Item pricing at time of purchase
+    item_price = Column(Numeric(10, 2), nullable=False)
+    quantity = Column(Integer, default=1)
+    
+    # Metadata
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    order = relationship("Order", backref="items")
+    course = relationship("Course")
+    product = relationship("DigitalProduct")
