@@ -1,7 +1,11 @@
 from sqlalchemy.orm import relationship
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Numeric, Text, Boolean
 from datetime import datetime
+from typing import TYPE_CHECKING
 from app.core.db import Base
+
+if TYPE_CHECKING:
+    from app.modelsx.marketplace import DigitalProduct
 
 class Order(Base):
     __tablename__ = "orders"
@@ -86,7 +90,7 @@ class CartItem(Base):
     # Relationships
     user = relationship("User")
     course = relationship("Course")
-    product = relationship("DigitalProduct")
+    product = relationship("DigitalProduct", foreign_keys=[product_id])
 
 
 class OrderItem(Base):
@@ -108,4 +112,4 @@ class OrderItem(Base):
     # Relationships
     order = relationship("Order", backref="items")
     course = relationship("Course")
-    product = relationship("DigitalProduct")
+    product = relationship("DigitalProduct", foreign_keys=[product_id])

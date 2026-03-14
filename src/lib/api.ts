@@ -1,4 +1,22 @@
-const RAW_BASE = process.env.NEXT_PUBLIC_API_BASE?.trim() || "http://localhost:8001";
+// Detect if running in browser and adjust API base accordingly
+function getApiBase(): string {
+  const envBase = process.env.NEXT_PUBLIC_API_BASE?.trim();
+  
+  // If no env var, use localhost
+  if (!envBase) {
+    return "http://localhost:8001";
+  }
+  
+  // If running in browser (typeof window exists), replace internal Docker hostname with localhost
+  if (typeof window !== "undefined" && envBase.includes("backend:8001")) {
+    // Browser can't reach internal Docker hostname "backend", so use localhost
+    return envBase.replace("backend:8001", "localhost:8001");
+  }
+  
+  return envBase;
+}
+
+const RAW_BASE = getApiBase();
 export const API_BASE = RAW_BASE.replace(/\/+$/, "");
 
 function buildUrl(path: string) {
@@ -8,24 +26,32 @@ function buildUrl(path: string) {
 
 export async function apiGet(path: string) {
   const url = buildUrl(path);
-  const res = await fetch(url, { credentials: "include" });
-  if (!res.ok) {
-    let errorMsg = `GET ${url} failed (${res.status})`;
-    try {
-      const errorData = await res.json();
-      if (errorData.detail) {
-        errorMsg = errorData.detail;
-      }
-    } catch (e) {
-      // If JSON parsing fails, use default error message
-    }
-    throw new Error(errorMsg);
-  }
   try {
-    return await res.json();
-  } catch (e) {
-    // Fallback to text for endpoints that return plain text
-    return await res.text();
+    const res = await fetch(url, { credentials: "include" });
+    if (!res.ok) {
+      let errorMsg = `GET ${url} failed (${res.status})`;
+      try {
+        const errorData = await res.json();
+        if (errorData.detail) {
+          errorMsg = errorData.detail;
+        }
+      } catch (e) {
+        // If JSON parsing fails, use default error message
+      }
+      throw new Error(errorMsg);
+    }
+    try {
+      return await res.json();
+    } catch (e) {
+      // Fallback to text for endpoints that return plain text
+      return await res.text();
+    }
+  } catch (error) {
+    // Log network errors for debugging
+    if (error instanceof TypeError && error.message.includes("Failed to fetch")) {
+      console.error(`Network error accessing ${url}. API_BASE: ${API_BASE}`, error);
+    }
+    throw error;
   }
 }
 

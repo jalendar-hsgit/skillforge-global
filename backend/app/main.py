@@ -41,7 +41,12 @@ from app.modelsx.resume_comparison import ResumeVersion, ResumeComparison
 # import hiring models
 # import job application tracking
 from app.modelsx.job_application import JobApplication as JobApplicationTracker
-# import marketplace models
+# import marketplace models (MUST be before order models which reference DigitalProduct)
+from app.modelsx.marketplace import (
+    DigitalProduct, ProductPurchase, SellerAccount,
+    ProductBundle, SellerPayout, MarketplaceAnalytics, SellerEarning
+)
+# import order models (depends on DigitalProduct being already imported)
 from app.modelsx.order import Order, Coupon, CartItem, OrderItem
 # import platform settings
 from app.modelsx.platform_settings import PlatformSetting
@@ -105,11 +110,6 @@ from app.modelsx.interview import (
 # import Referral models
 from app.modelsx.referral import (
     ReferralCode, Referral, ReferralReward, ReferralCampaign, ReferralStatistics
-)
-# import Marketplace models
-from app.modelsx.marketplace import (
-    DigitalProduct, ProductPurchase, SellerAccount,
-    ProductBundle, SellerPayout, MarketplaceAnalytics, SellerEarning
 )
 # import Wishlist models
 from app.modelsx.wishlist import Wishlist
@@ -670,31 +670,43 @@ print(f"\n[Init] Creating database tables...")
 print(f"[Init] Models registered: {len(Base.metadata.tables)} tables")
 
 try:
-    if "sqlite" in str(engine.url).lower():
-        # SQLite: Create with proper settings (WAL mode for concurrency)
-        logger.info("[Init] SQLite database - configuring for concurrent access")
-        with engine.begin() as conn:
-            # Enable Write-Ahead Logging (prevents database locks)
-            conn.execute(text("PRAGMA journal_mode=WAL"))
-            conn.execute(text("PRAGMA synchronous=NORMAL"))
-            # Enable foreign key constraints for data integrity
-            conn.execute(text("PRAGMA foreign_keys=ON"))
-            # Create all tables
-            Base.metadata.create_all(bind=conn)
-        print(f"[Init] [OK] SQLite database initialized with WAL mode")
-        logger.info("[Init] [OK] SQLite database ready with WAL + foreign keys enabled")
-    else:
-        # PostgreSQL/MySQL: Create normally
-        logger.info("[Init] Production database - creating tables normally")
-        Base.metadata.create_all(bind=engine)
-        print(f"[Init] [OK] Production database initialized")
-        logger.info("[Init] [OK] Production database ready")
+    from sqlalchemy import inspect
     
-    # Verify tables were created
-    table_count = len(Base.metadata.tables)
-    print(f"[Init] [OK] Database initialized with {table_count} tables")
-    print(f"[Init] Tables: {', '.join(sorted(Base.metadata.tables.keys())[:10])}...")
-    logger.info(f"[Init] ✅ Database ready with {table_count} tables")
+    # Check if database already has tables
+    inspector = inspect(engine)
+    existing_tables = inspector.get_table_names()
+    
+    if existing_tables:
+        print(f"[Init] ✅ Database already initialized with {len(existing_tables)} existing tables")
+        logger.info(f"[Init] ✅ Database already has {len(existing_tables)} tables - skipping creation")
+    else:
+        print(f"[Init] No existing tables found - creating schema...")
+        
+        if "sqlite" in str(engine.url).lower():
+            # SQLite: Create with proper settings (WAL mode for concurrency)
+            logger.info("[Init] SQLite database - configuring for concurrent access")
+            with engine.begin() as conn:
+                # Enable Write-Ahead Logging (prevents database locks)
+                conn.execute(text("PRAGMA journal_mode=WAL"))
+                conn.execute(text("PRAGMA synchronous=NORMAL"))
+                # Enable foreign key constraints for data integrity
+                conn.execute(text("PRAGMA foreign_keys=ON"))
+                # Create all tables
+                Base.metadata.create_all(bind=conn)
+            print(f"[Init] [OK] SQLite database initialized with WAL mode")
+            logger.info("[Init] [OK] SQLite database ready with WAL + foreign keys enabled")
+        else:
+            # PostgreSQL/MySQL: Create normally
+            logger.info("[Init] Production database - creating tables normally")
+            Base.metadata.create_all(bind=engine)
+            print(f"[Init] [OK] Production database initialized")
+            logger.info("[Init] [OK] Production database ready")
+        
+        # Verify tables were created
+        table_count = len(Base.metadata.tables)
+        print(f"[Init] [OK] Database initialized with {table_count} tables")
+        print(f"[Init] Tables: {', '.join(sorted(Base.metadata.tables.keys())[:10])}...")
+        logger.info(f"[Init] ✅ Database ready with {table_count} tables")
     
 except Exception as e:
     print(f"\n[Init] ❌ CRITICAL ERROR creating database tables")

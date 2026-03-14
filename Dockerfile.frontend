@@ -1,69 +1,30 @@
-# SkillForge Frontend Dockerfile
-# Multi-stage build for optimized production image
+# SkillForge Frontend Dockerfile - OPTIMIZED
+# Development-optimized image for local Docker deployment
 
-FROM node:18-alpine as dependencies
-
-WORKDIR /app
-
-COPY package*.json ./
-
-# Install dependencies
-RUN npm ci --only=production && \
-    npm cache clean --force
-
-# Builder stage
-FROM node:18-alpine as builder
+FROM node:18-alpine
 
 WORKDIR /app
 
+# Install dependencies with npm ci (more reliable than npm install)
+# Copy ONLY package files first (changes rarely, cache-friendly)
 COPY package*.json ./
+RUN npm ci --prefer-offline --no-audit 2>/dev/null || npm install
 
-# Install all dependencies
-RUN npm ci
-
-# Copy source code
+# Copy application code (changes frequently, doesn't break cache)
 COPY . .
 
 # Build environment variables
-ARG NEXT_PUBLIC_API_BASE="https://api.skillforge.com"
-ARG NEXT_PUBLIC_STRIPE_KEY=""
-
-ENV NEXT_PUBLIC_API_BASE=$NEXT_PUBLIC_API_BASE \
-    NEXT_PUBLIC_STRIPE_KEY=$NEXT_PUBLIC_STRIPE_KEY \
-    NEXT_TELEMETRY_DISABLED=1
-
-# Build application
-RUN npm run build
-
-# Production stage
-FROM node:18-alpine as runner
-
-WORKDIR /app
-
-ENV NODE_ENV=production \
-    NEXT_TELEMETRY_DISABLED=1 \
+# Note: Inside Docker container, 'backend' is the service name in the network
+ENV NEXT_PUBLIC_API_BASE="http://backend:8001" \
+    NEXT_PUBLIC_STRIPE_KEY="pk_test_51SkcWEBydMsdVDYvDjEH5cNq0BO8VbYGcTq64NdlpvxFwaGaaaUIrKDFrTAAV4TrNYAAz3JdOvRFcDz8PWQLBc3K00kQDXwyCd" \
+    NODE_ENV="development" \
     PORT=3000
 
-# Create non-root user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nextjs -u 1001
-
-# Copy built application from builder
-COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-# Copy production dependencies
-COPY --from=dependencies /app/node_modules ./node_modules
-COPY --from=dependencies /app/package.json ./
-
-USER nextjs
+EXPOSE 3000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD wget --quiet --tries=1 --spider http://localhost:3000/ || exit 1
 
-# Start application
-CMD ["npm", "start"]
-
-EXPOSE 3000
+# Start Next.js in development mode for hot reload
+CMD ["npm", "run", "dev"]

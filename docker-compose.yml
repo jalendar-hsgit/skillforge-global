@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # PostgreSQL Database
   postgres:
@@ -66,7 +64,7 @@ services:
       uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
       "
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8001/api/v1/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8001/healthz"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -79,10 +77,10 @@ services:
       context: .
       dockerfile: Dockerfile.frontend
       args:
-        NEXT_PUBLIC_API_BASE: http://localhost:8001
+        NEXT_PUBLIC_API_BASE: http://backend:8001
     container_name: skillforge-frontend
     environment:
-      NEXT_PUBLIC_API_BASE: http://localhost:8001
+      NEXT_PUBLIC_API_BASE: http://backend:8001
       NEXT_PUBLIC_STRIPE_KEY: ${STRIPE_PUBLISHABLE_KEY}
       NODE_ENV: development
     ports:
@@ -94,6 +92,8 @@ services:
       - ./src:/app/src:cached        # Live reload for development
       - ./public:/app/public:cached
       - ./next.config.js:/app/next.config.js:cached
+      - ./tsconfig.json:/app/tsconfig.json:cached  # Configuration for path aliases
+      - ./package.json:/app/package.json:cached    # Module resolution
     command: npm run dev
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/"]

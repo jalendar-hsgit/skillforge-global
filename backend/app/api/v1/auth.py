@@ -146,6 +146,12 @@ def login(res: Response, request: Request, data: LoginRequest, db: Session = Dep
             raise HTTPException(status_code=400, detail="Email required")
         
         u = db.query(User).filter(User.email == data.email).first()
+        
+        # Store user_id and email immediately while session is active
+        # This avoids SQLAlchemy expired object errors on subsequent attribute access
+        user_id = u.id if u else None
+        user_email = u.email if u else None
+        user_password_hash = u.password_hash if u else None
             
         if not u:
             # Record failed login attempt
@@ -169,12 +175,12 @@ def login(res: Response, request: Request, data: LoginRequest, db: Session = Dep
             raise HTTPException(status_code=401, detail="Invalid login")
 
         # Verify password
-        if not verify_password(data.password, u.password_hash):
+        if not verify_password(data.password, user_password_hash):
             logger.debug("Login failed: bad password")
             # Record failed login attempt
             record_login_attempt(
                 db=db,
-                user_id=u.id,
+                user_id=user_id,
                 ip_address=client_ip,
                 user_agent=request.headers.get("User-Agent"),
                 device="unknown",
@@ -183,23 +189,23 @@ def login(res: Response, request: Request, data: LoginRequest, db: Session = Dep
             )
             log_action(
                 db=db,
-                user_id=u.id,
+                user_id=user_id,
                 action="LOGIN_FAILED",
                 resource_type="user",
-                resource_id=u.id,
+                resource_id=user_id,
                 ip_address=client_ip,
                 details={"reason": "invalid_password"}
             )
             raise HTTPException(status_code=401, detail="Invalid login")
 
         # Create token
-        token = create_access_token(u.id)
+        token = create_access_token(user_id)
         logger.debug("Login success: token created")
         
         # Record successful login attempt
         record_login_attempt(
             db=db,
-            user_id=u.id,
+            user_id=user_id,
             ip_address=client_ip,
             user_agent=request.headers.get("User-Agent"),
             device="web",
@@ -209,10 +215,10 @@ def login(res: Response, request: Request, data: LoginRequest, db: Session = Dep
         # Log successful login
         log_action(
             db=db,
-            user_id=u.id,
+            user_id=user_id,
             action="LOGIN_SUCCESS",
             resource_type="user",
-            resource_id=u.id,
+            resource_id=user_id,
             ip_address=client_ip
         )
 
@@ -238,8 +244,8 @@ def login(res: Response, request: Request, data: LoginRequest, db: Session = Dep
             "logged": True,
             "access_token": token,
             "token_type": "bearer",
-            "user_id": u.id,
-            "email": u.email
+            "user_id": user_id,
+            "email": user_email
         }
     except HTTPException:
         # Re-raise HTTP errors (401/429)

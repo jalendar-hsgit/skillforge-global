@@ -43,6 +43,21 @@ except ImportError:
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 
+# Define get_current_admin as alias for require_admin for compatibility
+async def get_current_admin(
+    current_user: User = Depends(require_admin)
+) -> User:
+    """Dependency to get current admin user - requires admin or superadmin role"""
+    return current_user
+
+
+async def get_current_superadmin(
+    current_user: User = Depends(require_superadmin)
+) -> User:
+    """Dependency to get current superadmin user - requires superadmin role only"""
+    return current_user
+
+
 def log_admin_action(
     db: Session,
     admin_user_id: int,

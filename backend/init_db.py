@@ -34,7 +34,12 @@ try:
     from app.modelsx.resume_analytics import ResumeAnalytics
     from app.modelsx.resume_comparison import ResumeVersion, ResumeComparison
     from app.modelsx.job_application import JobApplication as JobApplicationTracker
-    from app.modelsx.order import Order, Coupon, CartItem
+    # Import marketplace BEFORE order since order.py has foreign keys to digital_products
+    from app.modelsx.marketplace import (
+        DigitalProduct, ProductPurchase, SellerAccount,
+        ProductBundle, SellerPayout, MarketplaceAnalytics, SellerEarning
+    )
+    from app.modelsx.order import Order, Coupon, CartItem, OrderItem
     from app.modelsx.platform_settings import PlatformSetting
     from app.modelsx.coding_practice import CodingChallenge, CodingSubmission, SimulatorEnvironment, PracticeSession, CloudLabScenario, ChallengeHint
     from app.modelsx.code_snippets import CodeSnippet, SnippetVote, SnippetCopy

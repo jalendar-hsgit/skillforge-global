@@ -43,6 +43,9 @@ Application Link: http://localhost:3001/job-tracker/{application.id}
         # Generate unique UID
         uid = f"interview-{application.id}-{interview_date.timestamp()}@skillforge.com"
         
+        # Replace newlines for iCal format (outside f-string)
+        escaped_description = description.replace('\n', '\\n')
+        
         ical = f"""BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//SkillForge Global//Job Tracker//EN
@@ -54,7 +57,7 @@ DTSTAMP:{dtstamp}
 DTSTART:{dtstart}
 DTEND:{dtend}
 SUMMARY:{summary}
-DESCRIPTION:{description.replace(chr(10), '\\n')}
+DESCRIPTION:{escaped_description}
 LOCATION:{location}
 STATUS:CONFIRMED
 SEQUENCE:0

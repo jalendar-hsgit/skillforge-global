@@ -21,8 +21,6 @@ import logging
 from app.core.db import get_db
 from app.core.security import get_current_user
 from app.core.rbac import require_admin
-from app.models.user import Userfrom app.core.db import get_db
-from app.core.security import get_current_user
 from app.models.user import User
 from app.models.quiz_attempt import QuizAttempt
 from app.modelsx.mentor import Mentor, MentorSession

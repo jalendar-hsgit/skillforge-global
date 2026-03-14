@@ -3,6 +3,7 @@ uvicorn[standard]==0.30.6
 SQLAlchemy==2.0.36
 pydantic==2.8.2
 pydantic-settings==2.4.0
+email-validator==2.0.0
 python-jose[cryptography]==3.3.0
 passlib==1.7.4
 bcrypt==4.0.1
@@ -23,6 +24,8 @@ alembic==1.17.1
 openai==1.54.0
 anthropic==0.39.0
 httpx-sse==0.4.0
+psycopg2-binary
+redis
 # Add report generation dependencies
 reportlab
 python-docx
