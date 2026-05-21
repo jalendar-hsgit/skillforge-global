@@ -60,7 +60,7 @@ POSTGRES_PASSWORD=admin123
 POSTGRES_DB=skillforge
 
 JWT_SECRET_KEY=your-very-secret-key-here-min-32-chars
-STRIPE_SECRET_KEY=sk_test_xxxxx (get from Stripe)
+STRIPE_SECRET_KEY=sk_test_REPLACE_ME (get from Stripe)
 STRIPE_PUBLIC_KEY=pk_test_xxxxx
 
 REDIS_PASSWORD=

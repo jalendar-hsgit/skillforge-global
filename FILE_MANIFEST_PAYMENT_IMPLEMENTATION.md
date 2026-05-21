@@ -237,7 +237,7 @@ No migrations needed - webhooks handler works with existing schema.
 
 ```env
 # Stripe Keys (from https://dashboard.stripe.com/keys)
-STRIPE_API_KEY=sk_test_123456789
+STRIPE_API_KEY=sk_test_REPLACE_ME
 STRIPE_PUBLISHABLE_KEY=pk_test_123456789
 
 # Webhook Secret (from stripe listen output or Stripe dashboard)

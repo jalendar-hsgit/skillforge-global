@@ -18,7 +18,7 @@ All critical payment system fixes are implemented and verified:
 # .env file additions needed
 STRIPE_WEBHOOK_SECRET=whsec_test_xxx  # Get from Stripe Dashboard
 STRIPE_PUBLIC_KEY=pk_test_xxx
-STRIPE_SECRET_KEY=sk_test_xxx
+STRIPE_SECRET_KEY=sk_test_REPLACE_ME
 ```
 
 ### 2. Test Webhook Locally ⏱️ 20 min

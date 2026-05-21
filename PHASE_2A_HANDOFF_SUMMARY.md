@@ -165,7 +165,7 @@
 ```bash
 # Get keys from https://dashboard.stripe.com/
 STRIPE_PUBLIC_KEY=pk_test_xxxxx
-STRIPE_SECRET_KEY=sk_test_xxxxx
+STRIPE_SECRET_KEY=sk_test_REPLACE_ME
 STRIPE_WEBHOOK_SECRET=whsec_test_xxxxx
 ```
 
