@@ -128,7 +128,7 @@ Key Functions:
 ```
 backend/.env (example)
 ├─ STRIPE_PUBLIC_KEY=pk_test_xxxxx
-├─ STRIPE_SECRET_KEY=sk_test_xxxxx
+├─ STRIPE_SECRET_KEY=sk_test_REPLACE_ME
 ├─ STRIPE_WEBHOOK_SECRET=whsec_xxxxx
 ├─ DATABASE_URL=sqlite:///...
 ├─ JWT_SECRET=your-secret-key

@@ -443,7 +443,7 @@ docker-compose.yml
     Backend Container:
     ├─ DATABASE_URL=postgresql://admin:pass@postgres:5432/skillforge
     ├─ REDIS_URL=redis://redis:6379
-    ├─ STRIPE_SECRET_KEY=sk_test_xxxxx
+    ├─ STRIPE_SECRET_KEY=sk_test_REPLACE_ME
     └─ JWT_SECRET_KEY=your_secret
     
     These are available as:

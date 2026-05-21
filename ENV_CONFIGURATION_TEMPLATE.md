@@ -11,7 +11,7 @@ Copy this to `.env.local` and fill in your values.
 
 # Stripe API Keys (Test Mode)
 STRIPE_PUBLIC_KEY=pk_test_51Iv6C...  # Starts with pk_test_
-STRIPE_SECRET_KEY=sk_test_51Iv6C...  # Starts with sk_test_
+STRIPE_SECRET_KEY=sk_test_REPLACE_ME...  # Starts with sk_test_
 
 # Stripe Webhook Secret (From Developers → Webhooks)
 STRIPE_WEBHOOK_SECRET=whsec_test_... # Starts with whsec_test_

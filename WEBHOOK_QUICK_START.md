@@ -111,7 +111,7 @@ Response:
 
 Add to `.env` (backend):
 ```env
-STRIPE_API_KEY=sk_test_123456789
+STRIPE_API_KEY=sk_test_REPLACE_ME
 STRIPE_PUBLISHABLE_KEY=pk_test_123456789
 STRIPE_WEBHOOK_SECRET=whsec_test_123456789
 ```
