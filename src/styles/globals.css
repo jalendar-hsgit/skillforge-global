@@ -4,7 +4,17 @@
 
 :root { --radius: 12px; }
 
-html, body, #__next { height: 100%; background: #0B0A13; color: #fff; }
+html, body, #__next { 
+  height: 100%; 
+  background: #0B0A13; 
+  color: #fff;
+  font-family: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+}
+body { 
+  -webkit-font-smoothing: antialiased; 
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'liga' 1, 'calt' 1; /* Enable ligatures */
+}
 
 /* Subtle neural background helpers */
 .bg-neural { position: relative; }
@@ -16,4 +26,203 @@ html, body, #__next { height: 100%; background: #0B0A13; color: #fff; }
     radial-gradient(circle at 20% 20%, rgba(107,59,255,0.08) 0, transparent 40%),
     radial-gradient(circle at 80% 60%, rgba(30,158,255,0.08) 0, transparent 35%);
   pointer-events: none;
+}
+
+/* Resume Editor Enhancements */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(107, 59, 255, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(107, 59, 255, 0.5);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out forwards;
+  opacity: 0;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+.animate-glow {
+  animation: glow 2s ease-in-out infinite;
+}
+
+/* Custom scrollbar for resume editor */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 8px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: rgba(107, 59, 255, 0.5);
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 59, 255, 0.7);
+}
+
+/* Enhanced focus states */
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(107, 59, 255, 0.3);
+}
+
+/* Smooth transitions for interactive elements */
+button, a, input, textarea, select {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ========================================
+   Multi-Page Resume Support
+   ======================================== */
+
+/* Page break utilities for resumes */
+.resume-page-break {
+  page-break-after: always;
+  break-after: page;
+}
+
+.resume-avoid-break {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+/* Print styles for multi-page resumes */
+@media print {
+  /* Ensure proper page size */
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+  
+  /* Remove screen-only elements */
+  .print\\:hidden {
+    display: none !important;
+  }
+  
+  /* Resume-specific print rules */
+  #resume-content,
+  .resume-preview {
+    width: 210mm !important;
+    max-width: 210mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    background: white !important;
+  }
+  
+  /* Prevent page breaks inside sections */
+  #resume-content section,
+  .resume-section {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  
+  /* Prevent page breaks after headings */
+  #resume-content h1,
+  #resume-content h2,
+  #resume-content h3,
+  .resume-heading {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+  
+  /* Prevent orphaned list items */
+  #resume-content ul,
+  #resume-content ol,
+  #resume-content li {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  
+  /* Force color printing */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+  
+  /* Preserve backgrounds and gradients */
+  #resume-content [class*="bg-"],
+  #resume-content [class*="gradient"],
+  #resume-content [style*="background"] {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+
+/* Screen-only page break indicator */
+.page-break-indicator {
+  display: block;
+  position: relative;
+  height: 40px;
+  margin: 20px 0;
+}
+
+@media print {
+  .page-break-indicator {
+    display: none;
+  }
+}
+
+.page-break-indicator::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    #d1d5db 20%,
+    #d1d5db 80%,
+    transparent
+  );
+}
+
+.page-break-indicator::after {
+  content: attr(data-page);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  padding: 4px 12px;
+  font-size: 11px;
+  color: #9ca3af;
+  font-weight: 500;
+  white-space: nowrap;
 }

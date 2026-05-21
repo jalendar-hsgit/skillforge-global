@@ -17,3 +17,5 @@ export function Input({ label, className = '', ...props }: Props) {
     </label>
   )
 }
+// Default export for backwards compatibility
+export default Input

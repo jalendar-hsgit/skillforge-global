@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Challenge Slugs</title>
+    <style>
+        body { font-family: Arial; background: #1a1a1a; color: #fff; padding: 20px; }
+        h1 { color: #0099ff; }
+        .challenge { margin: 10px 0; padding: 10px; background: #2a2a2a; border-left: 3px solid #0099ff; }
+        .slug { color: #ffaa00; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Testing Challenge Endpoints</h1>
+    <div id="list"></div>
+    <div id="details"></div>
+    
+    <script>
+        // Test 1: Get challenge list
+        fetch('http://localhost:8001/api/v1x/coding-practice/challenges?limit=10')
+            .then(r => r.json())
+            .then(challenges => {
+                const html = '<h2>Challenge List (10 challenges):</h2>' +
+                    challenges.map(c => `<div class="challenge">${c.title} <span class="slug">${c.slug}</span></div>`).join('');
+                document.getElementById('list').innerHTML = html;
+                
+                // Test 2: Get specific challenges
+                return Promise.all(challenges.slice(0, 3).map(c => 
+                    fetch(`http://localhost:8001/api/v1x/coding-practice/challenges/${c.slug}`).then(r => r.json())
+                ));
+            })
+            .then(details => {
+                const html = '<h2>Detailed Challenges:</h2>' +
+                    details.map(c => `<div class="challenge">${c.title} <span class="slug">${c.slug}</span> - ${c.difficulty}</div>`).join('');
+                document.getElementById('details').innerHTML = html;
+            })
+            .catch(e => {
+                document.body.innerHTML += `<p style="color: red;">Error: ${e.message}</p>`;
+            });
+    </script>
+</body>
+</html>

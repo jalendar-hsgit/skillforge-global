@@ -24,6 +24,24 @@ def list_courses(path: str | None = Query(None, description="Optional path slug 
         items = [x for x in items if x.get("path") == path]
     return items
 
+@router.get("/{course_key}", response_model=CourseItem)
+def get_course(course_key: str):
+    """
+    Get course by id or path slug.
+    - If `course_key` matches an `id`, return that course.
+    - Otherwise, if it matches a `path`, return the first course under that path.
+    """
+    items = _load_all()
+    # Try id match
+    for item in items:
+        if item.get("id") == course_key:
+            return item
+    # Try path match (return first under path)
+    for item in items:
+        if item.get("path") == course_key:
+            return item
+    raise HTTPException(status_code=404, detail="Course not found")
+
 @router.post("", response_model=CourseItem)
 def add_course(item: CourseItem, x_admin_key: str = Header(None)):
     if x_admin_key != settings.ADMIN_KEY:

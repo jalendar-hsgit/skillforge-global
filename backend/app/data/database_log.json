@@ -1,0 +1,9 @@
+[
+  {
+    "timestamp": "2026-01-01T03:03:03.662934",
+    "backup_file": "skillforge_backup_20260101_030303.db",
+    "original_size_kb": 2764.0,
+    "description": "Pre-development snapshot",
+    "type": "backup"
+  }
+]

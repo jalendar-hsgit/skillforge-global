@@ -13,16 +13,16 @@ export function Hero() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
-              className="text-4xl md:text-6xl font-extrabold leading-tight"
+              className="text-4xl md:text-6xl font-display font-black leading-tight tracking-tight"
             >
-              Global tech careers are <span className="gradient-text">now within reach.</span>
+              Global tech careers are <span className="text-transparent bg-clip-text bg-gradient-to-r from-forgePurple-400 via-neuralBlue-400 to-aiElectric-400">now within reach.</span>
             </motion.h1>
 
             <motion.p
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.05 }}
-              className="mt-5 text-base md:text-lg text-techGray max-w-2xl mx-auto md:mx-0"
+              className="mt-6 text-lg md:text-xl text-techGray-300 leading-relaxed max-w-2xl mx-auto md:mx-0 font-medium"
             >
               SkillForge Global gives you the skills, the guidance, and the opportunities to succeed in the world of technology.
             </motion.p>

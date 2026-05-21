@@ -1,0 +1,141 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: skillforge-postgres
+    environment:
+      POSTGRES_DB: skillforge
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-skillforge_dev_password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - skillforge-network
+
+  # Redis Cache (Optional but recommended)
+  redis:
+    image: redis:7-alpine
+    container_name: skillforge-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - skillforge-network
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: skillforge-backend
+    environment:
+      DATABASE_URL: postgresql://admin:${DB_PASSWORD:-skillforge_dev_password}@postgres:5432/skillforge
+      REDIS_URL: redis://redis:6379
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-your-secret-key-change-in-production}
+      ALLOWED_ORIGINS: http://localhost:3000,http://localhost:8001
+      ENVIRONMENT: development
+      LOG_LEVEL: DEBUG
+    ports:
+      - "8001:8001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app:cached  # Live reload for development
+    command: >
+      sh -c "
+      python init_db.py &&
+      python seed_all_demo_data.py &&
+      uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
+      "
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - skillforge-network
+
+  # Next.js Frontend
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        NEXT_PUBLIC_API_BASE: http://backend:8001
+    container_name: skillforge-frontend
+    environment:
+      NEXT_PUBLIC_API_BASE: http://backend:8001
+      NEXT_PUBLIC_STRIPE_KEY: ${STRIPE_PUBLISHABLE_KEY}
+      NODE_ENV: development
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src:cached        # Live reload for development
+      - ./public:/app/public:cached
+      - ./next.config.js:/app/next.config.js:cached
+      - ./tsconfig.json:/app/tsconfig.json:cached  # Configuration for path aliases
+      - ./package.json:/app/package.json:cached    # Module resolution
+    command: npm run dev
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - skillforge-network
+
+  # Optional: Adminer for database management
+  adminer:
+    image: adminer:latest
+    container_name: skillforge-adminer
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+    networks:
+      - skillforge-network
+
+  # Optional: pgAdmin for advanced database management
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: skillforge-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@skillforge.com
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+    ports:
+      - "5050:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - skillforge-network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  skillforge-network:
+    driver: bridge

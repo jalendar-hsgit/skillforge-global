@@ -14,7 +14,7 @@ export default function AIPage() {
     e.preventDefault()
     const text = input.trim()
     if (!text) return
-    const next = [...messages, { role: 'user', content: text }]
+    const next: Msg[] = [...messages, { role: 'user' as const, content: text }]
     setMessages(next)
     setInput('')
 
@@ -25,9 +25,9 @@ export default function AIPage() {
         body: JSON.stringify({ message: text }),
       })
       const data = await res.json()
-      setMessages([...next, { role: 'assistant', content: data.reply ?? 'OK' }])
+      setMessages([...next, { role: 'assistant' as const, content: data.reply ?? 'OK' }])
     } catch (err) {
-      setMessages([...next, { role: 'assistant', content: 'Server error. Try again.' }])
+      setMessages([...next, { role: 'assistant' as const, content: 'Server error. Try again.' }])
     }
   }
 

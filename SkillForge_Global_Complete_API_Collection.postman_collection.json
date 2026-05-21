@@ -1,0 +1,742 @@
+{
+  "info": {
+    "name": "SkillForge Global - Complete Revenue Features API",
+    "description": "Comprehensive Postman collection for all 5 revenue features testing (Mentor Sessions $150K/mo, Marketplace $100K/mo, Subscriptions $200K/mo, Courses $50K/mo, Admin Payouts)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. AUTHENTICATION",
+      "item": [
+        {
+          "name": "Login - Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@skillforge.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": {
+              "raw": "{{api_base_url}}/api/v1x/auth/login",
+              "host": ["{{api_base_url}}"],
+              "path": ["api", "v1x", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Login - Mentor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"sarah.chen@example.com\",\n  \"password\": \"mentor123\"\n}"
+            },
+            "url": {
+              "raw": "{{api_base_url}}/api/v1x/auth/login",
+              "host": ["{{api_base_url}}"],
+              "path": ["api", "v1x", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Login - Student",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"student123\"\n}"
+            },
+            "url": {
+              "raw": "{{api_base_url}}/api/v1x/auth/login",
+              "host": ["{{api_base_url}}"],
+              "path": ["api", "v1x", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Login - Seller",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"jane.smith@example.com\",\n  \"password\": \"seller123\"\n}"
+            },
+            "url": {
+              "raw": "{{api_base_url}}/api/v1x/auth/login",
+              "host": ["{{api_base_url}}"],
+              "path": ["api", "v1x", "auth", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. MENTOR SESSIONS ($150K/mo)",
+      "item": [
+        {
+          "name": "GET - List All Mentors",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_base_url}}/api/v1x/mentors",
+              "host": ["{{api_base_url}}"],
+              "path": ["api", "v1x", "mentors"]
+            }
+          }
+        },
+        {
+          "name": "GET - Mentor Detail (ID: 1)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_base_url}}/api/v1x/mentors/1",
+              "host": ["{{api_base_url}}"],
+              "path": ["api", "v1x", "mentors", "1"]
+            }
+          }
+        },
+        {
+          "name": "GET - Mentor Availability",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_base_url}}/api/v1x/mentors/1/availability",
+              "host": ["{{api_base_url}}"],
+              "path": ["api", "v1x", "mentors", "1", "availability"]
+            }
+          }
+        },
+        {
+          "name": "POST - Create Mentor Session (Book)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mentor_id\": 1,\n  \"topic\": \"Python OOP Fundamentals\",\n  \"description\": \"Need help with classes and inheritance\",\n  \"scheduled_at\": \"2026-01-30T14:00:00Z\",\n  \"duration_minutes\": 60\n}"
+            },
+            "url": {
+              "raw": "{{api_base_url}}/api/v1x/mentors/sessions",
+              "host": ["{{api_base_url}}"],
+              "path": ["api", "v1x", "mentors", "sessions"]
+            }
+          }
+        },
+        {
+          "name": "GET - My Mentor Sessions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_base_url}}/api/v1x/mentors/sessions/my",
+              "host": ["{{api_base_url}}"],
+              "path": ["api", "v1x", "mentors", "sessions", "my"]
+            }
+          }
+        },
+        {
+          "name": "POST - Create Payment Intent",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"session_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{api_base_url}}/api/v1x/payments/create-payment-intent",
+              "host": ["{{api_base_url}}"],
+              "path": ["api", "v1x", "payments", "create-payment-intent"]
+            }
+          }
+        },
+        {
+          "name": "GET - Mentor Payout Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{mentor_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_base_url}}/api/v1x/mentors/payouts/summary",
+              "host": ["{{api_base_url}}"],
+              "path": ["api", "v1x", "mentors", "payouts", "summary"]
+            }
+          }
+        },
+        {
+          "name": "POST - Request Payout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{mentor_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 100.00,\n  \"payment_method_id\": 1,\n  \"notes\": \"Monthly withdrawal\"\n}"
+            },
+            "url": {
+              "raw": "{{api_base_url}}/api/v1x/mentors/payouts/payout-request",
+              "host": ["{{api_base_url}}"],
+              "path": ["api", "v1x", "mentors", "payouts", "payout-request"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. DIGITAL MARKETPLACE ($100K/mo)",
+      "item": [
+        {
+          "name": "GET - List Digital Products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_base_url}}/api/v1x/marketplace/digital-products",
+              "host": ["{{api_base_url}}"],
+              "path": ["api", "v1x", "marketplace", "digital-products"]
+            }
+          }
+        },
+        {
+          "name": "GET - Product Detail (ID: 1)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_base_url}}/api/v1x/marketplace/digital-products/1",
+              "host": ["{{api_base_url}}"],
+              "path": ["api", "v1x", "marketplace", "digital-products", "1"]
+            }
+          }
+        },
+        {
+          "name": "GET - View Shopping Cart",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_base_url}}/api/v1x/marketplace/cart",
+              "host": ["{{api_base_url}}"],
+              "path": ["api", "v1x", "marketplace", "cart"]
+            }
+          }
+        },
+        {
+          "name": "POST - Add to Cart",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{api_base_url}}/api/v1x/marketplace/cart/add",
+              "host": ["{{api_base_url}}"],
+              "path": ["api", "v1x", "marketplace", "cart", "add"]
+            }
+          }
+        },
+        {
+          "name": "POST - Checkout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_ids\": [1],\n  \"coupon_code\": null\n}"
+            },
+            "url": {
+              "raw": "{{api_base_url}}/api/v1x/marketplace/checkout",
+              "host": ["{{api_base_url}}"],
+              "path": ["api", "v1x", "marketplace", "checkout"]
+            }
+          }
+        },
+        {
+          "name": "GET - Seller Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{seller_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_base_url}}/api/v1x/seller/dashboard",
+              "host": ["{{api_base_url}}"],
+              "path": ["api", "v1x", "seller", "dashboard"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. SUBSCRIPTIONS ($200K/mo)",
+      "item": [
+        {
+          "name": "GET - List Subscription Plans",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_base_url}}/api/v1x/subscriptions/plans",
+              "host": ["{{api_base_url}}"],
+              "path": ["api", "v1x", "subscriptions", "plans"]
+            }
+          }
+        },
+        {
+          "name": "GET - Current Subscription",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_base_url}}/api/v1x/subscriptions/current",
+              "host": ["{{api_base_url}}"],
+              "path": ["api", "v1x", "subscriptions", "current"]
+            }
+          }
+        },
+        {
+          "name": "POST - Subscribe to Pro Plan",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"plan\": \"pro\",\n  \"payment_method_id\": \"pm_card_visa\"\n}"
+            },
+            "url": {
+              "raw": "{{api_base_url}}/api/v1x/subscriptions/subscribe",
+              "host": ["{{api_base_url}}"],
+              "path": ["api", "v1x", "subscriptions", "subscribe"]
+            }
+          }
+        },
+        {
+          "name": "GET - Features Access",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_base_url}}/api/v1x/subscriptions/features",
+              "host": ["{{api_base_url}}"],
+              "path": ["api", "v1x", "subscriptions", "features"]
+            }
+          }
+        },
+        {
+          "name": "POST - Cancel Subscription",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cancel_immediately\": false\n}"
+            },
+            "url": {
+              "raw": "{{api_base_url}}/api/v1x/subscriptions/cancel",
+              "host": ["{{api_base_url}}"],
+              "path": ["api", "v1x", "subscriptions", "cancel"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. COURSE ENROLLMENT ($50K/mo)",
+      "item": [
+        {
+          "name": "GET - List Courses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_base_url}}/api/v1x/courses",
+              "host": ["{{api_base_url}}"],
+              "path": ["api", "v1x", "courses"]
+            }
+          }
+        },
+        {
+          "name": "GET - Course Detail (ID: 1)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_base_url}}/api/v1x/courses/1",
+              "host": ["{{api_base_url}}"],
+              "path": ["api", "v1x", "courses", "1"]
+            }
+          }
+        },
+        {
+          "name": "POST - Enroll in Course",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_base_url}}/api/v1x/courses/1/enroll",
+              "host": ["{{api_base_url}}"],
+              "path": ["api", "v1x", "courses", "1", "enroll"]
+            }
+          }
+        },
+        {
+          "name": "GET - Course Progress",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_base_url}}/api/v1x/courses/1/progress",
+              "host": ["{{api_base_url}}"],
+              "path": ["api", "v1x", "courses", "1", "progress"]
+            }
+          }
+        },
+        {
+          "name": "POST - Complete Lesson",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"progress_percent\": 100\n}"
+            },
+            "url": {
+              "raw": "{{api_base_url}}/api/v1x/courses/1/lessons/1/complete",
+              "host": ["{{api_base_url}}"],
+              "path": ["api", "v1x", "courses", "1", "lessons", "1", "complete"]
+            }
+          }
+        },
+        {
+          "name": "GET - My Certificates",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_base_url}}/api/v1x/users/5/certificates",
+              "host": ["{{api_base_url}}"],
+              "path": ["api", "v1x", "users", "5", "certificates"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. ADMIN PAYOUTS (Revenue Processing)",
+      "item": [
+        {
+          "name": "GET - Payout Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_base_url}}/api/v1x/admin/payouts/stats",
+              "host": ["{{api_base_url}}"],
+              "path": ["api", "v1x", "admin", "payouts", "stats"]
+            }
+          }
+        },
+        {
+          "name": "GET - Pending Payouts",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_base_url}}/api/v1x/admin/payouts/pending",
+              "host": ["{{api_base_url}}"],
+              "path": ["api", "v1x", "admin", "payouts", "pending"]
+            }
+          }
+        },
+        {
+          "name": "GET - Single Payout Detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_base_url}}/api/v1x/admin/payouts/1",
+              "host": ["{{api_base_url}}"],
+              "path": ["api", "v1x", "admin", "payouts", "1"]
+            }
+          }
+        },
+        {
+          "name": "POST - Approve Payout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"admin_notes\": \"Payment verified and approved\"\n}"
+            },
+            "url": {
+              "raw": "{{api_base_url}}/api/v1x/admin/payouts/1/approve",
+              "host": ["{{api_base_url}}"],
+              "path": ["api", "v1x", "admin", "payouts", "1", "approve"]
+            }
+          }
+        },
+        {
+          "name": "POST - Reject Payout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rejection_reason\": \"Payment method not verified\",\n  \"admin_notes\": \"User needs to re-verify bank account\"\n}"
+            },
+            "url": {
+              "raw": "{{api_base_url}}/api/v1x/admin/payouts/2/reject",
+              "host": ["{{api_base_url}}"],
+              "path": ["api", "v1x", "admin", "payouts", "2", "reject"]
+            }
+          }
+        },
+        {
+          "name": "GET - Unverified Payment Methods",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_base_url}}/api/v1x/admin/payouts/payment-methods/unverified",
+              "host": ["{{api_base_url}}"],
+              "path": ["api", "v1x", "admin", "payouts", "payment-methods", "unverified"]
+            }
+          }
+        },
+        {
+          "name": "POST - Verify Payment Method",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"VERIFIED\",\n  \"verification_notes\": \"Micro-deposits confirmed\"\n}"
+            },
+            "url": {
+              "raw": "{{api_base_url}}/api/v1x/admin/payouts/payment-methods/2/verify",
+              "host": ["{{api_base_url}}"],
+              "path": ["api", "v1x", "admin", "payouts", "payment-methods", "2", "verify"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "api_base_url",
+      "value": "http://localhost:8001",
+      "type": "string"
+    },
+    {
+      "key": "admin_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "mentor_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "student_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "seller_token",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

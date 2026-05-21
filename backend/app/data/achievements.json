@@ -1,0 +1,93 @@
+{
+  "achievements": [
+    {
+      "id": "first_quiz",
+      "name": "Quiz Novice",
+      "description": "Complete your first quiz",
+      "icon": "\ud83c\udfaf",
+      "points": 10,
+      "category": "quiz"
+    },
+    {
+      "id": "perfect_score",
+      "name": "Perfectionist",
+      "description": "Get 100% on any quiz",
+      "icon": "\ud83d\udcaf",
+      "points": 50,
+      "category": "quiz"
+    },
+    {
+      "id": "speed_demon",
+      "name": "Speed Demon",
+      "description": "Complete a quiz in under 5 minutes",
+      "icon": "\u26a1",
+      "points": 30,
+      "category": "quiz"
+    },
+    {
+      "id": "quiz_master",
+      "name": "Quiz Master",
+      "description": "Complete 10 quizzes",
+      "icon": "\ud83d\udc51",
+      "points": 100,
+      "category": "quiz"
+    },
+    {
+      "id": "streak_3",
+      "name": "On a Roll",
+      "description": "Pass 3 quizzes in a row",
+      "icon": "\ud83d\udd25",
+      "points": 40,
+      "category": "streak"
+    },
+    {
+      "id": "comeback_king",
+      "name": "Comeback King",
+      "description": "Pass a quiz after failing it twice",
+      "icon": "\ud83d\udc4a",
+      "points": 60,
+      "category": "persistence"
+    },
+    {
+      "id": "path_complete",
+      "name": "Path Completer",
+      "description": "Complete all quizzes in a learning path",
+      "icon": "\ud83c\udfc6",
+      "points": 150,
+      "category": "completion"
+    }
+  ],
+  "user_achievements": {},
+  "65": [
+    {
+      "key": "quiz:flutter:passed",
+      "title": "Passed Flutter Mobile Development Quiz Quiz",
+      "description": "You passed the Flutter Mobile Development Quiz quiz!",
+      "points": 5,
+      "unlocked_at": "2025-11-03T11:22:55.300301+00:00"
+    },
+    {
+      "key": "quiz:flutter:perfect",
+      "title": "Perfect Score \u2013 Flutter Mobile Development Quiz",
+      "description": "You aced the Flutter Mobile Development Quiz quiz with a perfect score.",
+      "points": 10,
+      "unlocked_at": "2025-11-03T11:22:55.460768+00:00"
+    }
+  ],
+  "195": [
+    {
+      "key": "quiz:fullstack:passed",
+      "title": "Passed Full Stack Development Quiz Quiz",
+      "description": "You passed the Full Stack Development Quiz quiz!",
+      "points": 5,
+      "unlocked_at": "2025-12-03T00:30:09.995502+00:00"
+    },
+    {
+      "key": "quiz:fullstack:perfect",
+      "title": "Perfect Score \u2013 Full Stack Development Quiz",
+      "description": "You aced the Full Stack Development Quiz quiz with a perfect score.",
+      "points": 10,
+      "unlocked_at": "2025-12-03T00:30:10.916561+00:00"
+    }
+  ]
+}

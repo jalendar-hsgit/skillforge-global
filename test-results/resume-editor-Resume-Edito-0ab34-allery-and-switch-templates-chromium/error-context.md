@@ -1,0 +1,743 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - navigation [ref=e5]:
+        - generic [ref=e6]:
+          - link "SkillForge Global SkillForge Global" [ref=e7] [cursor=pointer]:
+            - /url: /
+            - img "SkillForge Global" [ref=e10]
+            - generic [ref=e11]: SkillForge Global
+          - generic [ref=e12]:
+            - link "📚 Courses" [ref=e13] [cursor=pointer]:
+              - /url: /paths
+              - generic [ref=e14]: 📚
+              - generic [ref=e15]: Courses
+            - link "👥 Mentors" [ref=e16] [cursor=pointer]:
+              - /url: /mentors
+              - generic [ref=e17]: 👥
+              - generic [ref=e18]: Mentors
+            - link "🤖 AI Assistant" [ref=e19] [cursor=pointer]:
+              - /url: /ai
+              - generic [ref=e20]: 🤖
+              - generic [ref=e21]: AI Assistant
+            - link "📄 Create Resume" [ref=e22] [cursor=pointer]:
+              - /url: /resumes/new
+              - generic [ref=e23]: 📄
+              - generic [ref=e24]: Create Resume
+            - link "💳 Pricing" [ref=e25] [cursor=pointer]:
+              - /url: /pricing
+              - generic [ref=e26]: 💳
+              - generic [ref=e27]: Pricing
+          - generic [ref=e28]:
+            - generic [ref=e29]:
+              - img [ref=e30]
+              - generic [ref=e33]: "100"
+              - generic [ref=e34]: credits
+            - generic [ref=e35]:
+              - link "📊 Dashboard" [ref=e36] [cursor=pointer]:
+                - /url: /dashboard
+                - generic [ref=e37]: 📊
+                - generic [ref=e38]: Dashboard
+              - link "🚪 Logout" [ref=e39] [cursor=pointer]:
+                - /url: /logout
+                - generic [ref=e40]: 🚪
+                - generic [ref=e41]: Logout
+    - main [ref=e42]:
+      - generic [ref=e43]:
+        - generic [ref=e45]:
+          - generic [ref=e46]:
+            - button "← Back" [ref=e47] [cursor=pointer]:
+              - generic [ref=e48]: ←
+              - generic [ref=e49]: Back
+            - textbox "My Professional Resume" [ref=e52]: Untitled Resume
+          - generic [ref=e53]:
+            - generic [ref=e54]:
+              - generic [ref=e55]:
+                - generic [ref=e56]: —
+                - generic [ref=e57]: Not saved
+              - generic [ref=e58]:
+                - button "Undo (Ctrl+Z)" [ref=e59] [cursor=pointer]:
+                  - img [ref=e60]
+                - button "Redo (Ctrl+Y)" [disabled] [ref=e63]:
+                  - img [ref=e64]
+                - generic [ref=e67]:
+                  - img [ref=e68]
+                  - generic [ref=e72]: "2"
+              - button "⌨️" [ref=e73] [cursor=pointer]:
+                - generic [ref=e74]: ⌨️
+            - generic [ref=e75]:
+              - button "Save" [ref=e76] [cursor=pointer]:
+                - img [ref=e77]
+                - generic [ref=e81]: Save
+              - button "AI" [ref=e82] [cursor=pointer]:
+                - img [ref=e83]
+                - generic [ref=e86]: AI
+              - button "Styles" [ref=e87] [cursor=pointer]:
+                - img [ref=e88]
+                - generic [ref=e94]: Styles
+              - button "Cover Letter" [ref=e95] [cursor=pointer]:
+                - img [ref=e96]
+                - generic [ref=e99]: Cover Letter
+              - button "Versions" [ref=e100] [cursor=pointer]:
+                - img [ref=e101]
+                - generic [ref=e105]: Versions
+              - 'button "Auto Snapshot: Off" [ref=e106] [cursor=pointer]'
+              - button "ATS Insights" [ref=e107] [cursor=pointer]:
+                - img [ref=e108]
+                - generic [ref=e112]: ATS Insights
+              - button "Compare" [ref=e113] [cursor=pointer]:
+                - img [ref=e114]
+                - generic [ref=e119]: Compare
+              - button "LinkedIn" [ref=e120] [cursor=pointer]:
+                - img [ref=e121]
+                - generic [ref=e125]: LinkedIn
+              - button "Templates" [active] [ref=e126] [cursor=pointer]:
+                - img [ref=e127]
+                - generic [ref=e129]: Templates
+              - button "Full Width" [ref=e130] [cursor=pointer]:
+                - img [ref=e131]
+                - generic [ref=e136]: Full Width
+              - button "Preview" [ref=e137] [cursor=pointer]:
+                - img [ref=e138]
+                - generic [ref=e141]: Preview
+              - button "Export" [ref=e142] [cursor=pointer]:
+                - img [ref=e143]
+                - generic [ref=e146]: Export
+        - generic [ref=e147]:
+          - generic [ref=e149]:
+            - generic [ref=e150]:
+              - heading "Resume Sections" [level=3] [ref=e151]:
+                - img [ref=e152]
+                - text: Resume Sections
+              - img [ref=e155]
+            - generic [ref=e162]:
+              - button "Drag to reorder section Contact Info Toggle Contact Info section" [pressed] [ref=e163] [cursor=pointer]:
+                - button "Drag to reorder section" [ref=e164]:
+                  - img [ref=e165]
+                - generic [ref=e172]:
+                  - generic [ref=e173]: 👤
+                  - generic [ref=e174]: Contact Info
+                - checkbox "Toggle Contact Info section" [checked] [ref=e175]
+              - button "Drag to reorder section Professional Summary Toggle Professional Summary section" [ref=e176] [cursor=pointer]:
+                - button "Drag to reorder section" [ref=e177]:
+                  - img [ref=e178]
+                - generic [ref=e185]:
+                  - generic [ref=e186]: 📝
+                  - generic [ref=e187]: Professional Summary
+                - checkbox "Toggle Professional Summary section" [checked] [ref=e188]
+              - button "Drag to reorder section Work Experience Toggle Work Experience section" [ref=e189] [cursor=pointer]:
+                - button "Drag to reorder section" [ref=e190]:
+                  - img [ref=e191]
+                - generic [ref=e198]:
+                  - generic [ref=e199]: 💼
+                  - generic [ref=e200]: Work Experience
+                - checkbox "Toggle Work Experience section" [checked] [ref=e201]
+              - button "Drag to reorder section Education Toggle Education section" [ref=e202] [cursor=pointer]:
+                - button "Drag to reorder section" [ref=e203]:
+                  - img [ref=e204]
+                - generic [ref=e211]:
+                  - generic [ref=e212]: 🎓
+                  - generic [ref=e213]: Education
+                - checkbox "Toggle Education section" [checked] [ref=e214]
+              - button "Drag to reorder section Skills Toggle Skills section" [ref=e215] [cursor=pointer]:
+                - button "Drag to reorder section" [ref=e216]:
+                  - img [ref=e217]
+                - generic [ref=e224]:
+                  - generic [ref=e225]: ⚡
+                  - generic [ref=e226]: Skills
+                - checkbox "Toggle Skills section" [checked] [ref=e227]
+              - button "Drag to reorder section Projects Toggle Projects section" [ref=e228] [cursor=pointer]:
+                - button "Drag to reorder section" [ref=e229]:
+                  - img [ref=e230]
+                - generic [ref=e237]:
+                  - generic [ref=e238]: 🚀
+                  - generic [ref=e239]: Projects
+                - checkbox "Toggle Projects section" [checked] [ref=e240]
+              - button "Drag to reorder section Certificates Toggle Certificates section" [ref=e241] [cursor=pointer]:
+                - button "Drag to reorder section" [ref=e242]:
+                  - img [ref=e243]
+                - generic [ref=e250]:
+                  - generic [ref=e251]: 🏆
+                  - generic [ref=e252]: Certificates
+                - checkbox "Toggle Certificates section" [ref=e253]
+              - button "Drag to reorder section Achievements Toggle Achievements section" [ref=e254] [cursor=pointer]:
+                - button "Drag to reorder section" [ref=e255]:
+                  - img [ref=e256]
+                - generic [ref=e263]:
+                  - generic [ref=e264]: ⭐
+                  - generic [ref=e265]: Achievements
+                - checkbox "Toggle Achievements section" [ref=e266]
+            - status [ref=e267]
+            - paragraph [ref=e269]: 💡 Drag sections to reorder
+          - generic [ref=e272]:
+            - generic [ref=e273]:
+              - heading "Header & Contact Information" [level=2] [ref=e274]
+              - paragraph [ref=e275]: Add your basic information and contact details that will appear at the top of your resume.
+            - generic [ref=e276]:
+              - generic [ref=e277]:
+                - generic [ref=e278]: Full Name *
+                - textbox [ref=e280]:
+                  - /placeholder: John Doe
+              - generic [ref=e281]:
+                - generic [ref=e282]:
+                  - generic [ref=e283]: Email *
+                  - textbox [ref=e285]:
+                    - /placeholder: john.doe@example.com
+                - generic [ref=e286]:
+                  - generic [ref=e287]: Phone
+                  - textbox [ref=e289]:
+                    - /placeholder: +1 (555) 123-4567
+              - generic [ref=e290]:
+                - generic [ref=e291]: Location
+                - textbox [ref=e293]:
+                  - /placeholder: San Francisco, CA
+              - generic [ref=e294]:
+                - heading "Links (Optional)" [level=3] [ref=e295]
+                - generic [ref=e296]:
+                  - generic [ref=e297]:
+                    - generic [ref=e298]: LinkedIn Profile
+                    - textbox [ref=e300]:
+                      - /placeholder: https://linkedin.com/in/johndoe
+                  - generic [ref=e301]:
+                    - generic [ref=e302]: GitHub Profile
+                    - textbox [ref=e304]:
+                      - /placeholder: https://github.com/johndoe
+                  - generic [ref=e305]:
+                    - generic [ref=e306]: Personal Website/Portfolio
+                    - textbox [ref=e308]:
+                      - /placeholder: https://johndoe.com
+            - generic [ref=e310]:
+              - generic [ref=e311]: 💡
+              - generic [ref=e312]:
+                - heading "Pro Tips:" [level=4] [ref=e313]
+                - list [ref=e314]:
+                  - listitem [ref=e315]: • Use a professional email address
+                  - listitem [ref=e316]: • Include your city and state (no full address needed)
+                  - listitem [ref=e317]: • Make sure your LinkedIn profile is complete and up-to-date
+                  - listitem [ref=e318]: • Only add links that showcase your professional work
+          - generic [ref=e320]:
+            - heading "Live Preview" [level=3] [ref=e322]:
+              - img [ref=e323]
+              - text: Live Preview
+            - generic [ref=e328]:
+              - generic [ref=e334]:
+                - heading "Your Name" [level=2] [ref=e335]
+                - paragraph [ref=e336]:
+                  - img [ref=e337]
+                  - text: email@example.com•
+                  - img [ref=e339]
+                  - text: 000-000-0000
+              - separator [ref=e341]
+        - generic [ref=e344]:
+          - generic [ref=e345]:
+            - generic [ref=e346]:
+              - heading "Choose Your Perfect Template" [level=3] [ref=e347]
+              - paragraph [ref=e348]:
+                - generic [ref=e349]: 30 templates
+                - text: Professional designs ready to use
+            - button "Close" [ref=e350] [cursor=pointer]:
+              - img [ref=e351]
+          - generic [ref=e354]:
+            - generic [ref=e355]:
+              - generic [ref=e356]: Category
+              - combobox [ref=e357]:
+                - option "All" [selected]
+                - option "Modern"
+                - option "Classic"
+                - option "Creative"
+                - option "Executive"
+                - option "Tech"
+                - option "Medical"
+            - generic [ref=e358]:
+              - generic [ref=e359]: Filter
+              - generic [ref=e360] [cursor=pointer]:
+                - checkbox "ATS-Friendly Only" [ref=e361]
+                - generic [ref=e362]: ATS-Friendly Only
+            - generic [ref=e363]:
+              - generic [ref=e364]: Sort By
+              - combobox [ref=e365]:
+                - option "Most Popular" [selected]
+                - option "Name (A-Z)"
+          - generic [ref=e367]:
+            - button "C-Suite Executive C-Suite Executive Executive ATS C-Suite Executive Premium design for C-level executives. 107 Executive" [ref=e368] [cursor=pointer]:
+              - generic [ref=e369]:
+                - img "C-Suite Executive" [ref=e370]
+                - generic [ref=e372]:
+                  - generic [ref=e373]: C-Suite Executive
+                  - generic [ref=e374]: Executive
+                - button "Preview" [ref=e375]:
+                  - img [ref=e376]
+                - generic [ref=e380]: ATS
+              - generic [ref=e381]: C-Suite Executive
+              - generic [ref=e382]: Premium design for C-level executives.
+              - generic [ref=e383]:
+                - generic [ref=e384]:
+                  - img [ref=e385]
+                  - text: "107"
+                - generic [ref=e387]: Executive
+            - button "Modern Professional Modern Professional Modern ATS Modern Professional Clean, modern design with bold headers. Perfect for tech roles. 100 Modern" [ref=e388] [cursor=pointer]:
+              - generic [ref=e389]:
+                - img "Modern Professional" [ref=e390]
+                - generic [ref=e392]:
+                  - generic [ref=e393]: Modern Professional
+                  - generic [ref=e394]: Modern
+                - button "Preview" [ref=e395]:
+                  - img [ref=e396]
+                - generic [ref=e400]: ATS
+              - generic [ref=e401]: Modern Professional
+              - generic [ref=e402]: Clean, modern design with bold headers. Perfect for tech roles.
+              - generic [ref=e403]:
+                - generic [ref=e404]:
+                  - img [ref=e405]
+                  - text: "100"
+                - generic [ref=e407]: Modern
+            - button "Corporate Standard Corporate Standard Classic ATS Corporate Standard Standard corporate template, universally accepted. 98 Classic" [ref=e408] [cursor=pointer]:
+              - generic [ref=e409]:
+                - img "Corporate Standard" [ref=e410]
+                - generic [ref=e412]:
+                  - generic [ref=e413]: Corporate Standard
+                  - generic [ref=e414]: Classic
+                - button "Preview" [ref=e415]:
+                  - img [ref=e416]
+                - generic [ref=e420]: ATS
+              - generic [ref=e421]: Corporate Standard
+              - generic [ref=e422]: Standard corporate template, universally accepted.
+              - generic [ref=e423]:
+                - generic [ref=e424]:
+                  - img [ref=e425]
+                  - text: "98"
+                - generic [ref=e427]: Classic
+            - button "Software Engineer Software Engineer Tech ATS Software Engineer Optimized for software developers. 98 Tech" [ref=e428] [cursor=pointer]:
+              - generic [ref=e429]:
+                - img "Software Engineer" [ref=e430]
+                - generic [ref=e432]:
+                  - generic [ref=e433]: Software Engineer
+                  - generic [ref=e434]: Tech
+                - button "Preview" [ref=e435]:
+                  - img [ref=e436]
+                - generic [ref=e440]: ATS
+              - generic [ref=e441]: Software Engineer
+              - generic [ref=e442]: Optimized for software developers.
+              - generic [ref=e443]:
+                - generic [ref=e444]:
+                  - img [ref=e445]
+                  - text: "98"
+                - generic [ref=e447]: Tech
+            - button "Tech Stack Tech Stack Modern ATS Tech Stack Developer-focused with prominent skills section. 93 Modern" [ref=e448] [cursor=pointer]:
+              - generic [ref=e449]:
+                - img "Tech Stack" [ref=e450]
+                - generic [ref=e452]:
+                  - generic [ref=e453]: Tech Stack
+                  - generic [ref=e454]: Modern
+                - button "Preview" [ref=e455]:
+                  - img [ref=e456]
+                - generic [ref=e460]: ATS
+              - generic [ref=e461]: Tech Stack
+              - generic [ref=e462]: Developer-focused with prominent skills section.
+              - generic [ref=e463]:
+                - generic [ref=e464]:
+                  - img [ref=e465]
+                  - text: "93"
+                - generic [ref=e467]: Modern
+            - button "Marketing Maven Marketing Maven Creative ATS Marketing Maven Dynamic template for marketing professionals. 93 Creative" [ref=e468] [cursor=pointer]:
+              - generic [ref=e469]:
+                - img "Marketing Maven" [ref=e470]
+                - generic [ref=e472]:
+                  - generic [ref=e473]: Marketing Maven
+                  - generic [ref=e474]: Creative
+                - button "Preview" [ref=e475]:
+                  - img [ref=e476]
+                - generic [ref=e480]: ATS
+              - generic [ref=e481]: Marketing Maven
+              - generic [ref=e482]: Dynamic template for marketing professionals.
+              - generic [ref=e483]:
+                - generic [ref=e484]:
+                  - img [ref=e485]
+                  - text: "93"
+                - generic [ref=e487]: Creative
+            - button "Sleek Professional Sleek Professional Modern ATS Sleek Professional Perfect balance of style and readability. 92 Modern" [ref=e488] [cursor=pointer]:
+              - generic [ref=e489]:
+                - img "Sleek Professional" [ref=e490]
+                - generic [ref=e492]:
+                  - generic [ref=e493]: Sleek Professional
+                  - generic [ref=e494]: Modern
+                - button "Preview" [ref=e495]:
+                  - img [ref=e496]
+                - generic [ref=e500]: ATS
+              - generic [ref=e501]: Sleek Professional
+              - generic [ref=e502]: Perfect balance of style and readability.
+              - generic [ref=e503]:
+                - generic [ref=e504]:
+                  - img [ref=e505]
+                  - text: "92"
+                - generic [ref=e507]: Modern
+            - button "Data Scientist Data Scientist Tech ATS Data Scientist Analytics-focused for data scientists and ML engineers. 92 Tech" [ref=e508] [cursor=pointer]:
+              - generic [ref=e509]:
+                - img "Data Scientist" [ref=e510]
+                - generic [ref=e512]:
+                  - generic [ref=e513]: Data Scientist
+                  - generic [ref=e514]: Tech
+                - button "Preview" [ref=e515]:
+                  - img [ref=e516]
+                - generic [ref=e520]: ATS
+              - generic [ref=e521]: Data Scientist
+              - generic [ref=e522]: Analytics-focused for data scientists and ML engineers.
+              - generic [ref=e523]:
+                - generic [ref=e524]:
+                  - img [ref=e525]
+                  - text: "92"
+                - generic [ref=e527]: Tech
+            - button "Healthcare Professional Healthcare Professional Medical ATS Healthcare Professional Clean, professional for healthcare workers. 92 Medical" [ref=e528] [cursor=pointer]:
+              - generic [ref=e529]:
+                - img "Healthcare Professional" [ref=e530]
+                - generic [ref=e532]:
+                  - generic [ref=e533]: Healthcare Professional
+                  - generic [ref=e534]: Medical
+                - button "Preview" [ref=e535]:
+                  - img [ref=e536]
+                - generic [ref=e540]: ATS
+              - generic [ref=e541]: Healthcare Professional
+              - generic [ref=e542]: Clean, professional for healthcare workers.
+              - generic [ref=e543]:
+                - generic [ref=e544]:
+                  - img [ref=e545]
+                  - text: "92"
+                - generic [ref=e547]: Medical
+            - button "DevOps Specialist DevOps Specialist Tech ATS DevOps Specialist Template for DevOps and infrastructure engineers. 91 Tech" [ref=e548] [cursor=pointer]:
+              - generic [ref=e549]:
+                - img "DevOps Specialist" [ref=e550]
+                - generic [ref=e552]:
+                  - generic [ref=e553]: DevOps Specialist
+                  - generic [ref=e554]: Tech
+                - button "Preview" [ref=e555]:
+                  - img [ref=e556]
+                - generic [ref=e560]: ATS
+              - generic [ref=e561]: DevOps Specialist
+              - generic [ref=e562]: Template for DevOps and infrastructure engineers.
+              - generic [ref=e563]:
+                - generic [ref=e564]:
+                  - img [ref=e565]
+                  - text: "91"
+                - generic [ref=e567]: Tech
+            - button "Minimalist Blue Minimalist Blue Modern ATS Minimalist Blue Ultra-clean design with subtle blue accents. Corporate-friendly. 90 Modern" [ref=e568] [cursor=pointer]:
+              - generic [ref=e569]:
+                - img "Minimalist Blue" [ref=e570]
+                - generic [ref=e572]:
+                  - generic [ref=e573]: Minimalist Blue
+                  - generic [ref=e574]: Modern
+                - button "Preview" [ref=e575]:
+                  - img [ref=e576]
+                - generic [ref=e580]: ATS
+              - generic [ref=e581]: Minimalist Blue
+              - generic [ref=e582]: Ultra-clean design with subtle blue accents. Corporate-friendly.
+              - generic [ref=e583]:
+                - generic [ref=e584]:
+                  - img [ref=e585]
+                  - text: "90"
+                - generic [ref=e587]: Modern
+            - button "Executive Black Executive Black Classic ATS Executive Black Sophisticated black and white for senior professionals. 89 Classic" [ref=e588] [cursor=pointer]:
+              - generic [ref=e589]:
+                - img "Executive Black" [ref=e590]
+                - generic [ref=e592]:
+                  - generic [ref=e593]: Executive Black
+                  - generic [ref=e594]: Classic
+                - button "Preview" [ref=e595]:
+                  - img [ref=e596]
+                - generic [ref=e600]: ATS
+              - generic [ref=e601]: Executive Black
+              - generic [ref=e602]: Sophisticated black and white for senior professionals.
+              - generic [ref=e603]:
+                - generic [ref=e604]:
+                  - img [ref=e605]
+                  - text: "89"
+                - generic [ref=e607]: Classic
+            - button "VP Level VP Level Executive ATS VP Level Professional for Vice President and Director roles. 88 Executive" [ref=e608] [cursor=pointer]:
+              - generic [ref=e609]:
+                - img "VP Level" [ref=e610]
+                - generic [ref=e612]:
+                  - generic [ref=e613]: VP Level
+                  - generic [ref=e614]: Executive
+                - button "Preview" [ref=e615]:
+                  - img [ref=e616]
+                - generic [ref=e620]: ATS
+              - generic [ref=e621]: VP Level
+              - generic [ref=e622]: Professional for Vice President and Director roles.
+              - generic [ref=e623]:
+                - generic [ref=e624]:
+                  - img [ref=e625]
+                  - text: "88"
+                - generic [ref=e627]: Executive
+            - button "Traditional Serif Traditional Serif Classic ATS Traditional Serif Timeless serif design for law, finance, traditional industries. 86 Classic" [ref=e628] [cursor=pointer]:
+              - generic [ref=e629]:
+                - img "Traditional Serif" [ref=e630]
+                - generic [ref=e632]:
+                  - generic [ref=e633]: Traditional Serif
+                  - generic [ref=e634]: Classic
+                - button "Preview" [ref=e635]:
+                  - img [ref=e636]
+                - generic [ref=e640]: ATS
+              - generic [ref=e641]: Traditional Serif
+              - generic [ref=e642]: Timeless serif design for law, finance, traditional industries.
+              - generic [ref=e643]:
+                - generic [ref=e644]:
+                  - img [ref=e645]
+                  - text: "86"
+                - generic [ref=e647]: Classic
+            - button "Professional Gray Professional Gray Classic ATS Professional Gray Elegant gray tones for refined appearance. 86 Classic" [ref=e648] [cursor=pointer]:
+              - generic [ref=e649]:
+                - img "Professional Gray" [ref=e650]
+                - generic [ref=e652]:
+                  - generic [ref=e653]: Professional Gray
+                  - generic [ref=e654]: Classic
+                - button "Preview" [ref=e655]:
+                  - img [ref=e656]
+                - generic [ref=e660]: ATS
+              - generic [ref=e661]: Professional Gray
+              - generic [ref=e662]: Elegant gray tones for refined appearance.
+              - generic [ref=e663]:
+                - generic [ref=e664]:
+                  - img [ref=e665]
+                  - text: "86"
+                - generic [ref=e667]: Classic
+            - button "Nursing Excellence Nursing Excellence Medical ATS Nursing Excellence Caring, professional for nursing professionals. 86 Medical" [ref=e668] [cursor=pointer]:
+              - generic [ref=e669]:
+                - img "Nursing Excellence" [ref=e670]
+                - generic [ref=e672]:
+                  - generic [ref=e673]: Nursing Excellence
+                  - generic [ref=e674]: Medical
+                - button "Preview" [ref=e675]:
+                  - img [ref=e676]
+                - generic [ref=e680]: ATS
+              - generic [ref=e681]: Nursing Excellence
+              - generic [ref=e682]: Caring, professional for nursing professionals.
+              - generic [ref=e683]:
+                - generic [ref=e684]:
+                  - img [ref=e685]
+                  - text: "86"
+                - generic [ref=e687]: Medical
+            - button "Senior Leader Senior Leader Executive ATS Senior Leader Distinguished for senior leadership positions. 85 Executive" [ref=e688] [cursor=pointer]:
+              - generic [ref=e689]:
+                - img "Senior Leader" [ref=e690]
+                - generic [ref=e692]:
+                  - generic [ref=e693]: Senior Leader
+                  - generic [ref=e694]: Executive
+                - button "Preview" [ref=e695]:
+                  - img [ref=e696]
+                - generic [ref=e700]: ATS
+              - generic [ref=e701]: Senior Leader
+              - generic [ref=e702]: Distinguished for senior leadership positions.
+              - generic [ref=e703]:
+                - generic [ref=e704]:
+                  - img [ref=e705]
+                  - text: "85"
+                - generic [ref=e707]: Executive
+            - button "Banking Professional Banking Professional Classic ATS Banking Professional Conservative design for banking and finance. 84 Classic" [ref=e708] [cursor=pointer]:
+              - generic [ref=e709]:
+                - img "Banking Professional" [ref=e710]
+                - generic [ref=e712]:
+                  - generic [ref=e713]: Banking Professional
+                  - generic [ref=e714]: Classic
+                - button "Preview" [ref=e715]:
+                  - img [ref=e716]
+                - generic [ref=e720]: ATS
+              - generic [ref=e721]: Banking Professional
+              - generic [ref=e722]: Conservative design for banking and finance.
+              - generic [ref=e723]:
+                - generic [ref=e724]:
+                  - img [ref=e725]
+                  - text: "84"
+                - generic [ref=e727]: Classic
+            - button "Gradient Modern Gradient Modern Modern ATS Gradient Modern Contemporary with subtle gradient backgrounds. 83 Modern" [ref=e728] [cursor=pointer]:
+              - generic [ref=e729]:
+                - img "Gradient Modern" [ref=e730]
+                - generic [ref=e732]:
+                  - generic [ref=e733]: Gradient Modern
+                  - generic [ref=e734]: Modern
+                - button "Preview" [ref=e735]:
+                  - img [ref=e736]
+                - generic [ref=e740]: ATS
+              - generic [ref=e741]: Gradient Modern
+              - generic [ref=e742]: Contemporary with subtle gradient backgrounds.
+              - generic [ref=e743]:
+                - generic [ref=e744]:
+                  - img [ref=e745]
+                  - text: "83"
+                - generic [ref=e747]: Modern
+            - button "Innovative Thinker Innovative Thinker Creative ATS Innovative Thinker Bold design for forward-thinking professionals. 83 Creative" [ref=e748] [cursor=pointer]:
+              - generic [ref=e749]:
+                - img "Innovative Thinker" [ref=e750]
+                - generic [ref=e752]:
+                  - generic [ref=e753]: Innovative Thinker
+                  - generic [ref=e754]: Creative
+                - button "Preview" [ref=e755]:
+                  - img [ref=e756]
+                - generic [ref=e760]: ATS
+              - generic [ref=e761]: Innovative Thinker
+              - generic [ref=e762]: Bold design for forward-thinking professionals.
+              - generic [ref=e763]:
+                - generic [ref=e764]:
+                  - img [ref=e765]
+                  - text: "83"
+                - generic [ref=e767]: Creative
+            - button "Cybersecurity Pro Cybersecurity Pro Tech ATS Cybersecurity Pro Security-focused with professional styling. 82 Tech" [ref=e768] [cursor=pointer]:
+              - generic [ref=e769]:
+                - img "Cybersecurity Pro" [ref=e770]
+                - generic [ref=e772]:
+                  - generic [ref=e773]: Cybersecurity Pro
+                  - generic [ref=e774]: Tech
+                - button "Preview" [ref=e775]:
+                  - img [ref=e776]
+                - generic [ref=e780]: ATS
+              - generic [ref=e781]: Cybersecurity Pro
+              - generic [ref=e782]: Security-focused with professional styling.
+              - generic [ref=e783]:
+                - generic [ref=e784]:
+                  - img [ref=e785]
+                  - text: "82"
+                - generic [ref=e787]: Tech
+            - button "Clinical Researcher Clinical Researcher Medical ATS Clinical Researcher Academic-style for medical researchers. 82 Medical" [ref=e788] [cursor=pointer]:
+              - generic [ref=e789]:
+                - img "Clinical Researcher" [ref=e790]
+                - generic [ref=e792]:
+                  - generic [ref=e793]: Clinical Researcher
+                  - generic [ref=e794]: Medical
+                - button "Preview" [ref=e795]:
+                  - img [ref=e796]
+                - generic [ref=e800]: ATS
+              - generic [ref=e801]: Clinical Researcher
+              - generic [ref=e802]: Academic-style for medical researchers.
+              - generic [ref=e803]:
+                - generic [ref=e804]:
+                  - img [ref=e805]
+                  - text: "82"
+                - generic [ref=e807]: Medical
+            - button "Startup Hustle Startup Hustle Modern ATS Startup Hustle Dynamic template showing entrepreneurial spirit. 80 Modern" [ref=e808] [cursor=pointer]:
+              - generic [ref=e809]:
+                - img "Startup Hustle" [ref=e810]
+                - generic [ref=e812]:
+                  - generic [ref=e813]: Startup Hustle
+                  - generic [ref=e814]: Modern
+                - button "Preview" [ref=e815]:
+                  - img [ref=e816]
+                - generic [ref=e820]: ATS
+              - generic [ref=e821]: Startup Hustle
+              - generic [ref=e822]: Dynamic template showing entrepreneurial spirit.
+              - generic [ref=e823]:
+                - generic [ref=e824]:
+                  - img [ref=e825]
+                  - text: "80"
+                - generic [ref=e827]: Modern
+            - button "Board Member Board Member Executive ATS Board Member Prestigious for board and advisory roles. 79 Executive" [ref=e828] [cursor=pointer]:
+              - generic [ref=e829]:
+                - img "Board Member" [ref=e830]
+                - generic [ref=e832]:
+                  - generic [ref=e833]: Board Member
+                  - generic [ref=e834]: Executive
+                - button "Preview" [ref=e835]:
+                  - img [ref=e836]
+                - generic [ref=e840]: ATS
+              - generic [ref=e841]: Board Member
+              - generic [ref=e842]: Prestigious for board and advisory roles.
+              - generic [ref=e843]:
+                - generic [ref=e844]:
+                  - img [ref=e845]
+                  - text: "79"
+                - generic [ref=e847]: Executive
+            - button "Dark Mode Pro Dark Mode Pro Modern Dark Mode Pro Stunning dark theme perfect for creative professionals. 78 Modern" [ref=e848] [cursor=pointer]:
+              - generic [ref=e849]:
+                - img "Dark Mode Pro" [ref=e850]
+                - generic [ref=e852]:
+                  - generic [ref=e853]: Dark Mode Pro
+                  - generic [ref=e854]: Modern
+                - button "Preview" [ref=e855]:
+                  - img [ref=e856]
+              - generic [ref=e859]: Dark Mode Pro
+              - generic [ref=e860]: Stunning dark theme perfect for creative professionals.
+              - generic [ref=e861]:
+                - generic [ref=e862]:
+                  - img [ref=e863]
+                  - text: "78"
+                - generic [ref=e865]: Modern
+            - button "Academic Scholar Academic Scholar Classic ATS Academic Scholar Traditional academic CV with publications emphasis. 78 Classic" [ref=e866] [cursor=pointer]:
+              - generic [ref=e867]:
+                - img "Academic Scholar" [ref=e868]
+                - generic [ref=e870]:
+                  - generic [ref=e871]: Academic Scholar
+                  - generic [ref=e872]: Classic
+                - button "Preview" [ref=e873]:
+                  - img [ref=e874]
+                - generic [ref=e878]: ATS
+              - generic [ref=e879]: Academic Scholar
+              - generic [ref=e880]: Traditional academic CV with publications emphasis.
+              - generic [ref=e881]:
+                - generic [ref=e882]:
+                  - img [ref=e883]
+                  - text: "78"
+                - generic [ref=e885]: Classic
+            - button "Content Creator Content Creator Creative Content Creator Vibrant for social media managers. 77 Creative" [ref=e886] [cursor=pointer]:
+              - generic [ref=e887]:
+                - img "Content Creator" [ref=e888]
+                - generic [ref=e890]:
+                  - generic [ref=e891]: Content Creator
+                  - generic [ref=e892]: Creative
+                - button "Preview" [ref=e893]:
+                  - img [ref=e894]
+              - generic [ref=e897]: Content Creator
+              - generic [ref=e898]: Vibrant for social media managers.
+              - generic [ref=e899]:
+                - generic [ref=e900]:
+                  - img [ref=e901]
+                  - text: "77"
+                - generic [ref=e903]: Creative
+            - button "Creative Bold Creative Bold Modern Creative Bold Eye-catching with bold typography and vibrant colors. 75 Modern" [ref=e904] [cursor=pointer]:
+              - generic [ref=e905]:
+                - img "Creative Bold" [ref=e906]
+                - generic [ref=e908]:
+                  - generic [ref=e909]: Creative Bold
+                  - generic [ref=e910]: Modern
+                - button "Preview" [ref=e911]:
+                  - img [ref=e912]
+              - generic [ref=e915]: Creative Bold
+              - generic [ref=e916]: Eye-catching with bold typography and vibrant colors.
+              - generic [ref=e917]:
+                - generic [ref=e918]:
+                  - img [ref=e919]
+                  - text: "75"
+                - generic [ref=e921]: Modern
+            - button "Designer Portfolio Designer Portfolio Creative Designer Portfolio Visual-first template for designers. 74 Creative" [ref=e922] [cursor=pointer]:
+              - generic [ref=e923]:
+                - img "Designer Portfolio" [ref=e924]
+                - generic [ref=e926]:
+                  - generic [ref=e927]: Designer Portfolio
+                  - generic [ref=e928]: Creative
+                - button "Preview" [ref=e929]:
+                  - img [ref=e930]
+              - generic [ref=e933]: Designer Portfolio
+              - generic [ref=e934]: Visual-first template for designers.
+              - generic [ref=e935]:
+                - generic [ref=e936]:
+                  - img [ref=e937]
+                  - text: "74"
+                - generic [ref=e939]: Creative
+            - button "Artistic Flair Artistic Flair Creative Artistic Flair Expressive design for artists and creatives. 68 Creative" [ref=e940] [cursor=pointer]:
+              - generic [ref=e941]:
+                - img "Artistic Flair" [ref=e942]
+                - generic [ref=e944]:
+                  - generic [ref=e945]: Artistic Flair
+                  - generic [ref=e946]: Creative
+                - button "Preview" [ref=e947]:
+                  - img [ref=e948]
+              - generic [ref=e951]: Artistic Flair
+              - generic [ref=e952]: Expressive design for artists and creatives.
+              - generic [ref=e953]:
+                - generic [ref=e954]:
+                  - img [ref=e955]
+                  - text: "68"
+                - generic [ref=e957]: Creative
+          - button "Close" [ref=e959] [cursor=pointer]
+        - generic [ref=e961]: —
+  - alert [ref=e962]
+```

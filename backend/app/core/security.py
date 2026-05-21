@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.db import get_db
 from app.core.config import settings
-from app.models.user import User
+from app.models.user import User, UserRole
 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_DAYS = 7
@@ -23,13 +23,22 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password[:72], hashed_password)
 
 def create_access_token(user_id: int) -> str:
+    return create_token(user_id, expires_seconds=ACCESS_TOKEN_EXPIRE_DAYS * 24 * 3600)
+
+
+def create_token(user_id: int, expires_seconds: int) -> str:
     now = datetime.utcnow()
     payload = {
         "sub": str(user_id),
         "iat": int(now.timestamp()),
-        "exp": int((now + timedelta(days=ACCESS_TOKEN_EXPIRE_DAYS)).timestamp()),
+        "exp": int((now + timedelta(seconds=expires_seconds)).timestamp()),
     }
     return jwt.encode(payload, settings.JWT_SECRET, algorithm=ALGORITHM)
+
+
+def create_password_reset_token(user_id: int, expires_minutes: int = 60) -> str:
+    """Create a short-lived token for password reset (default 60 minutes)."""
+    return create_token(user_id, expires_seconds=expires_minutes * 60)
 
 def _get_token_from_request(request: Request) -> Optional[str]:
     # Prefer cookie
@@ -70,3 +79,55 @@ def get_current_user(
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
     return user
+
+
+def get_current_user_optional(
+    request: Request,
+    db: Session = Depends(get_db),
+) -> Optional[User]:
+    """
+    Returns the current user if authenticated, otherwise None.
+    Use for endpoints that work with or without authentication.
+    """
+    token = _get_token_from_request(request)
+    if not token:
+        return None
+    try:
+        claims = decode_token(token)
+        uid = claims.get("sub")
+        if uid:
+            user = db.query(User).filter(User.id == int(uid)).first()
+            return user
+    except (JWTError, ValueError, HTTPException):
+        pass
+    return None
+
+
+def get_current_admin(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    """
+    Dependency to require admin or superadmin role.
+    Raises 403 if user is not an admin.
+    """
+    if current_user.role not in [UserRole.ADMIN, UserRole.SUPERADMIN]:
+        raise HTTPException(
+            status_code=403,
+            detail="Admin access required. Contact support if you need admin privileges."
+        )
+    return current_user
+
+
+def get_current_superadmin(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    """
+    Dependency to require superadmin role.
+    Raises 403 if user is not a superadmin.
+    """
+    if current_user.role != UserRole.SUPERADMIN:
+        raise HTTPException(
+            status_code=403,
+            detail="Superadmin access required. This action is restricted."
+        )
+    return current_user

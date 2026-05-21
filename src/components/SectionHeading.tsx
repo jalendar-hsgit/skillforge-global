@@ -6,3 +6,6 @@ export function SectionHeading({ title, subtitle }: { title: string; subtitle?: 
     </div>
   )
 }
+
+// Default export for backwards compatibility
+export default SectionHeading

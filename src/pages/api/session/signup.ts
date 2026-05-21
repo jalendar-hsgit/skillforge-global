@@ -8,7 +8,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(req.body || {}),
+    credentials: "include" as any
   });
+
+  // Pass backend Set-Cookie(s) to the browser
+  const anyHeaders = r.headers as any;
+  const raw = typeof anyHeaders.raw === 'function' ? anyHeaders.raw() : undefined;
+  const setCookies: string[] | undefined = raw?.["set-cookie"] || (r.headers.get("set-cookie") ? [r.headers.get("set-cookie") as string] : undefined);
+  if (setCookies && setCookies.length) {
+    res.setHeader("Set-Cookie", setCookies);
+  }
 
   const text = await r.text();
   res.status(r.status).send(text || "{}");

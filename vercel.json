@@ -1,0 +1,41 @@
+{
+  "version": 2,
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "public": true,
+  "env": [
+    {
+      "key": "NEXT_PUBLIC_API_BASE",
+      "value": "https://prasadreddy147-backend.up.railway.app",
+      "target": ["production", "preview", "development"]
+    }
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "main": true,
+      "v1.0.0-release": true
+    }
+  },
+  "regions": ["iad1"],
+  "functions": {
+    "src/pages/api/**/*.ts": {
+      "memory": 1024,
+      "maxDuration": 30
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "${NEXT_PUBLIC_API_BASE}/api/:path*"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/old-page",
+      "destination": "/new-page",
+      "permanent": true
+    }
+  ]
+}
