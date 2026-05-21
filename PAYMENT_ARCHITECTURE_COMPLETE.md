@@ -353,7 +353,7 @@ Student sees session with payment status = "Paid" ✓
 
 ```env
 # Stripe Keys (from https://dashboard.stripe.com)
-STRIPE_API_KEY=sk_test_123456789
+STRIPE_API_KEY=sk_test_REPLACE_ME
 STRIPE_PUBLISHABLE_KEY=pk_test_123456789
 STRIPE_WEBHOOK_SECRET=whsec_test_123456789  # From Stripe webhooks page
 

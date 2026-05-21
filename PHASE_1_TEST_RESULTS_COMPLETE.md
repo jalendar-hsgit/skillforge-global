@@ -293,7 +293,7 @@ User Payouts:            $3,592.00 (80%)
 ```bash
 # Stripe Configuration
 STRIPE_PUBLIC_KEY=pk_test_xxx
-STRIPE_SECRET_KEY=sk_test_xxx
+STRIPE_SECRET_KEY=sk_test_REPLACE_ME
 STRIPE_WEBHOOK_SECRET=whsec_xxx  # Get from Stripe Dashboard
 
 # Email Service
